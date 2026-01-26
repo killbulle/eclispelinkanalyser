@@ -1,0 +1,339 @@
+package com.eclipselink.analyzer;
+
+import com.eclipselink.analyzer.model.AttributeMetadata;
+import com.eclipselink.analyzer.model.EntityNode;
+import com.eclipselink.analyzer.model.RelationshipMetadata;
+import com.eclipselink.analyzer.rules.*;
+import com.eclipselink.analyzer.rules.EagerFetchRule;
+import com.eclipselink.analyzer.rules.MappingRule;
+import com.eclipselink.analyzer.rules.RelationshipOwnerRule;
+import com.eclipselink.analyzer.rules.RedundantUpdateRule;
+import com.eclipselink.analyzer.rules.OptimisticLockingRule;
+import com.eclipselink.analyzer.rules.ForeignKeyIndexRule;
+import com.eclipselink.analyzer.rules.LargeCollectionRule;
+import com.eclipselink.analyzer.rules.SelfReferencingRule;
+import com.eclipselink.analyzer.rules.InheritanceRule;
+import com.eclipselink.analyzer.rules.GraphAnalysisRule;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        System.out.println("Starting EclipseLink Mapping Analyzer...");
+
+        generateEmployeeReport();
+        generatePhoneReport();
+        generateProjectReport();
+        generateOrderReport();
+        generateAdvancedReport();
+
+        System.out.println("All example reports generated successfully!");
+    }
+
+    private static void generateEmployeeReport() throws Exception {
+        EntityNode employee = new EntityNode("Employee", "eclipselink.example.jpa.employee.model", "ENTITY");
+        Map<String, AttributeMetadata> empAttrs = new HashMap<>();
+        empAttrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "ID"));
+        empAttrs.put("firstName", new AttributeMetadata("firstName", "String", "VARCHAR", "FIRSTNAME"));
+        empAttrs.put("lastName", new AttributeMetadata("lastName", "String", "VARCHAR", "LASTNAME"));
+        empAttrs.put("salary", new AttributeMetadata("salary", "double", "DOUBLE", "SALARY"));
+        employee.setAttributes(empAttrs);
+
+        List<RelationshipMetadata> empRels = new ArrayList<>();
+        RelationshipMetadata rel = new RelationshipMetadata("address", "Address", "OneToOne");
+        rel.setLazy(false);
+        rel.setOwningSide(true);
+        empRels.add(rel);
+
+        RelationshipMetadata relPhones = new RelationshipMetadata("phones", "Phone", "OneToMany");
+        relPhones.setLazy(true);
+        relPhones.setMappedBy("owner");
+        relPhones.setOwningSide(false);
+        empRels.add(relPhones);
+
+        employee.setRelationships(empRels);
+
+        EntityNode address = new EntityNode("Address", "eclipselink.example.jpa.employee.model", "ENTITY");
+        Map<String, AttributeMetadata> addrAttrs = new HashMap<>();
+        addrAttrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "ID"));
+        addrAttrs.put("city", new AttributeMetadata("city", "String", "VARCHAR", "CITY"));
+        addrAttrs.put("street", new AttributeMetadata("street", "String", "VARCHAR", "STREET"));
+        address.setAttributes(addrAttrs);
+
+        List<EntityNode> nodes = Arrays.asList(employee, address);
+        runAnalysis(nodes, "Employee_Model", "employee-report.json");
+    }
+
+    private static void generatePhoneReport() throws Exception {
+        EntityNode phone = new EntityNode("Phone", "eclipselink.example.jpa.phone.model", "ENTITY");
+        Map<String, AttributeMetadata> attrs = new HashMap<>();
+        attrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "ID"));
+        attrs.put("number", new AttributeMetadata("number", "String", "VARCHAR", "PHONE_NUMBER"));
+        attrs.put("type", new AttributeMetadata("type", "String", "VARCHAR", "TYPE"));
+        // Simulating a missing table error for demonstration
+        phone.setAttributes(attrs);
+
+        List<EntityNode> nodes = Arrays.asList(phone);
+        runAnalysis(nodes, "Phone_Model", "phone-report.json");
+    }
+
+    private static void generateProjectReport() throws Exception {
+        EntityNode project = new EntityNode("Project", "eclipselink.example.jpa.project.model", "ENTITY");
+        Map<String, AttributeMetadata> projAttrs = new HashMap<>();
+        projAttrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "PROJ_ID"));
+        projAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "PROJ_NAME"));
+        projAttrs.put("description", new AttributeMetadata("description", "String", "VARCHAR", "DESC"));
+        project.setAttributes(projAttrs);
+
+        List<RelationshipMetadata> projRels = new ArrayList<>();
+        RelationshipMetadata relTeam = new RelationshipMetadata("teamMembers", "Employee", "ManyToMany");
+        relTeam.setLazy(true);
+        relTeam.setOwningSide(true);
+        projRels.add(relTeam);
+        project.setRelationships(projRels);
+
+        EntityNode emp = new EntityNode("Employee", "eclipselink.example.jpa.project.model", "ENTITY");
+        Map<String, AttributeMetadata> empAttrs = new HashMap<>();
+        empAttrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "EMP_ID"));
+        empAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "EMP_NAME"));
+        emp.setAttributes(empAttrs);
+
+        List<RelationshipMetadata> empRels = new ArrayList<>();
+        RelationshipMetadata relProjs = new RelationshipMetadata("projects", "Project", "ManyToMany");
+        relProjs.setLazy(true);
+        relProjs.setMappedBy("teamMembers");
+        relProjs.setOwningSide(false);
+        empRels.add(relProjs);
+        emp.setRelationships(empRels);
+
+        List<EntityNode> nodes = Arrays.asList(project, emp);
+        runAnalysis(nodes, "Project_Model", "project-report.json");
+    }
+
+    private static void generateOrderReport() throws Exception {
+        // Renamed to PurchaseOrder to avoid SQL keyword ORDER
+        EntityNode order = new EntityNode("PurchaseOrder", "eclipselink.example.jpa.order.model", "ENTITY");
+        Map<String, AttributeMetadata> orderAttrs = new HashMap<>();
+        orderAttrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "ORDER_ID"));
+        orderAttrs.put("total", new AttributeMetadata("total", "BigDecimal", "DECIMAL", "TOTAL_AMT"));
+        order.setAttributes(orderAttrs);
+
+        List<RelationshipMetadata> orderRels = new ArrayList<>();
+        RelationshipMetadata relLines = new RelationshipMetadata("orderLines", "OrderLine", "OneToMany");
+        relLines.setLazy(true);
+        relLines.setCascadePersist(true);
+        relLines.setMappedBy("order");
+        relLines.setOwningSide(false);
+        orderRels.add(relLines);
+        order.setRelationships(orderRels);
+
+        EntityNode line = new EntityNode("OrderLine", "eclipselink.example.jpa.order.model", "ENTITY");
+        Map<String, AttributeMetadata> lineAttrs = new HashMap<>();
+        lineAttrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "LINE_ID"));
+        lineAttrs.put("quantity", new AttributeMetadata("quantity", "int", "INTEGER", "QUANTITY"));
+        line.setAttributes(lineAttrs);
+
+        List<RelationshipMetadata> lineRels = new ArrayList<>();
+        RelationshipMetadata relOrder = new RelationshipMetadata("order", "PurchaseOrder", "ManyToOne");
+        relOrder.setLazy(false); // EAGER Issue
+        relOrder.setOwningSide(true);
+        relOrder.setMappedBy("orderLines");
+        lineRels.add(relOrder);
+        line.setRelationships(lineRels);
+
+        List<EntityNode> nodes = Arrays.asList(order, line);
+        runAnalysis(nodes, "Order_Model", "order-report.json");
+    }
+
+    private static void generateAdvancedReport() throws Exception {
+        // Abstract Project entity (inheritance)
+        EntityNode project = new EntityNode("Project", "org.eclipse.persistence.testing.perf.jpa.model.basic", "ABSTRACT_ENTITY");
+        Map<String, AttributeMetadata> projAttrs = new HashMap<>();
+        projAttrs.put("id", new AttributeMetadata("id", "int", "INTEGER", "PROJ_ID"));
+        projAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "PROJ_NAME"));
+        projAttrs.put("description", new AttributeMetadata("description", "String", "VARCHAR", "DESCRIP"));
+        projAttrs.put("version", new AttributeMetadata("version", "long", "BIGINT", "VERSION"));
+        project.setAttributes(projAttrs);
+        
+        List<RelationshipMetadata> projRels = new ArrayList<>();
+        RelationshipMetadata relTeamLeader = new RelationshipMetadata("teamLeader", "Employee", "ManyToOne");
+        relTeamLeader.setLazy(true);
+        relTeamLeader.setOwningSide(true);
+        relTeamLeader.setMappedBy(null);
+        projRels.add(relTeamLeader);
+        project.setRelationships(projRels);
+
+        // LargeProject extends Project
+        EntityNode largeProject = new EntityNode("LargeProject", "org.eclipse.persistence.testing.perf.jpa.model.basic", "ENTITY");
+        Map<String, AttributeMetadata> lpAttrs = new HashMap<>();
+        lpAttrs.put("budget", new AttributeMetadata("budget", "double", "DOUBLE", "BUDGET"));
+        lpAttrs.put("milestone", new AttributeMetadata("milestone", "Calendar", "TIMESTAMP", "MILESTONE"));
+        largeProject.setAttributes(lpAttrs);
+        // Inherits attributes from Project (not represented in this simple model)
+        largeProject.setRelationships(new ArrayList<>());
+
+        // SmallProject extends Project
+        EntityNode smallProject = new EntityNode("SmallProject", "org.eclipse.persistence.testing.perf.jpa.model.basic", "ENTITY");
+        smallProject.setAttributes(new HashMap<>()); // No additional attributes
+        smallProject.setRelationships(new ArrayList<>());
+
+        // Employee entity (complex)
+        EntityNode employee = new EntityNode("Employee", "org.eclipse.persistence.testing.perf.jpa.model.basic", "ENTITY");
+        Map<String, AttributeMetadata> empAttrs = new HashMap<>();
+        empAttrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "EMP_ID"));
+        empAttrs.put("firstName", new AttributeMetadata("firstName", "String", "VARCHAR", "F_NAME"));
+        empAttrs.put("lastName", new AttributeMetadata("lastName", "String", "VARCHAR", "L_NAME"));
+        empAttrs.put("gender", new AttributeMetadata("gender", "Gender", "VARCHAR", "GENDER"));
+        empAttrs.put("salary", new AttributeMetadata("salary", "double", "DOUBLE", "SALARY"));
+        empAttrs.put("version", new AttributeMetadata("version", "long", "BIGINT", "VERSION"));
+        employee.setAttributes(empAttrs);
+
+        List<RelationshipMetadata> empRels = new ArrayList<>();
+        // OneToOne address
+        RelationshipMetadata relAddress = new RelationshipMetadata("address", "Address", "OneToOne");
+        relAddress.setLazy(true);
+        relAddress.setOwningSide(true);
+        relAddress.setCascadePersist(true);
+        empRels.add(relAddress);
+        // ManyToOne jobTitle (via join table)
+        RelationshipMetadata relJobTitle = new RelationshipMetadata("jobTitle", "JobTitle", "ManyToOne");
+        relJobTitle.setLazy(true);
+        relJobTitle.setOwningSide(true);
+        relJobTitle.setCascadePersist(true);
+        empRels.add(relJobTitle);
+        // ManyToOne manager
+        RelationshipMetadata relManager = new RelationshipMetadata("manager", "Employee", "ManyToOne");
+        relManager.setLazy(true);
+        relManager.setOwningSide(true);
+        empRels.add(relManager);
+        // OneToMany managedEmployees (mappedBy manager)
+        RelationshipMetadata relManagedEmployees = new RelationshipMetadata("managedEmployees", "Employee", "OneToMany");
+        relManagedEmployees.setLazy(true);
+        relManagedEmployees.setOwningSide(false);
+        relManagedEmployees.setMappedBy("manager");
+        empRels.add(relManagedEmployees);
+        // OneToMany phoneNumbers (mappedBy owner)
+        RelationshipMetadata relPhoneNumbers = new RelationshipMetadata("phoneNumbers", "PhoneNumber", "OneToMany");
+        relPhoneNumbers.setLazy(true);
+        relPhoneNumbers.setOwningSide(false);
+        relPhoneNumbers.setMappedBy("owner");
+        relPhoneNumbers.setCascadePersist(true);
+        empRels.add(relPhoneNumbers);
+        // OneToMany degrees (owning side)
+        RelationshipMetadata relDegrees = new RelationshipMetadata("degrees", "Degree", "OneToMany");
+        relDegrees.setLazy(true);
+        relDegrees.setOwningSide(true);
+        relDegrees.setCascadePersist(true);
+        empRels.add(relDegrees);
+        // ManyToMany projects
+        RelationshipMetadata relProjects = new RelationshipMetadata("projects", "Project", "ManyToMany");
+        relProjects.setLazy(true);
+        relProjects.setOwningSide(true);
+        empRels.add(relProjects);
+        // ElementCollection responsibilities (simulated as OneToMany to a separate table)
+        RelationshipMetadata relResponsibilities = new RelationshipMetadata("responsibilities", "String", "ElementCollection");
+        relResponsibilities.setLazy(true);
+        relResponsibilities.setOwningSide(true);
+        empRels.add(relResponsibilities);
+        // ElementCollection emailAddresses (simulated)
+        RelationshipMetadata relEmailAddresses = new RelationshipMetadata("emailAddresses", "EmailAddress", "ElementCollection");
+        relEmailAddresses.setLazy(true);
+        relEmailAddresses.setOwningSide(true);
+        empRels.add(relEmailAddresses);
+        
+        employee.setRelationships(empRels);
+
+        // Address entity
+        EntityNode address = new EntityNode("Address", "org.eclipse.persistence.testing.perf.jpa.model.basic", "ENTITY");
+        Map<String, AttributeMetadata> addrAttrs = new HashMap<>();
+        addrAttrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "ADDR_ID"));
+        addrAttrs.put("street", new AttributeMetadata("street", "String", "VARCHAR", "STREET"));
+        addrAttrs.put("city", new AttributeMetadata("city", "String", "VARCHAR", "CITY"));
+        addrAttrs.put("postalCode", new AttributeMetadata("postalCode", "String", "VARCHAR", "POSTAL_CODE"));
+        address.setAttributes(addrAttrs);
+        address.setRelationships(new ArrayList<>());
+
+        // PhoneNumber entity
+        EntityNode phoneNumber = new EntityNode("PhoneNumber", "org.eclipse.persistence.testing.perf.jpa.model.basic", "ENTITY");
+        Map<String, AttributeMetadata> phoneAttrs = new HashMap<>();
+        phoneAttrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "PHONE_ID"));
+        phoneAttrs.put("type", new AttributeMetadata("type", "String", "VARCHAR", "TYPE"));
+        phoneAttrs.put("areaCode", new AttributeMetadata("areaCode", "String", "VARCHAR", "AREA_CODE"));
+        phoneAttrs.put("number", new AttributeMetadata("number", "String", "VARCHAR", "PHONE_NUMBER"));
+        phoneNumber.setAttributes(phoneAttrs);
+        List<RelationshipMetadata> phoneRels = new ArrayList<>();
+        RelationshipMetadata relOwner = new RelationshipMetadata("owner", "Employee", "ManyToOne");
+        relOwner.setLazy(false);
+        relOwner.setOwningSide(true);
+        relOwner.setMappedBy("phoneNumbers");
+        phoneRels.add(relOwner);
+        phoneNumber.setRelationships(phoneRels);
+
+        // Degree entity
+        EntityNode degree = new EntityNode("Degree", "org.eclipse.persistence.testing.perf.jpa.model.basic", "ENTITY");
+        Map<String, AttributeMetadata> degAttrs = new HashMap<>();
+        degAttrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "DEGREE_ID"));
+        degAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "DEGREE_NAME"));
+        degree.setAttributes(degAttrs);
+        degree.setRelationships(new ArrayList<>());
+
+        // JobTitle entity
+        EntityNode jobTitle = new EntityNode("JobTitle", "org.eclipse.persistence.testing.perf.jpa.model.basic", "ENTITY");
+        Map<String, AttributeMetadata> jobAttrs = new HashMap<>();
+        jobAttrs.put("id", new AttributeMetadata("id", "long", "BIGINT", "TITLE_ID"));
+        jobAttrs.put("title", new AttributeMetadata("title", "String", "VARCHAR", "TITLE"));
+        jobTitle.setAttributes(jobAttrs);
+        jobTitle.setRelationships(new ArrayList<>());
+
+        // EmailAddress embeddable (simulated as entity for simplicity)
+        EntityNode emailAddr = new EntityNode("EmailAddress", "org.eclipse.persistence.testing.perf.jpa.model.basic", "EMBEDDABLE");
+        Map<String, AttributeMetadata> emailAttrs = new HashMap<>();
+        emailAttrs.put("address", new AttributeMetadata("address", "String", "VARCHAR", "EMAIL_ADDRESS"));
+        emailAddr.setAttributes(emailAttrs);
+        emailAddr.setRelationships(new ArrayList<>());
+
+        List<EntityNode> nodes = Arrays.asList(project, largeProject, smallProject, employee, address, phoneNumber, degree, jobTitle, emailAddr);
+        runAnalysis(nodes, "Advanced_Model", "advanced-report.json");
+    }
+
+    private static void runAnalysis(List<EntityNode> nodes, String dbName, String outputPath) throws Exception {
+        Connection conn = DriverManager.getConnection("jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1", "sa", "");
+        // Simplified DDL generation
+        for (EntityNode node : nodes) {
+            StringBuilder ddl = new StringBuilder("CREATE TABLE " + node.getName().toUpperCase() + " (");
+            boolean first = true;
+            for (AttributeMetadata attr : node.getAttributes().values()) {
+                if (!first)
+                    ddl.append(", ");
+                ddl.append(attr.getColumnName()).append(" ").append(attr.getDatabaseType());
+                first = false;
+            }
+            ddl.append(")");
+            conn.createStatement().execute(ddl.toString());
+        }
+
+        DDLInspector inspector = new DDLInspector();
+        Map<String, DDLInspector.TableMetadata> schema = inspector.inspectSchema(conn);
+
+        AnalysisRunner runner = new AnalysisRunner();
+        List<MappingRule> rules = Arrays.asList(
+                new EagerFetchRule(),
+                new RelationshipOwnerRule(),
+                new RedundantUpdateRule(),
+                new OptimisticLockingRule(),
+                new ForeignKeyIndexRule(),
+                new LargeCollectionRule(),
+                new SelfReferencingRule(),
+                new InheritanceRule());
+        
+        List<GlobalMappingRule> globalRules = Arrays.asList(
+                new GraphAnalysisRule());
+
+        runner.runAnalysis(nodes, schema, rules, globalRules, outputPath);
+    }
+}

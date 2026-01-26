@@ -1,0 +1,557 @@
+{
+  "nodes" : [ {
+    "name" : "Customer",
+    "packageName" : "performance.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "name" : {
+        "name" : "name",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "NAME",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "elementCollection" : false,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "elementCollection" : false,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ {
+      "attributeName" : "orders",
+      "targetEntity" : "SalesOrder",
+      "mappingType" : "OneToMany",
+      "mappedBy" : "customer",
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : null,
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : false,
+      "owningSide" : false
+    }, {
+      "attributeName" : "tags",
+      "targetEntity" : "Tag",
+      "mappingType" : "ManyToMany",
+      "mappedBy" : null,
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : null,
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : true,
+      "owningSide" : true
+    } ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model"
+  }, {
+    "name" : "SalesOrder",
+    "packageName" : "performance.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "total" : {
+        "name" : "total",
+        "javaType" : "BigDecimal",
+        "databaseType" : "DECIMAL",
+        "columnName" : "TOTAL",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "elementCollection" : false,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "elementCollection" : false,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ {
+      "attributeName" : "customer",
+      "targetEntity" : "Customer",
+      "mappingType" : "ManyToOne",
+      "mappedBy" : null,
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : null,
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : false,
+      "owningSide" : true
+    }, {
+      "attributeName" : "items",
+      "targetEntity" : "OrderItem",
+      "mappingType" : "OneToMany",
+      "mappedBy" : "order",
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : null,
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : true,
+      "owningSide" : false
+    } ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model"
+  }, {
+    "name" : "OrderItem",
+    "packageName" : "performance.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "quantity" : {
+        "name" : "quantity",
+        "javaType" : "int",
+        "databaseType" : "INTEGER",
+        "columnName" : "QTY",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "elementCollection" : false,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "elementCollection" : false,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ {
+      "attributeName" : "order",
+      "targetEntity" : "SalesOrder",
+      "mappingType" : "ManyToOne",
+      "mappedBy" : null,
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : null,
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : true,
+      "owningSide" : true
+    } ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model"
+  }, {
+    "name" : "Tag",
+    "packageName" : "performance.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "name" : {
+        "name" : "name",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "NAME",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "elementCollection" : false,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "elementCollection" : false,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ {
+      "attributeName" : "customers",
+      "targetEntity" : "Customer",
+      "mappingType" : "ManyToMany",
+      "mappedBy" : "tags",
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : null,
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : true,
+      "owningSide" : false
+    } ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model"
+  } ],
+  "violations" : [ {
+    "ruleId" : "REL_EAGER_FETCH",
+    "severity" : "WARNING",
+    "message" : "Relationship 'orders' in Customer uses EAGER fetch. Use LAZY for better performance."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Customer' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "FK_INDEX",
+    "severity" : "WARNING",
+    "message" : "Relationship 'tags' in Customer uses foreign key column(s). Ensure database indexes are created on foreign key columns for better query performance."
+  }, {
+    "ruleId" : "LARGE_COLLECTION",
+    "severity" : "WARNING",
+    "message" : "Relationship 'orders' in Customer is a collection mapping that could return many objects. Consider implementing pagination (@BatchFetch, @FetchJoin, or query limits) to avoid loading too many objects into memory."
+  }, {
+    "ruleId" : "LARGE_COLLECTION",
+    "severity" : "WARNING",
+    "message" : "Relationship 'tags' in Customer is a collection mapping that could return many objects. Consider implementing pagination (@BatchFetch, @FetchJoin, or query limits) to avoid loading too many objects into memory."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Customer' has collection relationships and is frequently accessed. Consider using @Cacheable with appropriate cache size and expiry settings."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Customer' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "BATCH_FETCH",
+    "severity" : "INFO",
+    "message" : "Collection relationship 'orders' in entity 'Customer' does not use batch fetching. Consider adding @BatchFetch to optimize N+1 queries."
+  }, {
+    "ruleId" : "BATCH_FETCH",
+    "severity" : "INFO",
+    "message" : "Collection relationship 'tags' in entity 'Customer' does not use batch fetching. Consider adding @BatchFetch to optimize N+1 queries."
+  }, {
+    "ruleId" : "BATCH_FETCH",
+    "severity" : "WARNING",
+    "message" : "Lazy collection 'tags' does not use batch fetching. This will cause N+1 queries when accessing the collection."
+  }, {
+    "ruleId" : "BATCH_FETCH",
+    "severity" : "INFO",
+    "message" : "Entity 'Customer' has 2 collection relationships. Consider using global batch fetching configuration in persistence.xml or @BatchFetch on all collections."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "WARNING",
+    "message" : "Eager collection 'orders' in entity 'Customer' may cause performance issues. Consider LAZY fetch with @BatchFetch."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "WARNING",
+    "message" : "Lazy collection 'tags' in entity 'Customer' causes N+1 queries when accessed. Add @BatchFetch or use JOIN FETCH in queries."
+  }, {
+    "ruleId" : "CARTESIAN_PRODUCT",
+    "severity" : "ERROR",
+    "message" : "Eager collection 'orders' in entity 'Customer' will cause Cartesian product when combined with other relationships. Change to LAZY fetch immediately."
+  }, {
+    "ruleId" : "CARTESIAN_PRODUCT",
+    "severity" : "WARNING",
+    "message" : "Bidirectional eager relationship 'orders' in entity 'Customer' can cause circular loading issues. Ensure one side uses LAZY fetch."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Bidirectional relationship 'orders' has inverse side mapped by 'customer'. Ensure both sides have appropriate indexes."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "ManyToMany relationship 'tags' uses join table. Add indexes on both foreign key columns in the join table."
+  }, {
+    "ruleId" : "REL_EAGER_FETCH",
+    "severity" : "WARNING",
+    "message" : "Relationship 'customer' in SalesOrder uses EAGER fetch. Use LAZY for better performance."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'SalesOrder' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "FK_INDEX",
+    "severity" : "WARNING",
+    "message" : "Relationship 'customer' in SalesOrder uses foreign key column(s). Ensure database indexes are created on foreign key columns for better query performance."
+  }, {
+    "ruleId" : "LARGE_COLLECTION",
+    "severity" : "WARNING",
+    "message" : "Relationship 'items' in SalesOrder is a collection mapping that could return many objects. Consider implementing pagination (@BatchFetch, @FetchJoin, or query limits) to avoid loading too many objects into memory."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'SalesOrder' has collection relationships and is frequently accessed. Consider using @Cacheable with appropriate cache size and expiry settings."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'SalesOrder' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "BATCH_FETCH",
+    "severity" : "INFO",
+    "message" : "Collection relationship 'items' in entity 'SalesOrder' does not use batch fetching. Consider adding @BatchFetch to optimize N+1 queries."
+  }, {
+    "ruleId" : "BATCH_FETCH",
+    "severity" : "WARNING",
+    "message" : "Lazy collection 'items' does not use batch fetching. This will cause N+1 queries when accessing the collection."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "INFO",
+    "message" : "Eager relationship 'customer' in entity 'SalesOrder' may cause unnecessary joins. Consider LAZY fetch unless always needed."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "WARNING",
+    "message" : "Lazy collection 'items' in entity 'SalesOrder' causes N+1 queries when accessed. Add @BatchFetch or use JOIN FETCH in queries."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "INFO",
+    "message" : "Bidirectional lazy collection 'items' is accessed from both sides. Ensure both sides use consistent fetch strategies to avoid N+1 queries."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Relationship 'customer' in entity 'SalesOrder' creates a foreign key. Add database index for this column."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Bidirectional relationship 'items' has inverse side mapped by 'order'. Ensure both sides have appropriate indexes."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'OrderItem' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "FK_INDEX",
+    "severity" : "WARNING",
+    "message" : "Relationship 'order' in OrderItem uses foreign key column(s). Ensure database indexes are created on foreign key columns for better query performance."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'OrderItem' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "BATCH_FETCH",
+    "severity" : "INFO",
+    "message" : "Lazy relationship 'order' in entity 'OrderItem' could benefit from @BatchFetch when loading multiple parent entities."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Relationship 'order' in entity 'OrderItem' creates a foreign key. Add database index for this column."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Tag' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "LARGE_COLLECTION",
+    "severity" : "WARNING",
+    "message" : "Relationship 'customers' in Tag is a collection mapping that could return many objects. Consider implementing pagination (@BatchFetch, @FetchJoin, or query limits) to avoid loading too many objects into memory."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Tag' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "BATCH_FETCH",
+    "severity" : "INFO",
+    "message" : "Collection relationship 'customers' in entity 'Tag' does not use batch fetching. Consider adding @BatchFetch to optimize N+1 queries."
+  }, {
+    "ruleId" : "BATCH_FETCH",
+    "severity" : "WARNING",
+    "message" : "Lazy collection 'customers' does not use batch fetching. This will cause N+1 queries when accessing the collection."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "WARNING",
+    "message" : "Lazy collection 'customers' in entity 'Tag' causes N+1 queries when accessed. Add @BatchFetch or use JOIN FETCH in queries."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "INFO",
+    "message" : "Bidirectional lazy collection 'customers' is accessed from both sides. Ensure both sides use consistent fetch strategies to avoid N+1 queries."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Bidirectional relationship 'customers' has inverse side mapped by 'tags'. Ensure both sides have appropriate indexes."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "ERROR",
+    "message" : "Entity 'Customer' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "ERROR",
+    "message" : "Entity 'OrderItem' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "ERROR",
+    "message" : "Entity 'Tag' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "ERROR",
+    "message" : "Entity 'SalesOrder' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "WARNING",
+    "message" : "Entity 'Customer' is part of a strongly connected component with 4 entities. These entities are tightly coupled."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "WARNING",
+    "message" : "Entity 'OrderItem' is part of a strongly connected component with 4 entities. These entities are tightly coupled."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "WARNING",
+    "message" : "Entity 'Tag' is part of a strongly connected component with 4 entities. These entities are tightly coupled."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "WARNING",
+    "message" : "Entity 'SalesOrder' is part of a strongly connected component with 4 entities. These entities are tightly coupled."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "WARNING",
+    "message" : "No root entities found (all entities have incoming relationships). This may indicate a circular model with no clear entry points."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "INFO",
+    "message" : "No leaf entities found (all entities have outgoing relationships). This may indicate a highly interconnected model."
+  } ],
+  "anomalies" : [ ]
+}

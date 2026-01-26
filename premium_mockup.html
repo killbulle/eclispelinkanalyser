@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EclipseLink Analyzer - Deep Insight Mockup</title>
+    <style>
+        :root {
+            /* Palette - Linear/Vercel Inspired */
+            --bg-body: #050505;
+            --bg-panel: #0A0C10;
+            --bg-glass: rgba(20, 20, 25, 0.7);
+            --border-subtle: #222;
+            --border-active: #444;
+
+            --text-main: #ECECEC;
+            --text-muted: #888;
+
+            --accent-cyan: #00F0FF;
+            --accent-purple: #7000FF;
+            --accent-rose: #FF0055;
+            --accent-glow: rgba(0, 240, 255, 0.15);
+
+            --score-high: #00E050;
+            --score-med: #FFAA00;
+            --score-low: #FF0040;
+
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            height: 100vh;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 260px 1fr 340px;
+            /* Wider inspector */
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(112, 0, 255, 0.04) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.04) 0%, transparent 25%);
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border-subtle);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            z-index: 20;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: -0.02em;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .brand-icon {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 4px;
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            padding-left: 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-main);
+            box-shadow: inset 2px 0 0 var(--accent-cyan);
+        }
+
+        /* --- Main Area (Graph) --- */
+        .main-stage {
+            position: relative;
+            background-color: #030304;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            /* Grid Pattern */
+            background-image: linear-gradient(var(--border-subtle) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center center;
+            /* Fade grid edges */
+            mask-image: radial-gradient(circle at center, black 40%, transparent 90%);
+        }
+
+        /* Graph Visuals */
+        .graph-layer {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            transform: scale(0.9);
+        }
+
+        /* SVG Connections & Zones */
+        svg.graph-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        /* Aggregation Zone (Blob) */
+        .zone-blob {
+            fill: rgba(112, 0, 255, 0.05);
+            /* Purple tint */
+            stroke: rgba(112, 0, 255, 0.3);
+            stroke-width: 1;
+            stroke-dasharray: 4, 4;
+            transition: all 0.5s;
+        }
+
+        .zone-blob:hover {
+            fill: rgba(112, 0, 255, 0.1);
+            stroke: rgba(112, 0, 255, 0.6);
+        }
+
+        .zone-label {
+            fill: var(--accent-purple);
+            font-size: 11px;
+            font-family: var(--font-mono);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Links */
+        .link {
+            stroke: #333;
+            stroke-width: 1.5;
+            fill: none;
+            transition: stroke 0.3s;
+        }
+
+        .link.heavy {
+            stroke-width: 2.5;
+            stroke: #444;
+        }
+
+        .link:hover {
+            stroke: #888;
+        }
+
+        .cut-marker {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .cut-marker:hover {
+            transform: scale(1.2);
+        }
+
+        /* Nodes */
+        .node {
+            position: absolute;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            font-size: 12px;
+            font-weight: 500;
+            color: #ccc;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .node:hover {
+            border-color: #666;
+            color: #fff;
+            z-index: 100;
+        }
+
+        .node.root-node {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            /* Circle for root */
+            border: 2px solid var(--accent-cyan);
+            background: radial-gradient(circle, #1a1a20, #000);
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.1);
+        }
+
+        .node.vo-node {
+            border-style: dashed;
+            border-color: #555;
+            background: #0f0f12;
+            border-radius: 50px;
+        }
+
+        /* Ghost Node for Read Only suggestion */
+        .node.ghost {
+            opacity: 0.6;
+            border: 1px dashed var(--accent-rose);
+            background: rgba(255, 0, 85, 0.05);
+        }
+
+        .node-badge {
+            position: absolute;
+            top: -8px;
+            background: #333;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .badge-root {
+            background: var(--accent-purple);
+            top: -10px;
+            border: 1px solid #000;
+        }
+
+        .badge-ro {
+            background: var(--accent-rose);
+        }
+
+        /* --- Right Inspector --- */
+        .inspector {
+            background: rgba(10, 12, 16, 0.95);
+            border-left: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            z-index: 30;
+        }
+
+        /* Inspector Tabs */
+        .inspector-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-subtle);
+            background: #0E1015;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .tab.active {
+            color: var(--text-main);
+            border-bottom-color: var(--accent-cyan);
+            background: linear-gradient(to top, rgba(0, 240, 255, 0.05), transparent);
+        }
+
+        .inspector-content {
+            padding: 0;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .inspector-pane {
+            display: none;
+        }
+
+        .inspector-pane.active {
+            display: block;
+        }
+
+        /* JPA Detail Row */
+        .prop-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 20px;
+            border-bottom: 1px solid #1a1a1a;
+            font-size: 12px;
+        }
+
+        .prop-key {
+            color: var(--text-muted);
+        }
+
+        .prop-val {
+            color: var(--text-main);
+            font-family: var(--font-mono);
+        }
+
+        .code-block {
+            background: #050505;
+            padding: 12px;
+            margin: 12px 20px;
+            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #aaa;
+            line-height: 1.6;
+        }
+
+        .pill {
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #222;
+            color: #fff;
+            font-size: 10px;
+        }
+
+        .pill.lazy {
+            background: #334;
+            color: #aaf;
+            border: 1px solid #446;
+        }
+
+        .pill.eager {
+            background: #422;
+            color: #faa;
+            border: 1px solid #633;
+        }
+
+        .cluster-header {
+            padding: 16px 20px 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--accent-purple);
+            letter-spacing: 0.5px;
+        }
+
+        /* Alert/Idea Cards (Same as before) */
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 12px;
+            margin: 12px 20px;
+        }
+
+        .card-header {
+            display: flex;
+            gap: 10px;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: #888;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="brand">
+            <div class="brand-icon"></div>
+            EclipseLink Analyzer
+        </div>
+
+        <div class="nav">
+            <div class="nav-section-title">View Options</div>
+
+            <div class="nav-item active" onclick="toggleLayer('all', this)">
+                <span>Overview (All)</span>
+            </div>
+
+            <div class="nav-section-title" style="margin-top:16px">Analysis Layers</div>
+
+            <div class="nav-item layer-toggle" onclick="toggleLayer('aggregates', this)">
+                <span style="color:var(--accent-purple)">●</span> Aggregates DDD
+            </div>
+
+            <div class="nav-item layer-toggle" onclick="toggleLayer('cycles', this)">
+                <span style="color:var(--score-low)">●</span> Circular Deps
+            </div>
+
+            <div class="nav-item layer-toggle" onclick="toggleLayer('cuts', this)">
+                <span style="color:var(--accent-cyan)">●</span> Cut-Points
+            </div>
+
+            <div class="nav-item layer-toggle" onclick="toggleLayer('perf', this)">
+                <span style="color:orange">●</span> Perf Risks
+            </div>
+        </div>
+
+        <div style="margin-top:auto">
+            <div class="nav-item">Settings</div>
+        </div>
+    </div>
+
+    <!-- MAIN GRAPH -->
+    <div class="main-stage" id="graphStage">
+        <div class="graph-layer" style="width:1000px; height:700px; transform: scale(0.85);">
+
+            <svg class="graph-svg">
+                <!-- Aggregate Zones -->
+                <g class="layer-group layer-aggregates">
+                    <path d="M 300 200 Q 500 150 550 300 Q 500 450 350 400 Q 250 350 300 200 Z" class="zone-blob" />
+                    <text x="320" y="190" class="zone-label">Agg: Order</text>
+
+                    <path d="M 600 100 Q 850 50 900 200 Q 850 400 650 350 Q 550 200 600 100 Z" class="zone-blob"
+                        style="fill:rgba(255, 170, 0, 0.05); stroke:rgba(255, 170, 0, 0.2);" />
+                    <text x="650" y="90" class="zone-label" style="fill:orange">Agg: User</text>
+                </g>
+
+                <!-- Cycle Highlights -->
+                <g class="layer-group layer-cycles" style="display:none">
+                    <path d="M 700 200 L 850 200 L 775 350 L 700 200 Z" fill="rgba(255,0,0,0.1)"
+                        stroke="var(--score-low)" stroke-width="4" stroke-dasharray="5"
+                        style="animation: dash 0.5s linear infinite;" />
+                </g>
+
+                <!-- Links (Base) -->
+                <line x1="400" y1="300" x2="350" y2="400" class="link heavy" />
+                <line x1="400" y1="300" x2="500" y2="350" class="link heavy" />
+                <line x1="400" y1="300" x2="700" y2="200" class="link" />
+
+                <line x1="700" y1="200" x2="850" y2="200" class="link heavy" />
+                <line x1="850" y1="200" x2="775" y2="350" class="link heavy" />
+                <line x1="775" y1="350" x2="700" y2="200" class="link heavy" />
+
+                <!-- Cut Markers -->
+                <g class="layer-group layer-cuts">
+                    <g class="cut-marker" transform="translate(550, 250)">
+                        <circle r="14" fill="#000" stroke="var(--accent-cyan)" stroke-width="2" />
+                        <text x="-7" y="5" fill="var(--accent-cyan)" font-size="14">✂</text>
+                    </g>
+                </g>
+
+            </svg>
+
+            <!-- NODES -->
+
+            <!-- --- Order Aggregate --- -->
+            <div class="node root-node" style="top:300px; left:400px; width:100px; height:100px;">
+                <div class="node-badge badge-root">Root</div>
+                <span>Order</span>
+            </div>
+            <div class="node vo-node" style="top:400px; left:350px;"><span>Items</span></div>
+
+            <!-- Perf Issue Node -->
+            <div class="node vo-node layer-target layer-perf" style="top:350px; left:500px;">
+                <span>Shipping</span>
+                <div class="node-badge" style="background:orange; top:auto; bottom:-10px">EAGER!</div>
+            </div>
+
+            <!-- --- The "Cycle" Cluster --- -->
+            <div class="node layer-target layer-cycles" style="top:200px; left:700px; border-color:var(--score-low);">
+                <span>User</span>
+            </div>
+            <div class="node layer-target layer-cycles" style="top:200px; left:850px; border-color:var(--score-low);">
+                <span>Role</span>
+            </div>
+            <div class="node layer-target layer-cycles" style="top:350px; left:775px; border-color:var(--score-low);">
+                <span>Group</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- RIGHT INSPECTOR -->
+    <div class="inspector">
+
+        <!-- Header -->
+        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-subtle);">
+            <div style="font-size:18px; font-weight:600; color:#fff;">Order</div>
+            <div style="font-size:12px; color:var(--accent-purple); font-weight:bold;">com.example.ecommerce.Order</div>
+        </div>
+
+        <!-- TABS -->
+        <div class="inspector-tabs">
+            <div class="tab active" onclick="switchTab(0)">Analysis & DDD</div>
+            <div class="tab" onclick="switchTab(1)">JPA Inspector</div>
+        </div>
+
+        <!-- CONTENT 1: Analysis -->
+        <div class="inspector-content inspector-pane active" id="pane-0">
+            <!-- DDD Section -->
+            <div class="cluster-header">DDD Retro-Analysis</div>
+
+            <div class="card" style="border-left: 2px solid var(--accent-purple);">
+                <div class="card-header">
+                    <div style="color:var(--accent-purple)">💠</div>
+                    <div>
+                        <div class="card-title">Potential Aggregate Root</div>
+                        <div class="card-desc">
+                            High centrality score (85/100). Controls lifecycle of <code>OrderLine</code> and
+                            <code>Shipping</code>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div style="color:var(--accent-rose)">✂</div>
+                    <div>
+                        <div class="card-title">Recommended Cut-Point</div>
+                        <div class="card-desc">
+                            Relation to <code>Customer</code> is WEAK. decouple to ID-Reference to split modules.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cluster-header">Performance</div>
+            <div class="card" style="border-left: 2px solid orange;">
+                <div class="card-header">
+                    <div style="color:orange">⚠</div>
+                    <div>
+                        <div class="card-title">Eager Fetch Risk</div>
+                        <div class="card-desc">
+                            <code>Shipping</code> is loaded EAGERly. Confirm specific layout requirement.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENT 2: JPA Inspector -->
+        <div class="inspector-content inspector-pane" id="pane-1">
+            <div class="cluster-header">Class Details</div>
+
+            <div class="prop-row">
+                <span class="prop-key">Table Name</span>
+                <span class="prop-val">ORDERS</span>
+            </div>
+            <div class="prop-row">
+                <span class="prop-key">Access Type</span>
+                <span class="prop-val">FIELD</span>
+            </div>
+            <div class="prop-row">
+                <span class="prop-key">Cache Type</span>
+                <span class="prop-val">SOFT_WEAK</span>
+            </div>
+            <div class="prop-row">
+                <span class="prop-key">Optimistic Locking</span>
+                <span class="prop-val">VERSION (Long)</span>
+            </div>
+
+            <div class="cluster-header">Attributes (Mapped)</div>
+            <div class="prop-row">
+                <span class="prop-key">id</span>
+                <span class="prop-val">@Id (Sequence)</span>
+            </div>
+            <div class="prop-row">
+                <span class="prop-key">totalAmount</span>
+                <span class="prop-val">BigDecimal</span>
+            </div>
+
+            <div class="cluster-header">Bytecode Weaving Status</div>
+            <div class="prop-row">
+                <span class="prop-key">Lazy Loading</span>
+                <span class="prop-val" style="color:#00E050">WEAVED</span>
+            </div>
+            <div class="prop-row">
+                <span class="prop-key">Change Tracking</span>
+                <span class="prop-val" style="color:#00E050">WEAVED</span>
+            </div>
+
+            <div class="cluster-header">Generated SQL Preview</div>
+            <div class="code-block">
+                SELECT t0.ID, t0.TOTAL, t1.ID, t1.STREET
+                FROM ORDERS t0
+                LEFT JOIN SHIPPING t1 ON ...
+                WHERE t0.ID = ?
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function toggleLayer(layerName, btn) {
+            // Simple Logic: Reset or Toggle Class on Main Stage
+            const stage = document.getElementById('graphStage');
+
+            // Visual Active State on Nav
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            // Logic to dim unrelated items
+            if (layerName === 'all') {
+                stage.className = 'main-stage'; // Reset
+                document.querySelectorAll('.layer-group').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.layer-cycles').forEach(el => el.style.display = 'none'); // Hide cycles by default in overview
+                // Reset Opacity
+                document.querySelectorAll('.layer-group, .node, .link').forEach(el => el.style.opacity = '1');
+                return;
+            }
+
+            // Creating a "focused" mode
+            stage.className = 'main-stage mode-focused';
+
+            // Hide all special layers first
+            document.querySelectorAll('.layer-group').forEach(el => el.style.opacity = '0.05');
+            document.querySelectorAll('.node').forEach(el => el.style.opacity = '0.1');
+            document.querySelectorAll('.link').forEach(el => el.style.opacity = '0.05');
+
+            // Show specific layer
+            if (layerName === 'cycles') {
+                document.querySelectorAll('.layer-cycles').forEach(el => {
+                    if (el.tagName === 'g') el.style.display = 'block'; // Show SVG group
+                    el.style.opacity = '1';
+                });
+                document.querySelectorAll('.node.layer-cycles').forEach(el => el.style.opacity = '1');
+            }
+            if (layerName === 'aggregates') {
+                document.querySelectorAll('.layer-aggregates').forEach(el => el.style.opacity = '1');
+                document.querySelectorAll('.root-node').forEach(el => el.style.opacity = '1'); // Keep roots visible
+            }
+            if (layerName === 'perf') {
+                document.querySelectorAll('.layer-perf').forEach(el => el.style.opacity = '1');
+            }
+            if (layerName === 'cuts') {
+                document.querySelectorAll('.layer-cuts').forEach(el => el.style.opacity = '1');
+            }
+        }
+
+        function switchTab(idx) {
+            document.querySelectorAll('.tab').forEach((t, i) => {
+                if (i === idx) t.classList.add('active');
+                else t.classList.remove('active');
+            });
+            document.querySelectorAll('.inspector-pane').forEach((p, i) => {
+                if (i === idx) p.classList.add('active');
+                else p.classList.remove('active');
+            });
+        }
+    </script>
+</body>
+
+</html>

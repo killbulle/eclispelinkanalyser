@@ -1,0 +1,89 @@
+{
+  "nodes" : [ {
+    "name" : "Phone",
+    "packageName" : "eclipselink.example.jpa.phone.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "number" : {
+        "name" : "number",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "PHONE_NUMBER",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "elementCollection" : false,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "elementCollection" : false,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "type" : {
+        "name" : "type",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "TYPE",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "elementCollection" : false,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : null,
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model"
+  } ],
+  "violations" : [ {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Phone' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Phone' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  } ],
+  "anomalies" : [ ]
+}

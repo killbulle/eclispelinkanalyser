@@ -1,0 +1,909 @@
+{
+  "nodes" : [ {
+    "name" : "Document",
+    "packageName" : "annotation.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "pdfData" : {
+        "name" : "pdfData",
+        "javaType" : "byte[]",
+        "databaseType" : "BLOB",
+        "columnName" : "PDF_DATA",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : true,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : true,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "version" : {
+        "name" : "version",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "VERSION",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : true
+      },
+      "content" : {
+        "name" : "content",
+        "javaType" : "String",
+        "databaseType" : "CLOB",
+        "columnName" : "CONTENT",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : true,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ {
+      "attributeName" : "tags",
+      "targetEntity" : "Tag",
+      "mappingType" : "OneToMany",
+      "mappedBy" : "document",
+      "cascadePersist" : true,
+      "cascadeMerge" : false,
+      "cascadeRemove" : true,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : "JOIN",
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : true,
+      "owningSide" : false
+    } ],
+    "dddRole" : "AGGREGATE_ROOT",
+    "aggregateName" : "Document",
+    "violations" : null
+  }, {
+    "name" : "Tag",
+    "packageName" : "annotation.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "name" : {
+        "name" : "name",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "NAME",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : true,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ {
+      "attributeName" : "document",
+      "targetEntity" : "Document",
+      "mappingType" : "ManyToOne",
+      "mappedBy" : "tags",
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : "IN",
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : true,
+      "owningSide" : true
+    } ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Document",
+    "violations" : null
+  }, {
+    "name" : "Event",
+    "packageName" : "annotation.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "created" : {
+        "name" : "created",
+        "javaType" : "java.util.Date",
+        "databaseType" : "TIMESTAMP",
+        "columnName" : "CREATED",
+        "temporalType" : "TIMESTAMP",
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : true,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "eventTime" : {
+        "name" : "eventTime",
+        "javaType" : "java.util.Date",
+        "databaseType" : "TIME",
+        "columnName" : "EVENT_TIME",
+        "temporalType" : "TIME",
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : true,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : true,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "eventDate" : {
+        "name" : "eventDate",
+        "javaType" : "java.util.Date",
+        "databaseType" : "DATE",
+        "columnName" : "EVENT_DATE",
+        "temporalType" : "DATE",
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : true,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : null
+  }, {
+    "name" : "VersionedEntity",
+    "packageName" : "annotation.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : true,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "version" : {
+        "name" : "version",
+        "javaType" : "Integer",
+        "databaseType" : "INTEGER",
+        "columnName" : "VERSION",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : true
+      },
+      "status" : {
+        "name" : "status",
+        "javaType" : "Status",
+        "databaseType" : "VARCHAR",
+        "columnName" : "STATUS",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : true,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : null
+  }, {
+    "name" : "Vehicle",
+    "packageName" : "annotation.model",
+    "type" : "ABSTRACT_ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : "SINGLE_TABLE",
+    "discriminatorColumn" : "VEHICLE_TYPE",
+    "discriminatorValue" : "VEHICLE",
+    "attributes" : {
+      "registration" : {
+        "name" : "registration",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "REG_NUM",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : true,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : null
+  }, {
+    "name" : "Car",
+    "packageName" : "annotation.model",
+    "type" : "ENTITY",
+    "parentEntity" : "Vehicle",
+    "inheritanceStrategy" : "SINGLE_TABLE",
+    "discriminatorColumn" : null,
+    "discriminatorValue" : "CAR",
+    "attributes" : {
+      "seats" : {
+        "name" : "seats",
+        "javaType" : "int",
+        "databaseType" : "INTEGER",
+        "columnName" : "SEATS",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : null
+  }, {
+    "name" : "Truck",
+    "packageName" : "annotation.model",
+    "type" : "ENTITY",
+    "parentEntity" : "Vehicle",
+    "inheritanceStrategy" : "SINGLE_TABLE",
+    "discriminatorColumn" : null,
+    "discriminatorValue" : "TRUCK",
+    "attributes" : {
+      "capacity" : {
+        "name" : "capacity",
+        "javaType" : "double",
+        "databaseType" : "DOUBLE",
+        "columnName" : "CAPACITY",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : null
+  }, {
+    "name" : "Department",
+    "packageName" : "annotation.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "name" : {
+        "name" : "name",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "NAME",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : true,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ {
+      "attributeName" : "employees",
+      "targetEntity" : "Employee",
+      "mappingType" : "OneToMany",
+      "mappedBy" : "department",
+      "cascadePersist" : true,
+      "cascadeMerge" : true,
+      "cascadeRemove" : true,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : true,
+      "optional" : false,
+      "batchFetchType" : "EXISTS",
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : true,
+      "owningSide" : false
+    } ],
+    "dddRole" : "AGGREGATE_ROOT",
+    "aggregateName" : "Department",
+    "violations" : null
+  }, {
+    "name" : "Employee",
+    "packageName" : "annotation.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "name" : {
+        "name" : "name",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "NAME",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : true,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ {
+      "attributeName" : "department",
+      "targetEntity" : "Department",
+      "mappingType" : "ManyToOne",
+      "mappedBy" : "employees",
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : "JOIN",
+      "joinFetch" : true,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : true,
+      "owningSide" : true
+    } ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Department",
+    "violations" : null
+  } ],
+  "violations" : [ {
+    "ruleId" : "REDUNDANT_SQL_UPDATE",
+    "severity" : "INFO",
+    "message" : "Relationship 'tags' has CascadePersist. Ensure this is necessary to avoid extra persistence calls."
+  }, {
+    "ruleId" : "LARGE_COLLECTION",
+    "severity" : "WARNING",
+    "message" : "Relationship 'tags' in Document is a collection mapping that could return many objects. Consider implementing pagination (@BatchFetch, @FetchJoin, or query limits) to avoid loading too many objects into memory."
+  }, {
+    "ruleId" : "LOB_ANNOTATION",
+    "severity" : "WARNING",
+    "message" : "Attribute 'pdfData' in entity 'Document' uses @Lob annotation. Consider using lazy loading for Lob fields to avoid performance issues."
+  }, {
+    "ruleId" : "LOB_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Attribute 'pdfData' is byte[] with @Lob. For very large files (>1MB), consider storing files externally and keeping only file metadata in database."
+  }, {
+    "ruleId" : "LOB_ANNOTATION",
+    "severity" : "WARNING",
+    "message" : "Attribute 'content' in entity 'Document' uses @Lob annotation. Consider using lazy loading for Lob fields to avoid performance issues."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "INFO",
+    "message" : "Bidirectional lazy collection 'tags' is accessed from both sides. Ensure both sides use consistent fetch strategies to avoid N+1 queries."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Bidirectional relationship 'tags' has inverse side mapped by 'document'. Ensure both sides have appropriate indexes."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "WARNING",
+    "message" : "Lob attribute 'pdfData' should not be indexed. Database indexes on large objects are inefficient."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Version attribute 'version' is used in WHERE clauses for optimistic locking. Consider adding an index if version queries are frequent."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "WARNING",
+    "message" : "Lob attribute 'content' should not be indexed. Database indexes on large objects are inefficient."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Tag' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "FK_INDEX",
+    "severity" : "WARNING",
+    "message" : "Relationship 'document' in Tag uses foreign key column(s). Ensure database indexes are created on foreign key columns for better query performance."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Tag' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Relationship 'document' in entity 'Tag' creates a foreign key. Add database index for this column."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Bidirectional relationship 'document' has inverse side mapped by 'tags'. Ensure both sides have appropriate indexes."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Event' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Event' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+  }, {
+    "ruleId" : "TEMPORAL_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Attribute 'created' uses legacy Date/Calendar with @Temporal. Consider migrating to java.time API (LocalDate, LocalDateTime, Instant) for better type safety."
+  }, {
+    "ruleId" : "TEMPORAL_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Attribute 'eventTime' uses legacy Date/Calendar with @Temporal. Consider migrating to java.time API (LocalDate, LocalDateTime, Instant) for better type safety."
+  }, {
+    "ruleId" : "TEMPORAL_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Attribute 'eventDate' uses legacy Date/Calendar with @Temporal. Consider migrating to java.time API (LocalDate, LocalDateTime, Instant) for better type safety."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Event' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Temporal attribute 'created' is often used in date range queries. Consider adding an index for time-based queries."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Temporal attribute 'eventTime' is often used in date range queries. Consider adding an index for time-based queries."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Temporal attribute 'eventDate' is often used in date range queries. Consider adding an index for time-based queries."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'VersionedEntity' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Version field 'version' uses Integer. Consider using Long for systems with high concurrency to avoid overflow."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Version attribute 'version' is used in WHERE clauses for optimistic locking. Consider adding an index if version queries are frequent."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Vehicle' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Vehicle' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+  }, {
+    "ruleId" : "INHERITANCE_ANALYSIS",
+    "severity" : "INFO",
+    "message" : "Entity 'Vehicle' is abstract. Ensure proper inheritance strategy (@Inheritance) is defined (SINGLE_TABLE, JOINED, TABLE_PER_CLASS) to avoid mapping issues."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Vehicle' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Root entity 'Vehicle' defines inheritance strategy 'SINGLE_TABLE'. Ensure all subclasses use the same strategy."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Abstract entity 'Vehicle' cannot be instantiated. Ensure all concrete subclasses properly implement the hierarchy."
+  }, {
+    "ruleId" : "DISCRIMINATOR_USAGE",
+    "severity" : "INFO",
+    "message" : "Entity 'Vehicle' uses discriminator column 'VEHICLE_TYPE'. Consider using CHAR discriminator type (default) for single-character values for better performance."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "SINGLE_TABLE inheritance used. Discriminator column 'VEHICLE_TYPE' should be indexed for efficient subclass filtering."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Car' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Car' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Car' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Entity 'Car' uses SINGLE_TABLE inheritance. Monitor table growth and consider partitioning for large hierarchies."
+  }, {
+    "ruleId" : "DISCRIMINATOR_USAGE",
+    "severity" : "ERROR",
+    "message" : "Entity 'Car' uses SINGLE_TABLE inheritance but has no discriminator column. Add @DiscriminatorColumn annotation."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "SINGLE_TABLE inheritance used. Discriminator column 'DTYPE' should be indexed for efficient subclass filtering."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Truck' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Truck' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Truck' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Entity 'Truck' uses SINGLE_TABLE inheritance. Monitor table growth and consider partitioning for large hierarchies."
+  }, {
+    "ruleId" : "DISCRIMINATOR_USAGE",
+    "severity" : "ERROR",
+    "message" : "Entity 'Truck' uses SINGLE_TABLE inheritance but has no discriminator column. Add @DiscriminatorColumn annotation."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "SINGLE_TABLE inheritance used. Discriminator column 'DTYPE' should be indexed for efficient subclass filtering."
+  }, {
+    "ruleId" : "REDUNDANT_SQL_UPDATE",
+    "severity" : "INFO",
+    "message" : "Relationship 'employees' has CascadePersist. Ensure this is necessary to avoid extra persistence calls."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Department' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "LARGE_COLLECTION",
+    "severity" : "WARNING",
+    "message" : "Relationship 'employees' in Department is a collection mapping that could return many objects. Consider implementing pagination (@BatchFetch, @FetchJoin, or query limits) to avoid loading too many objects into memory."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Department' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "INFO",
+    "message" : "Bidirectional lazy collection 'employees' is accessed from both sides. Ensure both sides use consistent fetch strategies to avoid N+1 queries."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Bidirectional relationship 'employees' has inverse side mapped by 'department'. Ensure both sides have appropriate indexes."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Employee' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "FK_INDEX",
+    "severity" : "WARNING",
+    "message" : "Relationship 'department' in Employee uses foreign key column(s). Ensure database indexes are created on foreign key columns for better query performance."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Employee' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Relationship 'department' in entity 'Employee' creates a foreign key. Add database index for this column."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Bidirectional relationship 'department' has inverse side mapped by 'employees'. Ensure both sides have appropriate indexes."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "ERROR",
+    "message" : "Entity 'Tag' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "ERROR",
+    "message" : "Entity 'Document' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "ERROR",
+    "message" : "Entity 'Department' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "ERROR",
+    "message" : "Entity 'Employee' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "INFO",
+    "message" : "Potential inheritance hierarchy detected with base class 'Vehicle' and 2 subclasses. Ensure proper @Inheritance strategy."
+  } ],
+  "anomalies" : [ {
+    "entityName" : "Vehicle",
+    "propertyName" : null,
+    "severity" : "ERROR",
+    "message" : "Table VEHICLE not found in database"
+  } ]
+}

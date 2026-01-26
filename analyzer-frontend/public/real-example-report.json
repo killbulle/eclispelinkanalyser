@@ -1,0 +1,92 @@
+{
+  "nodes" : [ {
+    "name" : "Address",
+    "packageName" : "eclipselink.example.jpa.employee.model",
+    "type" : "ENTITY",
+    "attributes" : {
+      "country" : "java.sql.Clob",
+      "province" : "java.lang.String",
+      "city" : "java.lang.String",
+      "street" : "java.lang.String",
+      "postalCode" : "java.lang.String",
+      "id" : "java.lang.Integer",
+      "version" : "long"
+    },
+    "relationships" : [ ]
+  }, {
+    "name" : "EmploymentPeriod",
+    "packageName" : "eclipselink.example.jpa.employee.model",
+    "type" : "ENTITY",
+    "attributes" : {
+      "endDate" : "java.sql.Date",
+      "startDate" : "java.sql.Date"
+    },
+    "relationships" : [ ]
+  }, {
+    "name" : "PhoneNumber",
+    "packageName" : "eclipselink.example.jpa.employee.model",
+    "type" : "ENTITY",
+    "attributes" : {
+      "number" : "java.lang.String",
+      "areaCode" : "java.lang.String",
+      "id" : "java.lang.Integer",
+      "type" : "java.lang.String"
+    },
+    "relationships" : [ "owner -> Employee" ]
+  }, {
+    "name" : "Employee",
+    "packageName" : "eclipselink.example.jpa.employee.model",
+    "type" : "ENTITY",
+    "attributes" : {
+      "firstName" : "java.lang.String",
+      "lastName" : "java.lang.String",
+      "gender" : "java.lang.String",
+      "id" : "java.lang.Integer",
+      "salary" : "java.lang.Double",
+      "version" : "java.lang.Long"
+    },
+    "relationships" : [ "manager -> Employee", "address -> Address", "responsibilities -> Unknown", "managedEmployees -> Employee", "phoneNumbers -> PhoneNumber" ]
+  } ],
+  "violations" : [ ],
+  "anomalies" : [ {
+    "entityName" : "Address",
+    "propertyName" : "postalCode",
+    "severity" : "ERROR",
+    "message" : "Column POSTALCODE not found in table ADDRESS"
+  }, {
+    "entityName" : "Address",
+    "propertyName" : "id",
+    "severity" : "ERROR",
+    "message" : "Column ID not found in table ADDRESS"
+  }, {
+    "entityName" : "EmploymentPeriod",
+    "propertyName" : null,
+    "severity" : "ERROR",
+    "message" : "Table EMPLOYMENTPERIOD not found in database"
+  }, {
+    "entityName" : "PhoneNumber",
+    "propertyName" : null,
+    "severity" : "ERROR",
+    "message" : "Table PHONENUMBER not found in database"
+  }, {
+    "entityName" : "Employee",
+    "propertyName" : "firstName",
+    "severity" : "ERROR",
+    "message" : "Column FIRSTNAME not found in table EMPLOYEE"
+  }, {
+    "entityName" : "Employee",
+    "propertyName" : "lastName",
+    "severity" : "ERROR",
+    "message" : "Column LASTNAME not found in table EMPLOYEE"
+  }, {
+    "entityName" : "Employee",
+    "propertyName" : "id",
+    "severity" : "ERROR",
+    "message" : "Column ID not found in table EMPLOYEE"
+  }, {
+    "entityName" : "Employee",
+    "propertyName" : "salary",
+    "severity" : "ERROR",
+    "message" : "Column SALARY not found in table EMPLOYEE"
+  } ]
+}

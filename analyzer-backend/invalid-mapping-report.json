@@ -1,0 +1,325 @@
+{
+  "nodes" : [ {
+    "name" : "BadEntity",
+    "packageName" : "invalid.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "data" : {
+        "name" : "data",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "DATA",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : null,
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : null
+  }, {
+    "name" : "Parent",
+    "packageName" : "invalid.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ {
+      "attributeName" : "children",
+      "targetEntity" : "Child",
+      "mappingType" : "OneToMany",
+      "mappedBy" : "parent",
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : null,
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : false,
+      "owningSide" : false
+    } ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : null
+  }, {
+    "name" : "Child",
+    "packageName" : "invalid.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ {
+      "attributeName" : "parent",
+      "targetEntity" : "Parent",
+      "mappingType" : "ManyToOne",
+      "mappedBy" : null,
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : null,
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : false,
+      "owningSide" : true
+    }, {
+      "attributeName" : "sibling",
+      "targetEntity" : "Child",
+      "mappingType" : "OneToOne",
+      "mappedBy" : null,
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : null,
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "lazy" : true,
+      "owningSide" : true
+    } ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : null
+  }, {
+    "name" : "VeryLongTableNameThatExceedsTypicalDatabaseLimits",
+    "packageName" : "invalid.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : null
+  } ],
+  "violations" : [ {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'BadEntity' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'BadEntity' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "REL_EAGER_FETCH",
+    "severity" : "WARNING",
+    "message" : "Relationship 'children' in Parent uses EAGER fetch. Use LAZY for better performance."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Parent' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "LARGE_COLLECTION",
+    "severity" : "WARNING",
+    "message" : "Relationship 'children' in Parent is a collection mapping that could return many objects. Consider implementing pagination (@BatchFetch, @FetchJoin, or query limits) to avoid loading too many objects into memory."
+  }, {
+    "ruleId" : "INHERITANCE_ANALYSIS",
+    "severity" : "WARNING",
+    "message" : "Entity 'Parent' has name suggesting it might be a base class. Consider using JPA inheritance mapping if this entity has subclasses."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Parent' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "BATCH_FETCH",
+    "severity" : "INFO",
+    "message" : "Collection relationship 'children' in entity 'Parent' does not use batch fetching. Consider adding @BatchFetch to optimize N+1 queries."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "WARNING",
+    "message" : "Eager collection 'children' in entity 'Parent' may cause performance issues. Consider LAZY fetch with @BatchFetch."
+  }, {
+    "ruleId" : "CARTESIAN_PRODUCT",
+    "severity" : "ERROR",
+    "message" : "Eager collection 'children' in entity 'Parent' will cause Cartesian product when combined with other relationships. Change to LAZY fetch immediately."
+  }, {
+    "ruleId" : "CARTESIAN_PRODUCT",
+    "severity" : "WARNING",
+    "message" : "Bidirectional eager relationship 'children' in entity 'Parent' can cause circular loading issues. Ensure one side uses LAZY fetch."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Bidirectional relationship 'children' has inverse side mapped by 'parent'. Ensure both sides have appropriate indexes."
+  }, {
+    "ruleId" : "REL_EAGER_FETCH",
+    "severity" : "WARNING",
+    "message" : "Relationship 'parent' in Child uses EAGER fetch. Use LAZY for better performance."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Child' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "FK_INDEX",
+    "severity" : "WARNING",
+    "message" : "Relationship 'parent' in Child uses foreign key column(s). Ensure database indexes are created on foreign key columns for better query performance."
+  }, {
+    "ruleId" : "FK_INDEX",
+    "severity" : "WARNING",
+    "message" : "Relationship 'sibling' in Child uses foreign key column(s). Ensure database indexes are created on foreign key columns for better query performance."
+  }, {
+    "ruleId" : "SELF_REFERENCE",
+    "severity" : "INFO",
+    "message" : "Relationship 'sibling' in Child references the same entity type. This can create circular object graphs. Ensure proper handling for serialization and graph traversal to avoid infinite loops."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Child' has reference data characteristics. Consider @Cacheable with cache type SOFT or WEAK for memory-sensitive environments."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Child' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "BATCH_FETCH",
+    "severity" : "INFO",
+    "message" : "Lazy relationship 'sibling' in entity 'Child' could benefit from @BatchFetch when loading multiple parent entities."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "INFO",
+    "message" : "Eager relationship 'parent' in entity 'Child' may cause unnecessary joins. Consider LAZY fetch unless always needed."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Relationship 'parent' in entity 'Child' creates a foreign key. Add database index for this column."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Relationship 'sibling' in entity 'Child' creates a foreign key. Add database index for this column."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'VeryLongTableNameThatExceedsTypicalDatabaseLimits' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'VeryLongTableNameThatExceedsTypicalDatabaseLimits' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+  }, {
+    "ruleId" : "INHERITANCE_ANALYSIS",
+    "severity" : "WARNING",
+    "message" : "Entity 'VeryLongTableNameThatExceedsTypicalDatabaseLimits' has name suggesting it might be a base class. Consider using JPA inheritance mapping if this entity has subclasses."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'VeryLongTableNameThatExceedsTypicalDatabaseLimits' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "ERROR",
+    "message" : "Entity 'Parent' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "ERROR",
+    "message" : "Entity 'Child' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "INFO",
+    "message" : "Entity 'Child' has a self-referencing relationship. Ensure proper handling for graph traversal to avoid infinite loops."
+  } ],
+  "anomalies" : [ ]
+}

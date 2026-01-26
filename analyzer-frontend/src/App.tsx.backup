@@ -1,0 +1,697 @@
+import { useState, useCallback, useEffect } from 'react';
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  useReactFlow,
+  Position,
+  type Connection,
+  type Edge,
+  type Node,
+  ReactFlowProvider
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import dagre from 'dagre';
+import EntityNode from './components/EntityNode';
+import { Layout, AlertCircle, Info, CheckCircle2, Loader2, RefreshCw, Eye, EyeOff, GitGraph, Link as LinkIcon, Upload, ShieldAlert, AlertTriangle, Database, ChevronLeft, ChevronRight } from 'lucide-react';
+
+interface AttributeMetadata {
+  name: string;
+  javaType: string;
+  databaseType: string;
+  columnName: string;
+}
+
+interface RelationshipMetadata {
+  attributeName: string;
+  targetEntity: string;
+  mappingType: string;
+  lazy: boolean;
+  owningSide: boolean;
+  mappedBy?: string;
+  cascadePersist?: boolean;
+}
+
+interface Anomaly {
+  entityName: string;
+  propertyName?: string;
+  severity: string;
+  message: string;
+}
+
+interface Violation {
+  ruleId: string;
+  severity: string;
+  message: string;
+}
+
+interface EntityNodeData {
+  name: string;
+  packageName: string;
+  type: string;
+  attributes: Record<string, AttributeMetadata>;
+  relationships?: RelationshipMetadata[];
+  showAttributes: boolean;
+  hasAnomalies: boolean;
+  violations: Violation[];
+}
+
+interface AnalysisReport {
+  nodes: EntityNodeData[];
+  anomalies: Anomaly[];
+  violations: Violation[];
+}
+
+const nodeTypes = {
+  entityNode: EntityNode,
+};
+
+const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+  dagreGraph.setGraph({ rankdir: direction, ranksep: 100, nodesep: 100 });
+
+  nodes.forEach((node: Node) => {
+    dagreGraph.setNode(node.id, { width: 220, height: node.data.showAttributes ? 200 : 50 });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const newNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    return {
+      ...node,
+      targetPosition: Position.Top,
+      sourcePosition: Position.Bottom,
+      position: {
+        x: nodeWithPosition.x - 110,
+        y: nodeWithPosition.y - (node.data.showAttributes ? 100 : 25),
+      },
+    };
+  });
+
+  return { nodes: newNodes, edges };
+};
+
+const getCircularLayout = (nodes: Node[], edges: Edge[]) => {
+  const radius = Math.max(nodes.length * 80, 200);
+  const newNodes = nodes.map((node, index) => {
+    const angle = (index / nodes.length) * 2 * Math.PI;
+    return {
+      ...node,
+      targetPosition: Position.Top,
+      sourcePosition: Position.Bottom,
+      position: {
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+      },
+    };
+  });
+  return { nodes: newNodes, edges };
+};
+
+function AnalyzerApp() {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [stats, setStats] = useState({ nodes: 0, anomalies: 0, violations: 0 });
+  const [showAttributes, setShowAttributes] = useState(false);
+  const [selectedReport, setSelectedReport] = useState('employee-report.json');
+  const [activeTab, setActiveTab] = useState<'mapping' | 'anomalies' | 'violations'>('mapping');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const reports = [
+    { id: 'employee-report.json', name: 'Employee Model' },
+    { id: 'phone-report.json', name: 'Phone Model' },
+    { id: 'project-report.json', name: 'Project Mgmt Model' },
+    { id: 'order-report.json', name: 'Order Proc. Model' },
+    { id: 'advanced-report.json', name: 'Advanced JPA Model' }
+  ];
+   const { fitView } = useReactFlow();
+
+  const processReportData = useCallback((data: AnalysisReport) => {
+    const transformedNodes: Node[] = data.nodes.map((n: EntityNodeData) => ({
+      id: n.name,
+      type: 'entityNode',
+      position: { x: 0, y: 0 },
+      data: {
+        ...n,
+        showAttributes: false,
+        hasAnomalies: data.anomalies.some((a: Anomaly) => a.entityName === n.name),
+        violations: data.violations.filter((v: Violation) => v.message.includes(n.name))
+      },
+    }));
+
+    const transformedEdges: Edge[] = [];
+    
+    // Helper to count violations for a relationship
+    const countViolationsForRelationship = (sourceEntity: string, rel: RelationshipMetadata): number => {
+      let count = 0;
+      // Check for eager fetch violations
+      if (!rel.lazy) {
+        count++;
+      }
+      // Check for cascade persist violations (if we want to flag them)
+      if (rel.cascadePersist) {
+        count++;
+      }
+      // Check for violations in the global list that mention this relationship
+      const relKeywords = [`'${rel.attributeName}'`, `relationship '${rel.attributeName}'`, `in ${sourceEntity}`];
+      for (const violation of data.violations) {
+        const msg = violation.message.toLowerCase();
+        if (msg.includes(sourceEntity.toLowerCase()) && msg.includes(rel.attributeName.toLowerCase())) {
+          count++;
+        }
+      }
+      return count;
+    };
+
+     data.nodes.forEach((n: EntityNodeData) => {
+      if (n.relationships) {
+         n.relationships.forEach((rel: RelationshipMetadata, rIdx: number) => {
+           const targetNode = data.nodes.find((tn: EntityNodeData) => tn.name === rel.targetEntity);
+          if (targetNode) {
+            const violationCount = countViolationsForRelationship(n.name, rel);
+            const hasViolations = violationCount > 0;
+            const isEager = !rel.lazy;
+            
+            let strokeColor = '#3b82f6'; // blue for lazy
+            if (isEager) {
+              strokeColor = '#f59e0b'; // amber for eager
+            }
+            if (hasViolations) {
+              strokeColor = '#ef4444'; // red if has violations
+            }
+            
+            transformedEdges.push({
+              id: `e-${n.name}-${rel.targetEntity}-${rIdx}`,
+              source: n.name,
+              target: rel.targetEntity,
+              label: rel.mappingType + (violationCount > 0 ? ` (${violationCount})` : ''),
+              animated: isEager || hasViolations,
+              type: 'smoothstep',
+              style: {
+                stroke: strokeColor,
+                strokeWidth: rel.owningSide ? 2.5 : 1.5,
+                strokeDasharray: rel.owningSide ? '' : '5 5'
+              },
+              labelStyle: {
+                fill: hasViolations ? '#ef4444' : (isEager ? '#f59e0b' : '#3b82f6'),
+                fontWeight: '600',
+                fontSize: '10px',
+                background: 'white',
+                padding: '1px 4px',
+                borderRadius: '3px',
+                border: `1px solid ${strokeColor}`
+              },
+              data: { 
+                ...rel,
+                violationCount,
+                hasViolations,
+                isEager
+              }
+            });
+          }
+        });
+      }
+    });
+
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(transformedNodes, transformedEdges);
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+    setStats({
+      nodes: data.nodes.length,
+      anomalies: data.anomalies.length,
+      violations: data.violations.length
+    });
+    setTimeout(() => fitView(), 100);
+  }, [setNodes, setEdges, fitView]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    setError(null);
+    fetch(`/${selectedReport}`)
+      .then(res => res.json())
+      .then(data => {
+        processReportData(data);
+        setLoading(false);
+        setTimeout(() => fitView(), 100);
+      })
+      .catch(err => {
+        console.error("Failed to load analysis report:", err);
+        setError(`Failed to load report: ${err.message}`);
+        setLoading(false);
+      });
+  }, [selectedReport, processReportData, fitView]);
+
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        setError(null);
+        setLoading(true);
+        processReportData(data);
+        setLoading(false);
+        setSelectedReport('uploaded');
+      } catch (err) {
+        setError(`Invalid JSON file: ${(err as Error).message}`);
+      }
+    };
+    reader.readAsText(file);
+  }, [processReportData]);
+
+  const onLayout = useCallback((direction: string) => {
+    setNodes((nds) => {
+      const { nodes: layoutedNodes } = getLayoutedElements(nds, edges, direction);
+      return [...layoutedNodes];
+    });
+    setTimeout(() => fitView(), 100);
+  }, [edges, setNodes, fitView]);
+
+  const toggleAttributes = useCallback(() => {
+    setShowAttributes(prev => {
+      const next = !prev;
+      setNodes(nds => nds.map(node => ({
+        ...node,
+        data: { ...node.data, showAttributes: next }
+      })));
+      return next;
+    });
+    // Re-layout after state update has propagated
+    setTimeout(() => onLayout('TB'), 100);
+  }, [setNodes, onLayout]);
+
+  const onConnect = useCallback(
+    (params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges]
+  );
+
+  const onNodeClick = (_: unknown, node: Node) => { setSelectedNodeId(node.id); setSelectedEdgeId(null); };
+  const onEdgeClick = useCallback((_: unknown, edge: Edge) => { setSelectedEdgeId(edge.id); setSelectedNodeId(null); }, []);
+
+  const selectedNode = nodes.find(n => n.id === selectedNodeId);
+  const selectedEdge = edges.find(e => e.id === selectedEdgeId);
+
+  if (loading) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background-light text-text-primary">
+        <Loader2 className="animate-spin text-primary mb-4" size={48} />
+        <p className="text-text-secondary font-medium">Loading EclipseLink Analysis...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background-light text-text-primary">
+        <AlertCircle className="text-status-error mb-4" size={48} />
+        <p className="text-text-primary font-medium mb-2">Failed to load model</p>
+        <p className="text-text-muted text-sm mb-4">{error}</p>
+        <button 
+          onClick={() => setError(null)} 
+          className="px-4 py-2 bg-background-card text-text-primary rounded border border-border hover:bg-background-header"
+        >
+          Dismiss
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="analyzer-container">
+      <div className="graph-canvas">
+        <header className="absolute top-2 left-2 right-2 z-10 pointer-events-none">
+          <div className="bg-background-card/95 backdrop-blur-md rounded-lg border border-border shadow-lg pointer-events-auto">
+            {/* First row: Title, stats and model selector */}
+            <div className="flex items-center justify-between p-2 border-b border-border-light">
+              <div className="flex items-center gap-2">
+                <Layout size={16} className="text-primary" />
+                <div>
+                  <h1 className="text-xs font-bold text-text-primary leading-none">EclipseLink Analyzer</h1>
+                  <p className="text-[9px] text-text-secondary mt-0.5">
+                    {stats.nodes} Entities | {stats.anomalies} Anomalies | {stats.violations} Violations
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] text-text-muted font-bold uppercase">Model:</span>
+                <select
+                  value={selectedReport}
+                  onChange={(e) => setSelectedReport(e.target.value)}
+                  className="bg-background-card text-[10px] text-text-primary border border-border rounded px-2 py-1 focus:outline-none focus:border-primary cursor-pointer"
+                >
+                  {reports.map(r => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            {/* Second row: Action buttons */}
+            <div className="flex items-center gap-1 p-2">
+              <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" id="file-upload" />
+              <button 
+                onClick={() => document.getElementById('file-upload')?.click()} 
+                className="flex items-center gap-1 bg-background-card text-[10px] text-text-primary px-2 py-1 rounded border border-border hover:bg-background-header transition-colors"
+                title="Upload JSON report"
+              >
+                <Upload size={12} /> Upload
+              </button>
+              
+              <div className="h-4 w-px bg-border mx-1"></div>
+              
+              <button 
+                onClick={() => onLayout('TB')}
+                className="flex items-center gap-1 bg-background-card text-[10px] text-text-primary px-2 py-1 rounded border border-border hover:bg-background-header transition-colors"
+                title="Orthogonal layout"
+              >
+                <GitGraph size={12} /> Ortho
+              </button>
+              <button 
+                onClick={toggleAttributes}
+                className="flex items-center gap-1 bg-background-card text-[10px] text-text-primary px-2 py-1 rounded border border-border hover:bg-background-header transition-colors"
+                title="Toggle attribute visibility"
+              >
+                {showAttributes ? <EyeOff size={12} /> : <Eye size={12} />}
+                {showAttributes ? 'Hide' : 'Show'}
+              </button>
+              <button 
+                onClick={() => {
+                  const { nodes: layoutedNodes, edges: layoutedEdges } = getCircularLayout(nodes, edges);
+                  setNodes([...layoutedNodes]);
+                  setEdges([...layoutedEdges]);
+                  setTimeout(() => fitView(), 100);
+                }}
+                className="flex items-center gap-1 bg-background-card text-[10px] text-text-primary px-2 py-1 rounded border border-border hover:bg-background-header transition-colors"
+                title="Circular layout"
+              >
+                <RefreshCw size={12} className="rotate-45" /> Circular
+              </button>
+              <button 
+                onClick={() => {
+                  const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges, 'LR');
+                  setNodes([...layoutedNodes]);
+                  setEdges([...layoutedEdges]);
+                  setTimeout(() => fitView(), 100);
+                }}
+                className="flex items-center gap-1 bg-background-card text-[10px] text-text-primary px-2 py-1 rounded border border-border hover:bg-background-header transition-colors"
+                title="Organic layout"
+              >
+                <RefreshCw size={12} /> Organic
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
+          nodeTypes={nodeTypes}
+          fitView
+          minZoom={0.1}
+        >
+          <Background color="#1e293b" gap={20} />
+          <Controls />
+          <MiniMap nodeStrokeWidth={3} zoomable pannable maskColor="rgba(15, 23, 42, 0.7)" />
+        </ReactFlow>
+      </div>
+
+      <aside className="sidebar" style={{ width: sidebarCollapsed ? '64px' : '420px' }}>
+        <div className="flex items-center gap-2 p-4 border-b border-border bg-background-header/50">
+          <GitGraph size={16} className="text-primary" />
+          {!sidebarCollapsed && <h2 className="text-xs font-bold uppercase tracking-wider text-text-secondary">JPA Inspector</h2>}
+          <button 
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="ml-auto text-text-muted hover:text-text-primary transition-colors"
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {selectedEdge ? (
+            <div className="p-0 animate-in fade-in duration-300">
+               <div className="bg-background-card/50 p-4 border-b border-border">
+                 <div className="flex items-center gap-2 mb-1">
+                   <span className="text-primary"><LinkIcon size={14} /></span>
+                   <h3 className="text-sm font-bold text-text-primary">Relationship: {selectedEdge.data?.attributeName}</h3>
+                 </div>
+                 <p className="text-[10px] text-text-muted font-mono truncate">{selectedEdge.source} → {selectedEdge.target}</p>
+               </div>
+              <div className="space-y-0">
+                 <div className="px-4 py-2 bg-background-header/30 text-[10px] font-bold text-text-muted uppercase tracking-widest border-b border-border">
+                   Mapping Details
+                 </div>
+                <div className="jpa-grid">
+                  <div className="jpa-row">
+                    <div className="jpa-label">Type</div>
+                    <div className="jpa-value font-mono text-primary/90">{selectedEdge.data?.mappingType}</div>
+                  </div>
+                  <div className="jpa-row">
+                    <div className="jpa-label">Lazy</div>
+                    <div className="jpa-value">{selectedEdge.data?.lazy ? 'LAZY' : 'EAGER'}</div>
+                  </div>
+                  <div className="jpa-row">
+                    <div className="jpa-label">Owning Side</div>
+                    <div className="jpa-value">{selectedEdge.data?.owningSide ? 'Yes' : 'No'}</div>
+                  </div>
+                  {selectedEdge.data?.mappedBy && (
+                    <div className="jpa-row">
+                      <div className="jpa-label">Mapped By</div>
+                      <div className="jpa-value font-mono">{selectedEdge.data.mappedBy}</div>
+                    </div>
+                  )}
+                  {selectedEdge.data?.cascadePersist && (
+                    <div className="jpa-row">
+                      <div className="jpa-label">Cascade Persist</div>
+                       <div className="jpa-value text-status-success">Yes</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+           ) : selectedNode ? (
+            <div className="p-0 animate-in fade-in duration-300 h-full flex flex-col">
+              <div className="bg-background-card/50 p-4 border-b border-border">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-primary"><Layout size={14} /></span>
+                  <h3 className="text-sm font-bold text-text-primary">{selectedNode.data.name}</h3>
+                </div>
+                <p className="text-[10px] text-text-muted font-mono truncate">{selectedNode.data.packageName}</p>
+              </div>
+
+              {/* Tabs Navigation */}
+              <div className="flex border-b border-border">
+                <button
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition-colors ${activeTab === 'mapping' ? 'text-primary border-b-2 border-primary' : 'text-text-muted hover:text-text-primary'}`}
+                  onClick={() => setActiveTab('mapping')}
+                >
+                  <Database size={12} />
+                  Mapping
+                </button>
+                <button
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition-colors ${activeTab === 'anomalies' ? 'text-primary border-b-2 border-primary' : 'text-text-muted hover:text-text-primary'}`}
+                  onClick={() => setActiveTab('anomalies')}
+                >
+                  <ShieldAlert size={12} />
+                  Anomalies
+                </button>
+                <button
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition-colors ${activeTab === 'violations' ? 'text-primary border-b-2 border-primary' : 'text-text-muted hover:text-text-primary'}`}
+                  onClick={() => setActiveTab('violations')}
+                >
+                  <AlertTriangle size={12} />
+                  Rules ({selectedNode.data.violations.length})
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                {activeTab === 'mapping' && (
+                  <div className="space-y-0">
+                    <div className="px-4 py-2 bg-background-header/30 text-[10px] font-bold text-text-muted uppercase tracking-widest border-b border-border">
+                      Data Mapping
+                    </div>
+                    <div className="jpa-grid">
+                      <div className="jpa-row">
+                        <div className="jpa-label">Table</div>
+                        <div className="jpa-value font-mono text-primary/90">{selectedNode.data.name.toUpperCase()}</div>
+                      </div>
+                      <div className="jpa-row">
+                        <div className="jpa-label">Identity</div>
+                        <div className="jpa-value">{Object.keys(selectedNode.data.attributes).find(a => a.toLowerCase().includes('id')) || 'id'}</div>
+                      </div>
+                    </div>
+
+                    <div className="px-4 py-2 bg-background-header/30 text-[10px] font-bold text-text-muted uppercase tracking-widest border-b border-border mt-2">
+                      Relationships & Ownership
+                    </div>
+                    <div className="jpa-grid">
+                       {(selectedNode.data.relationships || []).map((rel: RelationshipMetadata, idx: number) => (
+                        <div key={idx} className="jpa-row group hover:bg-background-header/20">
+                          <div className="jpa-label flex items-center gap-1.5 leading-tight py-1">
+                            <LinkIcon size={10} className={rel.owningSide ? "text-primary" : "text-text-muted"} />
+                            <div className="flex flex-col">
+                              <span>{rel.attributeName}</span>
+                              <span className="text-[8px] opacity-60 font-normal">{rel.mappingType}</span>
+                            </div>
+                          </div>
+                          <div className="jpa-value flex-col items-start gap-0 py-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-primary/90 font-mono text-[10px]">{rel.targetEntity}</span>
+                              {rel.owningSide && <span className="text-[8px] bg-background-header text-primary px-1 rounded border border-primary/30 uppercase font-bold">Owner</span>}
+                              {!rel.lazy && <span className="text-[8px] bg-status-warning/10 text-status-warning px-1 rounded border border-status-warning/30 uppercase font-bold">EAGER</span>}
+                            </div>
+                            {rel.mappedBy && <div className="text-[8px] text-text-muted">mappedBy: <span className="font-mono">{rel.mappedBy}</span></div>}
+                            {rel.cascadePersist && <div className="text-[8px] text-status-success/80 italic">Cascade: PERSIST</div>}
+                          </div>
+                        </div>
+                      ))}
+                      {(!selectedNode.data.relationships || selectedNode.data.relationships.length === 0) && (
+                        <div className="p-4 text-center text-text-muted italic text-[10px]">No relationships defined</div>
+                      )}
+                    </div>
+
+                    <div className="px-4 py-2 bg-background-header/30 text-[10px] font-bold text-text-muted uppercase tracking-widest border-b border-border mt-2">
+                      Attributes
+                    </div>
+                    <div className="jpa-grid pb-10">
+                      {/* Header row for columns */}
+                      <div className="jpa-row bg-background-header/30 border-b border-border font-medium">
+                        <div className="jpa-label text-[10px] font-bold text-text-muted uppercase">
+                          Attribute
+                        </div>
+                        <div className="flex-1 flex">
+                          <div className="flex-1 flex items-center justify-center px-3 border-r border-border-light text-[10px] font-bold text-text-muted uppercase">
+                            Java Type
+                          </div>
+                          <div className="flex-1 flex items-center justify-center px-3 text-[10px] font-bold text-text-muted uppercase">
+                            DB Type
+                          </div>
+                        </div>
+                      </div>
+                      {Object.entries<AttributeMetadata>(selectedNode.data.attributes || {}).map(([name, attr]) => {
+                        const isId = name.toLowerCase().includes('id');
+                        return (
+                          <div key={name} className="jpa-row group hover:bg-background-header/20 py-1.5 h-auto">
+                            <div className="jpa-label flex items-center gap-1.5 h-full">
+                              {isId ? <AlertCircle size={10} className="text-status-warning" /> : <Info size={10} />}
+                              <div className="flex flex-col">
+                                <span>{name}</span>
+                                <span className="text-[8px] font-mono text-primary">{attr.columnName}</span>
+                              </div>
+                            </div>
+                            <div className="flex-1 flex">
+                              {/* Java Type Column */}
+                              <div className="flex-1 flex items-center gap-2 px-3 border-r border-border-light">
+                                <span className="text-[9px] bg-background-header text-text-primary px-1 rounded border border-border">Java</span>
+                                <span className="text-[10px] font-mono text-text-secondary truncate">
+                                  {String(attr.javaType).split('.').pop()}
+                                </span>
+                              </div>
+                              {/* DB Type Column */}
+                              <div className="flex-1 flex items-center gap-2 px-3">
+                                <span className="text-[9px] bg-primary/10 text-primary px-1 rounded border border-primary/20">DB</span>
+                                <span className="text-[10px] font-mono text-text-secondary truncate">
+                                  {attr.databaseType}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'anomalies' && (
+                  <div className="space-y-0">
+                    <div className="px-4 py-2 bg-background-header/30 text-[10px] font-bold text-text-muted uppercase tracking-widest border-b border-border">
+                      Schema Anomalies
+                    </div>
+                    {selectedNode.data.hasAnomalies ? (
+                      <div className="jpa-grid">
+                        <div className="jpa-row border-l-2 border-l-status-error bg-status-error/5">
+                          <div className="jpa-label">Constraint</div>
+                          <div className="jpa-value text-status-error flex flex-col items-start py-2 gap-1 overflow-visible whitespace-normal text-xs">
+                            <span className="font-bold">Schema Mismatch</span>
+                            <span className="text-[10px] text-text-muted">Physical database columns do not match entity fields. Check DDL script generation.</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 flex flex-col items-center gap-2 opacity-60">
+                        <CheckCircle2 size={32} className="text-status-success/50" />
+                        <span className="text-[11px] text-status-success">No anomalies detected</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'violations' && (
+                  <div className="space-y-0">
+                    <div className="px-4 py-2 bg-background-header/30 text-[10px] font-bold text-text-muted uppercase tracking-widest border-b border-border">
+                      Rule Violations ({selectedNode.data.violations.length})
+                    </div>
+                    {selectedNode.data.violations.length > 0 ? (
+                      <div className="jpa-grid">
+                        {selectedNode.data.violations.map((v: Violation, idx: number) => (
+                          <div key={idx} className={`jpa-row border-l-2 ${v.severity === 'ERROR' ? 'border-l-status-error bg-status-error/5' : v.severity === 'WARNING' ? 'border-l-status-warning bg-status-warning/5' : 'border-l-status-info bg-status-info/5'}`}>
+                            <div className="jpa-label">{v.ruleId}</div>
+                            <div className="jpa-value text-text-primary text-xs">{v.message}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 flex flex-col items-center gap-2 opacity-60">
+                        <CheckCircle2 size={32} className="text-status-success/50" />
+                        <span className="text-[11px] text-status-success">No rule violations detected</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-center p-8 text-text-muted">
+              <div className="p-6 rounded-full bg-background-header/30 mb-4 border border-border/50">
+                <Layout size={32} strokeWidth={1} />
+              </div>
+              <h4 className="text-sm font-medium mb-1 text-text-primary">No Entity Selected</h4>
+              <p className="text-[10px] leading-relaxed text-text-secondary">Select a node in the graph to inspect its JPA properties and DDL analysis.</p>
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ReactFlowProvider>
+      <AnalyzerApp />
+    </ReactFlowProvider>
+  );
+}
