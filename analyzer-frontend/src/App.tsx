@@ -217,17 +217,24 @@ const getOrganicLayout = (nodes: Node[], edges: Edge[]) => {
   const simulation = d3Force.forceSimulation(simNodes)
     .force('link', d3Force.forceLink<SimNode, SimLink>(simLinks)
       .id(d => d.id)
-      .distance(200)           // Ideal link distance
-      .strength(0.5))          // Link strength
+      .distance(280)           // Even more space for "Ultimate" feel
+      .strength(0.7))
     .force('charge', d3Force.forceManyBody()
-      .strength(-800)          // Repulsion strength (negative = repel)
-      .distanceMax(600))       // Max distance for repulsion
+      .strength(-2500)         // Powerful repulsion to ensure no overlaps
+      .distanceMax(1200))
     .force('center', d3Force.forceCenter(0, 0))
-    .force('collision', d3Force.forceCollide().radius(100))  // Prevent overlap
+    .force('x', d3Force.forceX().strength(0.04))
+    .force('y', d3Force.forceY().strength(0.04))
+    .force('collision', d3Force.forceCollide<SimNode>().radius(d => {
+      const isExpanded = d.originalNode.data?.showAttributes;
+      const w = 220;
+      const h = isExpanded ? 260 : 70;
+      return Math.sqrt(w * w + h * h) / 2 + 60; // Safe diagonal buffer
+    }))
     .stop();
 
-  // Run simulation synchronously (300 iterations for good convergence)
-  const iterations = 300;
+  // Run simulation synchronously (more iterations for better convergence)
+  const iterations = 400;
   for (let i = 0; i < iterations; i++) {
     simulation.tick();
   }
@@ -326,23 +333,28 @@ const getClusterLayout = (nodes: Node[], edges: Edge[], getAggFn: (node: Node) =
     target: edge.target,
   }));
 
-  // Create force simulation with stronger cluster gravity
+  // Create force simulation with stronger cluster gravity and collision
   const simulation = d3Force.forceSimulation(simNodes)
     .force('link', d3Force.forceLink<SimNode, SimLink>(simLinks)
       .id(d => d.id)
-      .distance(100)
-      .strength(0.2))
+      .distance(150)
+      .strength(0.3))
     .force('charge', d3Force.forceManyBody()
-      .strength(-500)
-      .distanceMax(300))
-    .force('collision', d3Force.forceCollide().radius(100)) // Larger collision radius
+      .strength(-1200)
+      .distanceMax(600))
+    .force('collision', d3Force.forceCollide<SimNode>().radius(d => {
+      const isExpanded = d.originalNode.data?.showAttributes;
+      const w = 200;
+      const h = isExpanded ? 260 : 60;
+      return Math.sqrt(w * w + h * h) / 2 + 80; // More padding for clusters
+    }))
     // Stronger pull to cluster center
-    .force('clusterX', d3Force.forceX<SimNode>(d => clusterCenters.get(d.cluster)?.x || 0).strength(0.6))
-    .force('clusterY', d3Force.forceY<SimNode>(d => clusterCenters.get(d.cluster)?.y || 0).strength(0.6))
+    .force('clusterX', d3Force.forceX<SimNode>(d => clusterCenters.get(d.cluster)?.x || 0).strength(0.8))
+    .force('clusterY', d3Force.forceY<SimNode>(d => clusterCenters.get(d.cluster)?.y || 0).strength(0.8))
     .stop();
 
   // Run simulation
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 300; i++) {
     simulation.tick();
   }
 
