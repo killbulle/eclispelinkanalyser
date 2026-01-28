@@ -377,7 +377,7 @@ function AnalyzerApp() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [violationFilters, setViolationFilters] = useState<Record<string, boolean>>({ ERROR: true, WARNING: true, INFO: true });
   const [groupingMode, setGroupingMode] = useState(false);
-  const [activeLayer, setActiveLayer] = useState<'all' | 'aggregates' | 'cycles' | 'cuts' | 'perf' | 'vo' | 'anomalies'>('all');
+  const [activeLayer, setActiveLayer] = useState<'aggregates' | 'cycles' | 'cuts' | 'perf' | 'vo' | 'anomalies'>('aggregates');
   const [selectedHeuristic, setSelectedHeuristic] = useState<HeuristicType>('shared');
 
   // Advanced Analysis State
@@ -1144,15 +1144,19 @@ function AnalyzerApp() {
     });
   }, [nodes, activeLayer]);
 
-  // AUTO-LAYOUT for Bounded Contexts
+  // AUTO-LAYOUT for specific layers (Bounded Contexts & Aggregates)
   useEffect(() => {
     if (activeLayer === 'cuts') {
       setGroupingMode(true);
       setSelectedHeuristic('package');
       setTimeout(() => onLayout('CLUSTER'), 50);
-    } else if (activeLayer !== 'cuts' && groupingMode) {
-      setGroupingMode(false);
+    } else if (activeLayer === 'aggregates') {
+      setGroupingMode(true);
+      setSelectedHeuristic('shared'); // Standard DDD shared rules
       setTimeout(() => onLayout('CLUSTER'), 50);
+    } else if (groupingMode && activeLayer !== 'cuts' && activeLayer !== 'aggregates') {
+      setGroupingMode(false);
+      setTimeout(() => onLayout('TB'), 50);
     }
   }, [activeLayer]);
 
@@ -1360,7 +1364,7 @@ function AnalyzerApp() {
           <div>
             <h3 className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted font-medium" style={{ color: 'var(--text-muted)' }}>View Options</h3>
             <button
-              onClick={() => { setSelectedNodeId(null); setActiveLayer('all'); }}
+              onClick={() => { setSelectedNodeId(null); setActiveLayer('aggregates'); }}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'all' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
               style={{
                 color: activeLayer === 'all' ? 'var(--text-main)' : 'var(--text-secondary)',
@@ -1416,7 +1420,7 @@ function AnalyzerApp() {
                     }}
                   >
                     <optgroup label="📊 Quality Analysis">
-                      <option value="all">Overview (All)</option>
+                      <option value="aggregates">📊 Overview</option>
                       <option value="anomalies">⚠️ Schema Anomalies ({stats.anomalies})</option>
                       <option value="perf">⚡ Performance Risks ({stats.eager})</option>
                       <option value="cycles">🔄 Dependency Cycles</option>
@@ -1824,8 +1828,8 @@ function AnalyzerApp() {
                       </div>
 
                       <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Performance Rules</div>
-                      {(selectedNode?.data.violations || []).map((v: Violation, i: number) => (
-                        <div key={i} className={`mx-5 p-4 bg-panel border-subtle border rounded-md mb-4 border-l-2 ${v.severity === 'ERROR' ? 'border-l-score-low' : 'border-l-score-med'}`}
+                      {(selectedNode.data.violations || []).map((v: Violation, idx: number) => (
+                        <div key={idx} className={`mx-5 p-4 bg-panel border-subtle border rounded-md mb-4 border-l-2 ${v.severity === 'ERROR' ? 'border-l-score-low' : 'border-l-score-med'}`}
                           style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
                           <div className="flex gap-3 mb-2">
                             <div className={v.severity === 'ERROR' ? 'text-score-low' : 'text-score-med'} style={{ color: v.severity === 'ERROR' ? 'var(--score-low)' : 'var(--score-med)' }}>⚠</div>
@@ -1958,7 +1962,7 @@ function AnalyzerApp() {
                       </div>
 
                       <div className="space-y-0">
-                        {Array.from(new Set(nodes.flatMap(n => (n.data.violations || []).map(v => JSON.stringify({ ...v, source: n.data.name }))))).map(s => JSON.parse(s)).filter((v: any) => violationFilters[v.severity as string]).map((v, i) => (
+                        {Array.from(new Set(nodes.flatMap(n => (n.data.violations || []).map((v: Violation) => JSON.stringify({ ...v, source: n.data.name }))))).map(s => JSON.parse(s)).filter((v: any) => violationFilters[v.severity as string]).map((v: any, i: number) => (
                           <div key={i} className="px-5 py-3 border-b border-subtle hover:bg-panel-hover group cursor-pointer"
                             style={{ borderColor: 'var(--border-subtle)' }}
                             onClick={() => {

@@ -124,8 +124,8 @@ const EntityNode = ({ data, selected }: EntityNodeProps) => {
     const isVirtual = data.type === 'MAPPED_SUPERCLASS' || data.type === 'EMBEDDABLE';
     const virtualStyle = isVirtual ? {
         borderStyle: 'dashed',
-        backgroundColor: 'var(--bg-node-virtual, #1e1e24)', // Slightly darker
-        opacity: focusOpacity * 0.9,
+        backgroundColor: 'rgba(255, 230, 0, 0.08)', // Transparent yellow
+        opacity: focusOpacity,
     } : {};
 
     // Dashed outline for potential VOs
