@@ -2163,15 +2163,16 @@ public class Main {
         region.setRelationships(new ArrayList<>());
         nodes.add(region);
 
-        EntityNode rprod = new EntityNode("ReportProduct", "demo.cartesian", "ENTITY");
-        rprod.setAttributes(Map.of("id", createIdAttribute()));
-        rprod.setRelationships(new ArrayList<>());
-        nodes.add(rprod);
+        EntityNode rProd = new EntityNode("ReportProduct", "demo.cartesian", "ENTITY");
+        rProd.setAttributes(Map.of("id", createIdAttribute()));
+        rProd.setRelationships(new ArrayList<>());
+        nodes.add(rProd);
 
-        EntityNode rcust = new EntityNode("ReportCustomer", "demo.cartesian", "ENTITY");
-        rcust.setAttributes(Map.of("id", createIdAttribute()));
-        rcust.setRelationships(new ArrayList<>());
-        nodes.add(rcust);
+        EntityNode rCust = new EntityNode("ReportCustomer", "demo.cartesian", "ENTITY");
+        rCust.setAttributes(Map.of("id", createIdAttribute()));
+        rCust.setRelationships(new ArrayList<>());
+        nodes.add(rCust);
+
         runAnalysis(nodes, "L6_Cartesian", "catalog/6-2-cartesian-product.json");
 
         // 6.3 Missing Optimizations
@@ -2197,6 +2198,51 @@ public class Main {
         lItem.setRelationships(new ArrayList<>());
         nodes.add(lItem);
         runAnalysis(nodes, "L6_MissingOpt", "catalog/6-3-missing-optimizations.json");
+
+        // 6.4 Verified Deep Cycle
+        generateLevel6VerifiedCycle();
+    }
+
+    // 6.4 Explicit Verification for Deep Cycles (4 nodes)
+    private static void generateLevel6VerifiedCycle() throws Exception {
+        List<EntityNode> nodes = new ArrayList<>();
+
+        EntityNode a = new EntityNode("CycleA", "demo.deep_cycle", "ENTITY");
+        EntityNode b = new EntityNode("CycleB", "demo.deep_cycle", "ENTITY");
+        EntityNode c = new EntityNode("CycleC", "demo.deep_cycle", "ENTITY");
+        EntityNode d = new EntityNode("CycleD", "demo.deep_cycle", "ENTITY");
+
+        a.setAttributes(Collections.singletonMap("id", createIdAttribute()));
+        b.setAttributes(Collections.singletonMap("id", createIdAttribute()));
+        c.setAttributes(Collections.singletonMap("id", createIdAttribute()));
+        d.setAttributes(Collections.singletonMap("id", createIdAttribute()));
+
+        // A -> B
+        List<RelationshipMetadata> aRels = new ArrayList<>();
+        aRels.add(createRel("toB", "CycleB", "OneToOne", true));
+        a.setRelationships(aRels);
+
+        // B -> C
+        List<RelationshipMetadata> bRels = new ArrayList<>();
+        bRels.add(createRel("toC", "CycleC", "OneToOne", true));
+        b.setRelationships(bRels);
+
+        // C -> D
+        List<RelationshipMetadata> cRels = new ArrayList<>();
+        cRels.add(createRel("toD", "CycleD", "OneToOne", true));
+        c.setRelationships(cRels);
+
+        // D -> A (Completes the cycle)
+        List<RelationshipMetadata> dRels = new ArrayList<>();
+        dRels.add(createRel("toA", "CycleA", "OneToOne", true));
+        d.setRelationships(dRels);
+
+        nodes.add(a);
+        nodes.add(b);
+        nodes.add(c);
+        nodes.add(d);
+
+        runAnalysis(nodes, "L6_DeepCycle", "catalog/6-4-deep-cycle-verified.json");
     }
 
     // ==================== LEVEL 7: REAL-WORLD ====================

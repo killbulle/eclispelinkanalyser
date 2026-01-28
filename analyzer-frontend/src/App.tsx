@@ -485,6 +485,7 @@ function AnalyzerApp() {
     { id: 'catalog/6-1-circular-refs.json', name: '6.1 ⚠️ Circular References' },
     { id: 'catalog/6-2-cartesian-product.json', name: '6.2 ⚠️ Cartesian Product' },
     { id: 'catalog/6-3-missing-optimizations.json', name: '6.3 ⚠️ Missing Optimizations' },
+    { id: 'catalog/6-4-deep-cycle-verified.json', name: '6.4 ✅ Verified Deep Cycle (A-B-C-D)' },
     // === Level 7: Real-World ===
     { id: 'complex-scenario-report.json', name: '7.1 🏢 Complex Domain (E-commerce)' },
     { id: 'ofbiz-report.json', name: '7.2 🚀 OFBiz Stress Test (113 entities)' },
