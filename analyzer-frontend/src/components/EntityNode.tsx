@@ -120,6 +120,14 @@ const EntityNode = ({ data, selected }: EntityNodeProps) => {
                     data.isPotentialVO ? '0 0 12px rgba(168, 85, 247, 0.5)' : 'none'
     } : {};
 
+    // Virtual Node Styles (MappedSuperclass, Embeddable)
+    const isVirtual = data.type === 'MAPPED_SUPERCLASS' || data.type === 'EMBEDDABLE';
+    const virtualStyle = isVirtual ? {
+        borderStyle: 'dashed',
+        backgroundColor: 'var(--bg-node-virtual, #1e1e24)', // Slightly darker
+        opacity: focusOpacity * 0.9,
+    } : {};
+
     // Dashed outline for potential VOs
     const voStyle = data.isPotentialVO ? {
         outline: '2px dashed #A855F7',
@@ -135,6 +143,7 @@ const EntityNode = ({ data, selected }: EntityNodeProps) => {
                 borderColor: selected ? 'var(--primary)' : 'var(--border-subtle)',
                 opacity: focusOpacity,
                 transition: 'opacity 0.3s ease, box-shadow 0.3s ease',
+                ...virtualStyle,
                 ...glowStyle,
                 ...voStyle
             }}>
@@ -192,7 +201,10 @@ const EntityNode = ({ data, selected }: EntityNodeProps) => {
                 <div className="flex items-center gap-1">
                     <div className={`w-1 h-1 rounded-full ${data.type === 'EMBEDDABLE' ? 'bg-accent-purple' : 'bg-primary'}`} style={{ backgroundColor: data.type === 'EMBEDDABLE' ? 'var(--accent-purple)' : 'var(--primary)' }}></div>
                     <span className="text-[6px] uppercase font-bold text-main" style={{ color: 'var(--text-main)' }}>
-                        {data.dddRole === 'AGGREGATE_ROOT' ? 'ROOT' : (data.type === 'EMBEDDABLE' ? 'VALUE' : 'ENTITY')}
+                        {data.dddRole === 'AGGREGATE_ROOT' ? 'ROOT' : (
+                            data.type === 'EMBEDDABLE' ? 'EMBED' :
+                                data.type === 'MAPPED_SUPERCLASS' ? 'SUPER' : 'ENTITY'
+                        )}
                     </span>
                 </div>
                 {errorCount > 0 && (

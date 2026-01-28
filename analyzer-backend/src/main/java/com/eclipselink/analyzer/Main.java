@@ -1700,6 +1700,33 @@ public class Main {
         user.setRelationships(userRels);
         nodes.add(user);
         runAnalysis(nodes, "L2_ElementCollection", "catalog/2-4-element-collection.json");
+
+        generateLevel2MappedSuperclass();
+    }
+
+    private static void generateLevel2MappedSuperclass() throws Exception {
+        // 2.5 MappedSuperclass
+        List<EntityNode> nodes = new ArrayList<>();
+
+        EntityNode base = new EntityNode("BaseTraceable", "demo.base", "MAPPED_SUPERCLASS");
+        Map<String, AttributeMetadata> baseAttrs = new HashMap<>();
+        baseAttrs.put("createdAt", new AttributeMetadata("createdAt", "Date", "TIMESTAMP", "CREATED_AT"));
+        baseAttrs.put("createdBy", new AttributeMetadata("createdBy", "String", "VARCHAR", "CREATED_BY"));
+        base.setAttributes(baseAttrs);
+        base.setRelationships(new ArrayList<>());
+        nodes.add(base);
+
+        EntityNode concrete = new EntityNode("TraceableOrder", "demo.base", "ENTITY");
+        Map<String, AttributeMetadata> concreteAttrs = new HashMap<>();
+        concreteAttrs.put("id", createIdAttribute());
+        concreteAttrs.put("orderNumber", new AttributeMetadata("orderNumber", "String", "VARCHAR", "ORDER_NUM"));
+        concrete.setAttributes(concreteAttrs);
+        concrete.setParentEntity("BaseTraceable");
+        concrete.setInheritanceStrategy("MAPPED_SUPERCLASS"); // Implicit strategy
+        concrete.setRelationships(new ArrayList<>());
+        nodes.add(concrete);
+
+        runAnalysis(nodes, "L2_MappedSuperclass", "catalog/2-5-mapped-superclass.json");
     }
 
     // ==================== LEVEL 3: JPA ADVANCED ====================

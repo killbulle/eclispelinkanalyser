@@ -21,7 +21,7 @@ import { jsPDF } from 'jspdf';
 import { getAggregateForNode, heuristics, type HeuristicType } from './utils/aggregateHeuristics';
 import { runAnalysis, type AnalysisConfig, type AnalysisReport as AdvancedAnalysisReport } from './analysis/engine';
 import { SemanticProfile } from './analysis/semantic';
-import { Layout, AlertCircle, CircleAlert, Info, Loader2, RefreshCw, Eye, EyeOff, GitGraph, Upload, ShieldAlert, Database, ChevronLeft, ChevronRight, Activity, Layers, FileDown, Brain, Box, GitMerge } from 'lucide-react';
+import { Layout, AlertCircle, CircleAlert, Info, Loader2, RefreshCw, Eye, EyeOff, GitGraph, Upload, ShieldAlert, Database, ChevronLeft, ChevronRight, Activity, Layers, FileDown, Brain, Box, GitMerge, ChevronDown } from 'lucide-react';
 
 interface AttributeMetadata {
   name: string;
@@ -464,6 +464,7 @@ function AnalyzerApp() {
     { id: 'catalog/2-2-inheritance-joined.json', name: '2.2 📘 Inheritance (Joined)' },
     { id: 'catalog/2-3-embedded.json', name: '2.3 📘 Embedded' },
     { id: 'catalog/2-4-element-collection.json', name: '2.4 📘 ElementCollection' },
+    { id: 'catalog/2-5-mapped-superclass.json', name: '2.5 🏗️ MappedSuperclass' },
     // === Level 3: JPA Advanced ===
     { id: 'catalog/3-1-lazy-eager.json', name: '3.1 📙 Lazy vs Eager' },
     { id: 'catalog/3-2-cascade-operations.json', name: '3.2 📙 Cascade Operations' },
@@ -1142,6 +1143,85 @@ function AnalyzerApp() {
     });
   }, [nodes, activeLayer]);
 
+  // AUTO-LAYOUT for Bounded Contexts
+  useEffect(() => {
+    if (activeLayer === 'cuts') {
+      setGroupingMode(true);
+      setSelectedHeuristic('package');
+      setTimeout(() => onLayout('CLUSTER'), 50);
+    } else if (activeLayer !== 'cuts' && groupingMode) {
+      setGroupingMode(false);
+      setTimeout(() => onLayout('CLUSTER'), 50);
+    }
+  }, [activeLayer]);
+
+  // Cycle Detection Logic (Client-side)
+  // We identify "Complex Cycles" (Length >= 3) to distinguish from simple bidirectional (Length 2)
+  const complexCycleEdges = useMemo(() => {
+    if (activeLayer !== 'cycles' || !nodes.length) return new Set<string>();
+
+    const adj = new Map<string, string[]>();
+    edges.forEach(e => {
+      if (!adj.has(e.source)) adj.set(e.source, []);
+      if (e.source !== e.target) { // Ignore self-loops for this check
+        adj.get(e.source)?.push(e.target);
+      }
+    });
+
+    const visited = new Set<string>();
+    const recursionStack = new Set<string>();
+    const path: string[] = [];
+    const detectedCycles: string[][] = [];
+
+    function dfs(node: string) {
+      visited.add(node);
+      recursionStack.add(node);
+      path.push(node);
+
+      const neighbors = adj.get(node) || [];
+      for (const neighbor of neighbors) {
+        // Prevent trivial backtracking in undirected sense (though this is directed graph)
+        // For directed cycles, we simply check if neighbor is in recursion stack
+        if (!visited.has(neighbor)) {
+          dfs(neighbor);
+        } else if (recursionStack.has(neighbor)) {
+          // Cycle found!
+          const cycleStartIndex = path.indexOf(neighbor);
+          if (cycleStartIndex !== -1) {
+            const cycle = path.slice(cycleStartIndex);
+            // Filter out simple bidirectional (length 2)
+            // A->B, B->A is length 2. User focuses on "more than 1 level" (i.e., length > 2)
+            if (cycle.length > 2) {
+              detectedCycles.push([...cycle]);
+            }
+          }
+        }
+      }
+
+      path.pop();
+      recursionStack.delete(node);
+    }
+
+    nodes.forEach(node => {
+      if (!visited.has(node.id)) {
+        dfs(node.id);
+      }
+    });
+
+    // Identify edges involved in these complex cycles
+    const relevantEdges = new Set<string>();
+    detectedCycles.forEach(cycle => {
+      for (let i = 0; i < cycle.length; i++) {
+        const source = cycle[i];
+        const target = cycle[(i + 1) % cycle.length];
+        const edge = edges.find(e => e.source === source && e.target === target);
+        if (edge) relevantEdges.add(edge.id);
+      }
+    });
+
+    return relevantEdges;
+  }, [nodes, edges, activeLayer]);
+
   const filteredEdges = useMemo(() => {
     if (activeLayer === 'all') return edges;
 
@@ -1149,25 +1229,37 @@ function AnalyzerApp() {
 
     return edges.map(edge => {
       let isRelevant = false;
+      let overrideColor = undefined;
+      let overrideOpacity = undefined;
 
       switch (activeLayer) {
         case 'aggregates':
-          isRelevant = true; // Show all edges in aggregates mode
-          break;
-        case 'cycles':
-          // TODO: Highlight cycle edges
           isRelevant = true;
           break;
+        case 'cycles':
+          // Highlight complex cycles (length > 2) in RED
+          if (complexCycleEdges.has(edge.id)) {
+            isRelevant = true;
+            overrideColor = '#FF0040'; // Red for deep cycles
+            overrideOpacity = 1;
+          }
+          // Highlight simple bidirectional logic in ORANGE/YELLOW check
+          else {
+            const reverseEdge = edges.find(e => e.source === edge.target && e.target === edge.source);
+            if (reverseEdge) {
+              isRelevant = true;
+              overrideColor = '#FFB800'; // Orange/Yellow for simple bidirectional
+              overrideOpacity = 1; // Make them visible but different color
+            }
+          }
+          break;
         case 'cuts':
-          // Highlight weak relationships
           isRelevant = edge.data?.mappingType === 'ManyToOne' || edge.data?.mappingType === 'OneToMany';
           break;
         case 'perf':
-          // Highlight EAGER edges
           isRelevant = edge.data?.isEager === true;
           break;
         case 'vo':
-          // Hide all edges in VO mode - VOs have no relationships
           isRelevant = false;
           break;
         case 'anomalies':
@@ -1179,14 +1271,15 @@ function AnalyzerApp() {
         ...edge,
         style: {
           ...edge.style,
-          opacity: isRelevant ? 1 : 0.03,
-          stroke: isRelevant ? layerColor : undefined,
+          opacity: overrideOpacity !== undefined ? overrideOpacity : (isRelevant ? 1 : 0.05),
+          stroke: overrideColor !== undefined ? overrideColor : (isRelevant ? layerColor : undefined),
           strokeWidth: isRelevant ? 2.5 : 1,
           transition: 'all 0.3s ease-in-out'
-        }
+        },
+        animated: activeLayer === 'cycles' && isRelevant ? true : edge.animated
       };
     });
-  }, [edges, activeLayer]);
+  }, [edges, activeLayer, nodes]);
 
   if (loading) {
     return (
@@ -1303,106 +1396,68 @@ function AnalyzerApp() {
                   <span className="text-[9px] text-muted" style={{ color: 'var(--text-muted)' }}>INFO</span>
                 </div>
               </div>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setActiveLayer('all')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'all' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-                  style={{
-                    color: activeLayer === 'all' ? 'var(--text-main)' : 'var(--text-secondary)',
-                    backgroundColor: activeLayer === 'all' ? 'var(--accent-glow)' : 'transparent',
-                    boxShadow: activeLayer === 'all' ? 'inset 2px 0 0 var(--primary)' : 'none'
-                  }}
-                >
-                  <Layout size={16} />
-                  <span>Overview</span>
-                </button>
-                <button
-                  onClick={() => setActiveLayer('anomalies')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'anomalies' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-                  style={{
-                    color: activeLayer === 'anomalies' ? 'var(--text-main)' : 'var(--text-secondary)',
-                    backgroundColor: activeLayer === 'anomalies' ? 'var(--accent-glow)' : 'transparent',
-                    boxShadow: activeLayer === 'anomalies' ? 'inset 2px 0 0 var(--score-low)' : 'none'
-                  }}
-                >
-                  <ShieldAlert size={16} style={{ color: 'var(--score-low)' }} />
-                  <span>Schema Anomalies</span>
-                  {stats.anomalies > 0 && <span className="ml-auto text-[10px] bg-score-low/20 text-score-low px-1.5 rounded-full font-bold">{stats.anomalies}</span>}
-                </button>
-                <button
-                  onClick={() => setActiveLayer('perf')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'perf' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-                  style={{
-                    color: activeLayer === 'perf' ? 'var(--text-main)' : 'var(--text-secondary)',
-                    backgroundColor: activeLayer === 'perf' ? 'var(--accent-glow)' : 'transparent',
-                    boxShadow: activeLayer === 'perf' ? 'inset 2px 0 0 var(--score-med)' : 'none'
-                  }}
-                >
-                  <Activity size={16} style={{ color: 'var(--score-med)' }} />
-                  <span>Performance Risks</span>
-                  {stats.eager > 0 && <span className="ml-auto text-[10px] bg-score-med/20 text-score-med px-1.5 rounded-full font-bold">{stats.eager}</span>}
-                </button>
+
+              {/* DOMAIN VIEW DROPDOWN */}
+              <div className="relative mb-4">
+                <label className="text-[10px] uppercase font-bold text-muted tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>
+                  Domain View Layer
+                </label>
+                <div className="relative group">
+                  <select
+                    value={activeLayer}
+                    onChange={(e) => setActiveLayer(e.target.value as any)}
+                    className="w-full appearance-none bg-panel border-subtle border rounded-md px-3 py-2.5 text-[13px] font-medium outline-none focus:border-primary transition-all cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--bg-panel)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-main)',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <optgroup label="📊 Quality Analysis">
+                      <option value="all">Overview (All)</option>
+                      <option value="anomalies">⚠️ Schema Anomalies ({stats.anomalies})</option>
+                      <option value="perf">⚡ Performance Risks ({stats.eager})</option>
+                      <option value="cycles">🔄 Dependency Cycles</option>
+                    </optgroup>
+                    <optgroup label="🧩 DDD Patterns">
+                      <option value="aggregates">💎 Aggregates Viewer</option>
+                      <option value="cuts">🔲 Bounded Contexts</option>
+                      <option value="vo">📦 Value Objects</option>
+                    </optgroup>
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted" style={{ color: 'var(--text-muted)' }} />
+
+                  {/* Active Layer Indicator / Legend */}
+                  <div className="mt-2 text-[11px] px-2 py-1.5 rounded flex items-center gap-2"
+                    style={{
+                      backgroundColor: activeLayer === 'all' ? 'transparent' : 'var(--bg-panel-hover)',
+                      border: activeLayer === 'all' ? 'none' : '1px solid var(--border-subtle)'
+                    }}>
+                    {activeLayer === 'all' && <Layout size={12} className="text-secondary" />}
+                    {activeLayer === 'anomalies' && <ShieldAlert size={12} className="text-score-low" />}
+                    {activeLayer === 'perf' && <Activity size={12} className="text-score-med" />}
+                    {activeLayer === 'cycles' && <GitMerge size={12} className="text-score-low" />}
+                    {activeLayer === 'aggregates' && <Layers size={12} className="text-accent-purple" />}
+                    {activeLayer === 'cuts' && <Box size={12} className="text-primary" />}
+                    {activeLayer === 'vo' && <Info size={12} style={{ color: '#A855F7' }} />}
+
+                    <span className="text-muted" style={{ color: 'var(--text-muted)' }}>
+                      {activeLayer === 'all' && "Showing full graph layout"}
+                      {activeLayer === 'anomalies' && "Filtering consistency issues"}
+                      {activeLayer === 'perf' && "Highlighting EAGER & N+1 risks"}
+                      {activeLayer === 'cycles' && "Red edges indicate cycles"}
+                      {activeLayer === 'aggregates' && "Grouped by Root Entity"}
+                      {activeLayer === 'cuts' && "Context boundaries with frames"}
+                      {activeLayer === 'vo' && "Highlighting Value Objects"}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div>
-              <h3 className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted font-bold flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
-                <GitGraph size={12} /> DDD Graph Analysis
-              </h3>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setActiveLayer('aggregates')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'aggregates' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-                  style={{
-                    color: activeLayer === 'aggregates' ? 'var(--text-main)' : 'var(--text-secondary)',
-                    backgroundColor: activeLayer === 'aggregates' ? 'var(--accent-glow)' : 'transparent',
-                    boxShadow: activeLayer === 'aggregates' ? 'inset 2px 0 0 var(--accent-purple)' : 'none'
-                  }}
-                  title="Entités racines contrôlant un groupe cohérent d'objets"
-                >
-                  <Layers size={16} style={{ color: 'var(--accent-purple)' }} />
-                  <span>Aggregates Viewer</span>
-                </button>
-                <button
-                  onClick={() => setActiveLayer('cuts')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'cuts' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-                  style={{
-                    color: activeLayer === 'cuts' ? 'var(--text-main)' : 'var(--text-secondary)',
-                    backgroundColor: activeLayer === 'cuts' ? 'var(--accent-glow)' : 'transparent',
-                    boxShadow: activeLayer === 'cuts' ? 'inset 2px 0 0 var(--primary)' : 'none'
-                  }}
-                  title="Limites logiques séparant les domaines métier (Bounded Contexts DDD)"
-                >
-                  <Box size={16} style={{ color: 'var(--primary)' }} />
-                  <span>Bounded Contexts</span>
-                </button>
-                <button
-                  onClick={() => setActiveLayer('vo')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'vo' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-                  style={{
-                    color: activeLayer === 'vo' ? 'var(--text-main)' : 'var(--text-secondary)',
-                    backgroundColor: activeLayer === 'vo' ? 'var(--accent-glow)' : 'transparent',
-                    boxShadow: activeLayer === 'vo' ? 'inset 2px 0 0 #A855F7' : 'none'
-                  }}
-                  title="Objets immuables définis par leurs attributs (pas d'identité propre)"
-                >
-                  <Info size={16} style={{ color: '#A855F7' }} />
-                  <span>Value Objects</span>
-                </button>
-                <button
-                  onClick={() => setActiveLayer('cycles')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'cycles' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-                  style={{
-                    color: activeLayer === 'cycles' ? 'var(--text-main)' : 'var(--text-secondary)',
-                    backgroundColor: activeLayer === 'cycles' ? 'var(--accent-glow)' : 'transparent',
-                    boxShadow: activeLayer === 'cycles' ? 'inset 2px 0 0 var(--score-low)' : 'none'
-                  }}
-                  title="Références mutuelles créant des boucles de dépendances"
-                >
-                  <GitMerge size={16} style={{ color: 'var(--score-low)' }} />
-                  <span>Dependency Cycles</span>
-                </button>
-              </div>
+              {/* Expert Heuristics section follows */}
 
               {/* EXPERT DDD TUNING (Client-side only) */}
               <div className="mt-4 px-3 py-3 bg-panel/30 border border-dashed border-subtle rounded-lg" style={{ borderColor: 'var(--border-subtle)' }}>
