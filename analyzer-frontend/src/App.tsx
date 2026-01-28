@@ -879,9 +879,9 @@ function AnalyzerApp() {
         });
 
         aggregates.forEach((children, agg) => {
-          // Calculate bounds with more padding to avoid overlap
-          const padding = 80;
-          const headerSpace = 50;
+          // Calculate bounds with significantly more padding to avoid overlap and feel less cramped
+          const padding = 150;
+          const headerSpace = 70;
           const nodeWidth = 120;
           const nodeHeight = 70;
           const minX = Math.min(...children.map(c => c.position.x));
@@ -1152,8 +1152,8 @@ function AnalyzerApp() {
       setTimeout(() => onLayout('CLUSTER'), 50);
     } else if (activeLayer === 'aggregates') {
       setGroupingMode(true);
-      setSelectedHeuristic('shared'); // Standard DDD shared rules
-      setTimeout(() => onLayout('CLUSTER'), 50);
+      setSelectedHeuristic('shared');
+      setTimeout(() => onLayout('ORGANIC'), 50); // Using Organic instead of Cluster grid
     } else if (groupingMode && activeLayer !== 'cuts' && activeLayer !== 'aggregates') {
       setGroupingMode(false);
       setTimeout(() => onLayout('TB'), 50);
@@ -1363,17 +1363,17 @@ function AnalyzerApp() {
         <nav className="flex-1 px-3 space-y-6">
           <div>
             <h3 className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted font-medium" style={{ color: 'var(--text-muted)' }}>View Options</h3>
+            {/* Removed Overview (All) button */}
             <button
               onClick={() => { setSelectedNodeId(null); setActiveLayer('aggregates'); }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'all' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'aggregates' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
               style={{
-                color: activeLayer === 'all' ? 'var(--text-main)' : 'var(--text-secondary)',
-                backgroundColor: activeLayer === 'all' ? 'var(--accent-glow)' : 'transparent',
-                boxShadow: activeLayer === 'all' ? 'inset 2px 0 0 var(--primary)' : 'none'
+                color: activeLayer === 'aggregates' ? 'var(--text-main)' : 'var(--text-secondary)',
+                backgroundColor: activeLayer === 'aggregates' ? 'var(--accent-glow)' : 'transparent'
               }}
             >
-              <Layout size={16} style={{ color: 'var(--primary)' }} />
-              <span>Overview (All)</span>
+              <LayoutDashboard size={16} className={activeLayer === 'aggregates' ? 'text-primary' : 'text-secondary group-hover:text-primary'} />
+              <span>Overview</span>
             </button>
           </div>
 
