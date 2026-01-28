@@ -1358,21 +1358,8 @@ function AnalyzerApp() {
           </div>
         </div>
         <nav className="flex-1 px-3 space-y-6">
-          <div>
-            <h3 className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted font-medium" style={{ color: 'var(--text-muted)' }}>View Options</h3>
-            {/* Removed Overview (All) button */}
-            <button
-              onClick={() => { setSelectedNodeId(null); setActiveLayer('aggregates'); }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'aggregates' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-              style={{
-                color: activeLayer === 'aggregates' ? 'var(--text-main)' : 'var(--text-secondary)',
-                backgroundColor: activeLayer === 'aggregates' ? 'var(--accent-glow)' : 'transparent'
-              }}
-            >
-              <LayoutDashboard size={16} className={activeLayer === 'aggregates' ? 'text-primary' : 'text-secondary group-hover:text-primary'} />
-              <span>Overview</span>
-            </button>
-          </div>
+          {/* Redundant Overview view option removed as requested */}
+
 
 
 
