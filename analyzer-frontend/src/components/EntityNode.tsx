@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState, useRef } from 'react';
 import { Handle, Position } from 'reactflow';
 
 interface AttributeMetadata {
@@ -106,6 +106,23 @@ const getAggregateColor = (name?: string) => {
 };
 
 const EntityNode = ({ data, selected }: EntityNodeProps) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const hoverTimeout = useRef<any>(null);
+
+    const handleMouseEnter = () => {
+        hoverTimeout.current = setTimeout(() => {
+            setIsHovered(true);
+        }, 400); // 400ms delay
+    };
+
+    const handleMouseLeave = () => {
+        if (hoverTimeout.current) {
+            clearTimeout(hoverTimeout.current);
+            hoverTimeout.current = null;
+        }
+        setIsHovered(false);
+    };
+
     const errorCount = data.violations.filter(v => v.severity === 'ERROR').length;
     const isRoot = data.dddRole === 'AGGREGATE_ROOT';
     const aggColor = getAggregateColor(data.aggregateName);
@@ -208,9 +225,37 @@ const EntityNode = ({ data, selected }: EntityNodeProps) => {
                     </span>
                 </div>
                 {errorCount > 0 && (
-                    <div className="flex items-center gap-1">
+                    <div
+                        className="flex items-center gap-1 cursor-help relative group/badge"
+                        onMouseEnter={handleMouseEnter}
+                        onMouseLeave={handleMouseLeave}
+                    >
                         <div className="w-1 h-1 rounded-full bg-score-low" style={{ backgroundColor: 'var(--score-low)' }}></div>
                         <span className="text-[6px] font-bold text-score-low" style={{ color: 'var(--score-low)' }}>{errorCount} ISSUES</span>
+
+                        {isHovered && data.violations && data.violations.length > 0 && (
+                            <div className="absolute left-0 top-full mt-1 z-[1000] w-48 bg-glass backdrop-blur-xl border border-score-low/30 rounded-lg p-2 shadow-2xl animate-in fade-in zoom-in duration-200">
+                                <div className="text-[7px] font-bold text-score-low mb-1 uppercase tracking-wider flex items-center gap-1">
+                                    <div className="w-1 h-1 rounded-full bg-score-low animate-pulse"></div>
+                                    Anomalies Detected
+                                </div>
+                                <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                                    {data.violations.map((v, idx) => (
+                                        <div key={idx} className="flex gap-1.5 items-start">
+                                            <div className={`mt-0.5 w-1 h-1 rounded-full shrink-0 ${v.severity === 'ERROR' ? 'bg-score-low' : 'bg-score-med'}`} style={{ backgroundColor: v.severity === 'ERROR' ? 'var(--score-low)' : 'var(--score-med)' }}></div>
+                                            <div className="flex flex-col gap-0.5">
+                                                <p className="text-[8px] text-text-primary leading-tight font-medium">{v.message}</p>
+                                                <p className="text-[6px] text-text-secondary opacity-70 font-mono">{v.ruleId}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-2 pt-1.5 border-t border-subtle flex justify-between items-center text-[6px] text-text-secondary">
+                                    <span>{data.violations.length} total warnings</span>
+                                    <span>Click for full report</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

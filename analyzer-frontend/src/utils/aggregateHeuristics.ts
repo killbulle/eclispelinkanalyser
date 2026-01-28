@@ -114,10 +114,12 @@ export const getAggregateForNode = (
 };
 
 // Export all functional heuristics
-export const heuristics = {
-    shared: sharedHeuristic,
+export const heuristics: Record<string, AggregateHeuristic> = {
     server: serverSideHeuristic,
     package: packageBasedHeuristic,
+    shared: sharedHeuristic,
+    combined: sharedHeuristic,
 };
 
 export type HeuristicType = keyof typeof heuristics;
+

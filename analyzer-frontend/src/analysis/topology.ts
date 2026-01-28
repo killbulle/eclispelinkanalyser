@@ -93,7 +93,7 @@ export const analyzeTopology = (nodes: Node[], edges: Edge[]): Map<string, Topol
     });
 
     // Calculate Instability & Centrality
-    metrics.forEach((m, id) => {
+    metrics.forEach((m, _id) => {
         // Instability I = Ce / (Ce + Ca)
         // I = 0 -> Stable (Independent, heavily used) -> Candidate VO / Core Entity
         // I = 1 -> Unstable (Dependent, not used) -> Candidate Service / Top-level

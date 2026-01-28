@@ -15,6 +15,7 @@ import type { Node, Edge, Connection } from 'reactflow';
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
 import * as d3Force from 'd3-force';
+import ELK from 'elkjs/lib/elk.bundled.js';
 import EntityNode from './components/EntityNode';
 import GroupNode from './components/GroupNode';
 import { jsPDF } from 'jspdf';
@@ -173,6 +174,51 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
   return { nodes: newNodes, edges };
 };
 
+const elk = new ELK();
+
+const getElkLayout = async (nodes: Node[], edges: Edge[], options = {}) => {
+  const elkNodes = nodes.map((node) => ({
+    id: node.id,
+    width: 250,
+    height: node.data.showAttributes ? 300 : 80,
+  }));
+
+  const elkEdges = edges.map((edge) => ({
+    id: edge.id,
+    sources: [edge.source],
+    targets: [edge.target],
+  }));
+
+  const layoutOptions = {
+    'elk.algorithm': 'org.eclipse.elk.stress', // High-quality organic
+    'elk.edgeRouting': 'SPLINES',
+    'elk.spacing.nodeNode': '100',
+    'org.eclipse.elk.stress.desiredEdgeLength': '200',
+    ...options
+  };
+
+  const graph = {
+    id: 'root',
+    children: elkNodes,
+    edges: elkEdges,
+  };
+
+  const layoutedGraph = await elk.layout(graph, { layoutOptions });
+
+  const newNodes = nodes.map((node) => {
+    const elkNode = layoutedGraph.children?.find((n) => n.id === node.id);
+    return {
+      ...node,
+      position: {
+        x: elkNode?.x || 0,
+        y: elkNode?.y || 0,
+      },
+    };
+  });
+
+  return { nodes: newNodes, edges };
+};
+
 const getGridLayout = (nodes: Node[], edges: Edge[]) => {
   const columns = Math.ceil(Math.sqrt(nodes.length));
   const newNodes = nodes.map((node, index) => {
@@ -184,72 +230,6 @@ const getGridLayout = (nodes: Node[], edges: Edge[]) => {
       },
     };
   });
-  return { nodes: newNodes, edges };
-};
-
-const getOrganicLayout = (nodes: Node[], edges: Edge[]) => {
-  // D3-Force based organic layout (like yEd/IntelliJ)
-  interface SimNode extends d3Force.SimulationNodeDatum {
-    id: string;
-    originalNode: Node;
-  }
-
-  interface SimLink extends d3Force.SimulationLinkDatum<SimNode> {
-    source: string | SimNode;
-    target: string | SimNode;
-  }
-
-  // Create simulation nodes
-  const simNodes: SimNode[] = nodes.map((node, index) => ({
-    id: node.id,
-    originalNode: node,
-    x: Math.cos((index / nodes.length) * 2 * Math.PI) * Math.sqrt(nodes.length) * 80,
-    y: Math.sin((index / nodes.length) * 2 * Math.PI) * Math.sqrt(nodes.length) * 80,
-  }));
-
-  // Create simulation links
-  const simLinks: SimLink[] = edges.map(edge => ({
-    source: edge.source,
-    target: edge.target,
-  }));
-
-  // Create and run the simulation
-  const simulation = d3Force.forceSimulation(simNodes)
-    .force('link', d3Force.forceLink<SimNode, SimLink>(simLinks)
-      .id(d => d.id)
-      .distance(280)           // Even more space for "Ultimate" feel
-      .strength(0.7))
-    .force('charge', d3Force.forceManyBody()
-      .strength(-2500)         // Powerful repulsion to ensure no overlaps
-      .distanceMax(1200))
-    .force('center', d3Force.forceCenter(0, 0))
-    .force('x', d3Force.forceX().strength(0.04))
-    .force('y', d3Force.forceY().strength(0.04))
-    .force('collision', d3Force.forceCollide<SimNode>().radius(d => {
-      const isExpanded = d.originalNode.data?.showAttributes;
-      const w = 220;
-      const h = isExpanded ? 260 : 70;
-      return Math.sqrt(w * w + h * h) / 2 + 60; // Safe diagonal buffer
-    }))
-    .stop();
-
-  // Run simulation synchronously (more iterations for better convergence)
-  const iterations = 400;
-  for (let i = 0; i < iterations; i++) {
-    simulation.tick();
-  }
-
-  // Apply final positions
-  const newNodes = simNodes.map(simNode => ({
-    ...simNode.originalNode,
-    targetPosition: Position.Top,
-    sourcePosition: Position.Bottom,
-    position: {
-      x: simNode.x || 0,
-      y: simNode.y || 0,
-    },
-  }));
-
   return { nodes: newNodes, edges };
 };
 
@@ -852,89 +832,90 @@ function AnalyzerApp() {
     reader.readAsText(file);
   }, [processReportData]);
 
-  const onLayout = useCallback((direction: 'TB' | 'LR' | 'ORGANIC' | 'GRID' | 'RADIAL' | 'CLUSTER') => {
-    setNodes((nds) => {
-      // First, filter out any existing groupNodes and remove parentId from entity nodes
-      const entityNodesOnly = nds
-        .filter(n => n.type === 'entityNode')
-        .map(n => ({ ...n, parentId: undefined }));
+  const onLayout = useCallback(async (direction: 'TB' | 'LR' | 'ORGANIC' | 'GRID' | 'RADIAL' | 'CLUSTER') => {
+    // First, filter out any existing groupNodes and remove parentId from entity nodes
+    const entityNodesOnly = nodes
+      .filter(n => n.type === 'entityNode')
+      .map(n => ({ ...n, parentId: undefined }));
 
-      let result;
-      switch (direction) {
-        case 'ORGANIC': result = getOrganicLayout(entityNodesOnly, edges); break;
-        case 'RADIAL': result = getRadialLayout(entityNodesOnly, edges); break;
-        case 'GRID': result = getGridLayout(entityNodesOnly, edges); break;
-        case 'CLUSTER':
-          result = getClusterLayout(entityNodesOnly, edges, (n) => getAggregateForNode(n, entityNodesOnly, edges, heuristics[selectedHeuristic], analysisConfig));
-          break;
-        default: result = getLayoutedElements(entityNodesOnly, edges, direction);
-      }
+    let result;
+    switch (direction) {
+      case 'ORGANIC':
+        result = await getElkLayout(entityNodesOnly, edges);
+        break;
+      case 'RADIAL': result = getRadialLayout(entityNodesOnly, edges); break;
+      case 'GRID': result = getGridLayout(entityNodesOnly, edges); break;
+      case 'CLUSTER':
+        result = getClusterLayout(entityNodesOnly, edges, (n) => getAggregateForNode(n, entityNodesOnly, edges, heuristics[selectedHeuristic], analysisConfig));
+        break;
+      default: result = getLayoutedElements(entityNodesOnly, edges, direction);
+    }
 
-      const layoutedNodes = result.nodes;
+    const layoutedNodes = result.nodes;
 
-      if (groupingMode) {
-        // Use the selected heuristic (default is server-side truth)
-        const heuristicFn = heuristics[selectedHeuristic];
+    if (groupingMode) {
+      // Use the selected heuristic (default is server-side truth)
+      const heuristicFn = heuristics[selectedHeuristic];
 
-        // Create aggregate groups using the selected heuristic
-        const aggregates = new Map<string, Node[]>();
-        layoutedNodes.filter(n => n.type === 'entityNode').forEach(n => {
-          const agg = getAggregateForNode(n, layoutedNodes, edges, heuristicFn, analysisConfig);
-          if (!aggregates.has(agg)) aggregates.set(agg, []);
-          aggregates.get(agg)?.push(n);
+      // Create aggregate groups using the selected heuristic
+      const aggregates = new Map<string, Node[]>();
+      layoutedNodes.filter(n => n.type === 'entityNode').forEach(n => {
+        const agg = getAggregateForNode(n, layoutedNodes, edges, heuristicFn, analysisConfig);
+        if (!aggregates.has(agg)) aggregates.set(agg, []);
+        aggregates.get(agg)?.push(n);
+      });
+
+      const groupNodes: Node[] = [];
+      const updatedEntityNodes = layoutedNodes.filter(n => n.type === 'entityNode').map(n => {
+        const agg = getAggregateForNode(n, layoutedNodes, edges, heuristicFn, analysisConfig);
+        return { ...n, parentId: `group-${agg}` };
+      });
+
+      aggregates.forEach((children, agg) => {
+        // Calculate bounds with significantly more padding to avoid overlap and feel less cramped
+        const padding = 150;
+        const headerSpace = 70;
+        const nodeWidth = 120;
+        const nodeHeight = 70;
+        const minX = Math.min(...children.map(c => c.position.x));
+        const minY = Math.min(...children.map(c => c.position.y));
+        const maxX = Math.max(...children.map(c => c.position.x + nodeWidth));
+        const maxY = Math.max(...children.map(c => c.position.y + (c.data.showAttributes ? 200 : nodeHeight)));
+
+        groupNodes.push({
+          id: `group-${agg}`,
+          type: 'groupNode',
+          position: { x: minX - padding, y: minY - padding - headerSpace },
+          style: {
+            width: maxX - minX + padding * 2,
+            height: maxY - minY + padding * 2 + headerSpace
+          },
+          data: {
+            label: agg,
+            aggregateName: agg,
+            color: getAggregateColor(agg),
+            memberCount: children.length
+          },
+          zIndex: -1,
         });
 
-        const groupNodes: Node[] = [];
-        const updatedEntityNodes = layoutedNodes.filter(n => n.type === 'entityNode').map(n => {
-          const agg = getAggregateForNode(n, layoutedNodes, edges, heuristicFn, analysisConfig);
-          return { ...n, parentId: `group-${agg}` };
+        // Adjust children positions to be relative to parent
+        updatedEntityNodes.filter(n => n.parentId === `group-${agg}`).forEach(n => {
+          n.position = {
+            x: n.position.x - (minX - padding),
+            y: n.position.y - (minY - padding - headerSpace)
+          };
         });
+      });
 
-        aggregates.forEach((children, agg) => {
-          // Calculate bounds with significantly more padding to avoid overlap and feel less cramped
-          const padding = 150;
-          const headerSpace = 70;
-          const nodeWidth = 120;
-          const nodeHeight = 70;
-          const minX = Math.min(...children.map(c => c.position.x));
-          const minY = Math.min(...children.map(c => c.position.y));
-          const maxX = Math.max(...children.map(c => c.position.x + nodeWidth));
-          const maxY = Math.max(...children.map(c => c.position.y + (c.data.showAttributes ? 200 : nodeHeight)));
-
-          groupNodes.push({
-            id: `group-${agg}`,
-            type: 'groupNode',
-            position: { x: minX - padding, y: minY - padding - headerSpace },
-            style: {
-              width: maxX - minX + padding * 2,
-              height: maxY - minY + padding * 2 + headerSpace
-            },
-            data: {
-              label: agg,
-              aggregateName: agg,
-              color: getAggregateColor(agg),
-              memberCount: children.length
-            },
-            zIndex: -1,
-          });
-
-          // Adjust children positions to be relative to parent
-          updatedEntityNodes.filter(n => n.parentId === `group-${agg}`).forEach(n => {
-            n.position = {
-              x: n.position.x - (minX - padding),
-              y: n.position.y - (minY - padding - headerSpace)
-            };
-          });
-        });
-
-        return [...groupNodes, ...updatedEntityNodes];
-      }
-
+      setNodes([...groupNodes, ...updatedEntityNodes]);
+    } else {
       // When grouping mode is OFF, return only entity nodes without parentId
-      return layoutedNodes.map(n => ({ ...n, parentId: undefined }));
-    });
+      setNodes(layoutedNodes.map(n => ({ ...n, parentId: undefined })));
+    }
+
     setTimeout(() => fitView({ padding: 0.2 }), 100);
-  }, [edges, setNodes, fitView, groupingMode, selectedHeuristic, analysisConfig]);
+  }, [nodes, edges, setNodes, fitView, groupingMode, selectedHeuristic, analysisConfig]);
 
   const toggleAttributes = useCallback(() => {
     setShowAttributes(prev => {
@@ -1112,10 +1093,6 @@ function AnalyzerApp() {
       let isRelevant = false;
 
       switch (activeLayer) {
-        case 'aggregates':
-          // Only show aggregate roots
-          isRelevant = node.data.dddRole === 'AGGREGATE_ROOT';
-          break;
         case 'cycles':
           isRelevant = node.data.isInCycle === true;
           break;
@@ -1166,7 +1143,7 @@ function AnalyzerApp() {
       setGroupingMode(true);
       setSelectedHeuristic('shared');
       setTimeout(() => onLayout('ORGANIC'), 50); // Using Organic instead of Cluster grid
-    } else if (groupingMode && activeLayer !== 'cuts' && activeLayer !== 'aggregates') {
+    } else if (groupingMode) {
       setGroupingMode(false);
       setTimeout(() => onLayout('TB'), 50);
     }
@@ -1251,19 +1228,19 @@ function AnalyzerApp() {
 
       switch (activeLayer) {
         case 'cycles':
-          // Highlight complex cycles (length > 2) in RED
+          // Highlight complex cycles (length > 2)
           if (complexCycleEdges.has(edge.id)) {
             isRelevant = true;
-            overrideColor = '#FF0040'; // Red for deep cycles
+            overrideColor = '#FF0040';
             overrideOpacity = 1;
           }
-          // Highlight simple bidirectional logic in ORANGE/YELLOW check
+          // Highlight simple bidirectional
           else {
             const reverseEdge = edges.find(e => e.source === edge.target && e.target === edge.source);
             if (reverseEdge) {
               isRelevant = true;
-              overrideColor = '#FFB800'; // Orange/Yellow for simple bidirectional
-              overrideOpacity = 1; // Make them visible but different color
+              overrideColor = '#FF0040';
+              overrideOpacity = 1;
             }
           }
           break;
@@ -1280,20 +1257,39 @@ function AnalyzerApp() {
           isRelevant = edge.data?.hasProblems === true;
           break;
       }
+      // For cycle edges, completely override the style (don't spread old style)
+      const isCycleEdge = activeLayer === 'cycles' && isRelevant;
+
+      const newStyle = isCycleEdge ? {
+        stroke: '#FF0040',
+        strokeWidth: 3,
+        strokeDasharray: '0', // Solid line for cycle edges
+        opacity: 1,
+        transition: 'all 0.3s ease-in-out'
+      } : {
+        ...edge.style,
+        stroke: isRelevant ? layerColor : edge.style?.stroke,
+        opacity: isRelevant ? 1 : 0.05,
+        strokeWidth: isRelevant ? 2.5 : 1,
+        transition: 'all 0.3s ease-in-out'
+      };
 
       return {
         ...edge,
-        style: {
-          ...edge.style,
-          opacity: overrideOpacity !== undefined ? overrideOpacity : (isRelevant ? 1 : 0.05),
-          stroke: overrideColor !== undefined ? overrideColor : (isRelevant ? layerColor : undefined),
-          strokeWidth: isRelevant ? 2.5 : 1,
-          transition: 'all 0.3s ease-in-out'
-        },
-        animated: activeLayer === 'cycles' && isRelevant ? true : edge.animated
+        style: newStyle,
+        labelStyle: isCycleEdge ? {
+          fill: '#FF0040',
+          fontWeight: '700',
+          fontSize: '11px',
+          background: 'white',
+          padding: '2px 6px',
+          borderRadius: '4px',
+          border: '2px solid #FF0040'
+        } : edge.labelStyle,
+        animated: isCycleEdge
       };
     });
-  }, [edges, activeLayer, nodes]);
+  }, [edges, activeLayer, nodes, complexCycleEdges, layerColors]);
 
   if (loading) {
     return (
@@ -1648,6 +1644,10 @@ function AnalyzerApp() {
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
             nodeTypes={nodeTypes}
+            defaultEdgeOptions={{
+              type: 'smoothstep',
+              style: { strokeDasharray: '5,5' },
+            }}
             fitView
             fitViewOptions={{ padding: 0.5 }}
             minZoom={0.1}
@@ -1824,7 +1824,7 @@ function AnalyzerApp() {
                       </div>
 
                       <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Performance Rules</div>
-                      {(selectedNode.data.violations || []).map((v: Violation, idx: number) => (
+                      {(selectedNode?.data?.violations || []).map((v: Violation, idx: number) => (
                         <div key={idx} className={`mx-5 p-4 bg-panel border-subtle border rounded-md mb-4 border-l-2 ${v.severity === 'ERROR' ? 'border-l-score-low' : 'border-l-score-med'}`}
                           style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
                           <div className="flex gap-3 mb-2">

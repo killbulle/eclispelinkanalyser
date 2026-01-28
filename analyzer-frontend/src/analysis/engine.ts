@@ -4,12 +4,12 @@
  */
 
 import type { Node, Edge } from 'reactflow';
-import { analyzeSemantics, SemanticProfile, Stereotype } from './semantic';
+import { analyzeSemantics, type SemanticProfileType, Stereotype } from './semantic';
 import { analyzeTopology, calculateEdgeWeight } from './topology';
 import { heuristics, getAggregateForNode } from '../utils/aggregateHeuristics';
 
 export interface AnalysisConfig {
-    semanticProfile: SemanticProfile;
+    semanticProfile: SemanticProfileType;
     enableSemantic: boolean;
     enableTopology: boolean;
 }
@@ -74,7 +74,6 @@ export const runAnalysis = (
             ? analyzeSemantics(node.data.name, config.semanticProfile)
             : { concept: 'Disabled', stereotype: Stereotype.UNKNOWN, confidence: 0, ontologySource: undefined };
 
-        let isVO = false;
         let reasons: string[] = [];
         let confidence = 0;
 
@@ -98,7 +97,6 @@ export const runAnalysis = (
         }
 
         if (confidence >= 0.5) {
-            isVO = true;
             potentialVOs.add(node.data.name);
             report.valueObjects.push({
                 className: node.data.name,
