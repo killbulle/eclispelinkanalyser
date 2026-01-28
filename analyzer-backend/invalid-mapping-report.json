@@ -16,6 +16,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -25,15 +29,22 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
       }
     },
-    "relationships" : null,
+    "relationships" : [ ],
     "dddRole" : "ENTITY",
     "aggregateName" : "Model",
-    "violations" : null
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Parent",
     "packageName" : "invalid.model",
@@ -51,6 +62,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -60,6 +75,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -83,12 +102,26 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : false,
       "lazy" : false,
-      "owningSide" : false
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     } ],
     "dddRole" : "ENTITY",
     "aggregateName" : "Model",
-    "violations" : null
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Child",
     "packageName" : "invalid.model",
@@ -106,6 +139,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -115,6 +152,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -138,8 +179,19 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : false,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     }, {
       "attributeName" : "sibling",
       "targetEntity" : "Child",
@@ -158,12 +210,26 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : true,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     } ],
     "dddRole" : "ENTITY",
     "aggregateName" : "Model",
-    "violations" : null
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "VeryLongTableNameThatExceedsTypicalDatabaseLimits",
     "packageName" : "invalid.model",
@@ -181,6 +247,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -190,6 +260,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -198,12 +272,19 @@
     "relationships" : [ ],
     "dddRole" : "ENTITY",
     "aggregateName" : "Model",
-    "violations" : null
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   } ],
   "violations" : [ {
     "ruleId" : "OPTIMISTIC_LOCKING",
     "severity" : "WARNING",
     "message" : "Entity 'BadEntity' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'BadEntity' appears immutable. Consider adding @ReadOnly annotation."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",
@@ -271,7 +352,7 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Child' has reference data characteristics. Consider @Cacheable with cache type SOFT or WEAK for memory-sensitive environments."
+    "message" : "Entity 'Child' has reference data characteristics. Consider @Cacheable with cache type SOFT."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",
@@ -284,6 +365,10 @@
     "ruleId" : "N_PLUS_ONE_QUERY",
     "severity" : "INFO",
     "message" : "Eager relationship 'parent' in entity 'Child' may cause unnecessary joins. Consider LAZY fetch unless always needed."
+  }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'sibling' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
   }, {
     "ruleId" : "INDEX_OPTIMIZATION",
     "severity" : "INFO",
@@ -299,7 +384,7 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'VeryLongTableNameThatExceedsTypicalDatabaseLimits' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+    "message" : "Entity 'VeryLongTableNameThatExceedsTypicalDatabaseLimits' appears immutable. Consider adding @ReadOnly annotation."
   }, {
     "ruleId" : "INHERITANCE_ANALYSIS",
     "severity" : "WARNING",

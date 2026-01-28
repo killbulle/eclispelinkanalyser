@@ -2,10 +2,41 @@ package com.eclipselink.analyzer;
 
 import com.eclipselink.analyzer.model.EntityNode;
 import com.eclipselink.analyzer.model.RelationshipMetadata;
+import javax.script.*;
+import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class DDDAnalyzer {
+
+    private ScriptEngine engine;
+
+    public DDDAnalyzer() {
+        ScriptEngineManager manager = new ScriptEngineManager();
+        this.engine = manager.getEngineByName("JavaScript");
+        loadRules();
+    }
+
+    private void loadRules() {
+        try {
+            // Try different paths to find the shared rules
+            Path rulesPath = Paths.get("../shared/ddd-rules.js").toAbsolutePath();
+            if (!Files.exists(rulesPath)) {
+                rulesPath = Paths.get("shared/ddd-rules.js").toAbsolutePath();
+            }
+
+            if (Files.exists(rulesPath)) {
+                String script = Files.readString(rulesPath);
+                // Strip ESM exports for Java ScriptEngine compatibility
+                if (script.contains("export default")) {
+                    script = script.substring(0, script.indexOf("export default"));
+                }
+                engine.eval(script);
+            }
+        } catch (Exception e) {
+            System.err.println("Could not load shared JS rules: " + e.getMessage());
+        }
+    }
 
     public void analyze(List<EntityNode> nodes) {
         if (nodes == null || nodes.isEmpty())
@@ -14,56 +45,21 @@ public class DDDAnalyzer {
         Map<String, EntityNode> nodeMap = nodes.stream()
                 .collect(Collectors.toMap(EntityNode::getName, n -> n));
 
-        // 1. Identify Roles based on JPA hints and connectivity
+        // 1 & 2. Identify Roles using JS if possible, otherwise native
         for (EntityNode node : nodes) {
-            // Initial guess: EMBEDDABLE is a VALUE_OBJECT
-            if ("EMBEDDABLE".equals(node.getType())) {
-                node.setDddRole("VALUE_OBJECT");
-            } else {
-                node.setDddRole("ENTITY");
-            }
-        }
-
-        // 2. Identifying Aggregate Roots
-        // A root is usually not owned by anyone (via cascading lifecycle) and controls
-        // others
-        for (EntityNode node : nodes) {
-            if ("EMBEDDABLE".equals(node.getType()) || "ABSTRACT_ENTITY".equals(node.getType())
-                    || "MAPPED_SUPERCLASS".equals(node.getType())) {
-                continue;
-            }
-
-            boolean isStronglyOwned = false;
-            for (EntityNode other : nodes) {
-                if (other == node)
-                    continue;
-                if (other.getRelationships() != null) {
-                    for (RelationshipMetadata rel : other.getRelationships()) {
-                        if (rel.getTargetEntity().equals(node.getName())) {
-                            // If someone has a relationship to us with cascade, we are likely NOT a root
-                            if (rel.isCascadePersist() || rel.isCascadeRemove()) {
-                                isStronglyOwned = true;
-                                break;
-                            }
-                        }
-                    }
+            String role = "ENTITY";
+            try {
+                if (engine != null && engine.get("DDDRules") != null) {
+                    Invocable inv = (Invocable) engine;
+                    Object result = inv.invokeMethod(engine.get("DDDRules"), "identifyRole", node, nodes);
+                    role = result.toString();
+                } else {
+                    role = identifyRoleNative(node, nodes);
                 }
-                if (isStronglyOwned)
-                    break;
+            } catch (Exception e) {
+                role = identifyRoleNative(node, nodes);
             }
-
-            // Strong indicators for root:
-            // - Not strongly owned by anyone else
-            // - Has cascading relationships to others
-            // - High number of outgoing relationships (centrality)
-            long outDegree = node.getRelationships() != null ? node.getRelationships().size() : 0;
-            long cascadeCount = node.getRelationships() != null
-                    ? node.getRelationships().stream().filter(r -> r.isCascadePersist()).count()
-                    : 0;
-
-            if (!isStronglyOwned && (cascadeCount > 0 || outDegree > 3)) {
-                node.setDddRole("AGGREGATE_ROOT");
-            }
+            node.setDddRole(role);
         }
 
         // 3. Cluster into Aggregates
@@ -94,6 +90,41 @@ public class DDDAnalyzer {
             String aggName = root.getName(); // Simple: Aggregate named after its root
             propagateAggregate(root, aggName, nodeMap, new HashSet<>());
         }
+    }
+
+    private String identifyRoleNative(EntityNode node, List<EntityNode> allNodes) {
+        if ("EMBEDDABLE".equals(node.getType()))
+            return "VALUE_OBJECT";
+        if ("ABSTRACT_ENTITY".equals(node.getType()) || "MAPPED_SUPERCLASS".equals(node.getType()))
+            return "ENTITY";
+
+        boolean isStronglyOwned = false;
+        for (EntityNode other : allNodes) {
+            if (other == node)
+                continue;
+            if (other.getRelationships() != null) {
+                for (RelationshipMetadata rel : other.getRelationships()) {
+                    if (rel.getTargetEntity().equals(node.getName())) {
+                        if (rel.isCascadePersist() || rel.isCascadeRemove()) {
+                            isStronglyOwned = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (isStronglyOwned)
+                break;
+        }
+
+        long outDegree = node.getRelationships() != null ? node.getRelationships().size() : 0;
+        long cascadeCount = node.getRelationships() != null
+                ? node.getRelationships().stream().filter(r -> r.isCascadePersist()).count()
+                : 0;
+
+        if (!isStronglyOwned && (cascadeCount > 0 || outDegree > 3)) {
+            return "AGGREGATE_ROOT";
+        }
+        return "ENTITY";
     }
 
     private void propagateAggregate(EntityNode parent, String aggName, Map<String, EntityNode> nodeMap,

@@ -16,6 +16,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -25,6 +29,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -37,6 +45,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -46,6 +58,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -58,6 +74,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -67,6 +87,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -75,7 +99,10 @@
     "relationships" : [ ],
     "dddRole" : "ENTITY",
     "aggregateName" : "Model",
-    "violations" : null
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Person",
     "packageName" : "complex.model",
@@ -93,6 +120,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -102,6 +133,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -114,6 +149,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -123,6 +162,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -146,8 +189,19 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : false,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     }, {
       "attributeName" : "phones",
       "targetEntity" : "Phone",
@@ -166,12 +220,26 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : false,
       "lazy" : true,
-      "owningSide" : false
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     } ],
-    "dddRole" : "AGGREGATE_ROOT",
-    "aggregateName" : "Person",
-    "violations" : null
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Employee",
     "packageName" : "complex.model",
@@ -189,6 +257,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -198,6 +270,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -210,6 +286,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -219,6 +299,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -231,6 +315,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -240,6 +328,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -263,8 +355,19 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : false,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     }, {
       "attributeName" : "projects",
       "targetEntity" : "Project",
@@ -283,8 +386,19 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : true,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     }, {
       "attributeName" : "manager",
       "targetEntity" : "Employee",
@@ -303,12 +417,26 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : true,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     } ],
     "dddRole" : "ENTITY",
     "aggregateName" : "Model",
-    "violations" : null
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Manager",
     "packageName" : "complex.model",
@@ -326,6 +454,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -335,6 +467,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -347,6 +483,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -356,6 +496,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -364,7 +508,10 @@
     "relationships" : [ ],
     "dddRole" : "ENTITY",
     "aggregateName" : "Model",
-    "violations" : null
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Contractor",
     "packageName" : "complex.model",
@@ -382,6 +529,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -391,6 +542,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -403,6 +558,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -412,6 +571,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -420,7 +583,10 @@
     "relationships" : [ ],
     "dddRole" : "ENTITY",
     "aggregateName" : "Model",
-    "violations" : null
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Address",
     "packageName" : "complex.model",
@@ -438,6 +604,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -447,6 +617,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -459,6 +633,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -468,6 +646,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -480,6 +662,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -489,6 +675,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -496,8 +686,11 @@
     },
     "relationships" : [ ],
     "dddRole" : "VALUE_OBJECT",
-    "aggregateName" : "Person",
-    "violations" : null
+    "aggregateName" : "Model",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Phone",
     "packageName" : "complex.model",
@@ -515,6 +708,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -524,6 +721,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -536,6 +737,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -545,6 +750,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -557,6 +766,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -566,6 +779,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -589,12 +806,26 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : true,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     } ],
     "dddRole" : "ENTITY",
-    "aggregateName" : "Person",
-    "violations" : null
+    "aggregateName" : "Model",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Department",
     "packageName" : "complex.model",
@@ -612,6 +843,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -621,6 +856,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -633,6 +872,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -642,6 +885,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -654,6 +901,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -663,6 +914,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -686,8 +941,19 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : false,
       "lazy" : true,
-      "owningSide" : false
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     }, {
       "attributeName" : "locations",
       "targetEntity" : "String",
@@ -706,12 +972,26 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : true,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     } ],
     "dddRole" : "ENTITY",
-    "aggregateName" : "Project",
-    "violations" : null
+    "aggregateName" : "Model",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Project",
     "packageName" : "complex.model",
@@ -729,6 +1009,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -738,6 +1022,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -750,6 +1038,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -759,6 +1051,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -771,6 +1067,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -780,6 +1080,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -792,6 +1096,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -801,6 +1109,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -824,8 +1136,19 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : true,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     }, {
       "attributeName" : "department",
       "targetEntity" : "Department",
@@ -844,8 +1167,19 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : false,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     }, {
       "attributeName" : "tasks",
       "targetEntity" : "Task",
@@ -864,12 +1198,26 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : false,
       "lazy" : true,
-      "owningSide" : false
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     } ],
-    "dddRole" : "AGGREGATE_ROOT",
-    "aggregateName" : "Project",
-    "violations" : null
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Task",
     "packageName" : "complex.model",
@@ -887,6 +1235,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -896,6 +1248,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -908,6 +1264,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -917,6 +1277,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -929,6 +1293,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -938,6 +1306,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -961,8 +1333,19 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : true,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     }, {
       "attributeName" : "tags",
       "targetEntity" : "Tag",
@@ -981,12 +1364,26 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : true,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     } ],
     "dddRole" : "ENTITY",
-    "aggregateName" : "Project",
-    "violations" : null
+    "aggregateName" : "Model",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Tag",
     "packageName" : "complex.model",
@@ -1004,6 +1401,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -1013,6 +1414,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -1025,6 +1430,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -1034,6 +1443,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -1042,12 +1455,15 @@
     "relationships" : [ ],
     "dddRole" : "ENTITY",
     "aggregateName" : "Model",
-    "violations" : null
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   } ],
   "violations" : [ {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'BaseEntity' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+    "message" : "Entity 'BaseEntity' appears immutable. Consider adding @ReadOnly annotation."
   }, {
     "ruleId" : "INHERITANCE_ANALYSIS",
     "severity" : "INFO",
@@ -1083,7 +1499,7 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Person' has collection relationships and is frequently accessed. Consider using @Cacheable with appropriate cache size and expiry settings."
+    "message" : "Entity 'Person' has collection relationships. Consider using @Cacheable with appropriate cache size."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",
@@ -1112,6 +1528,10 @@
     "ruleId" : "N_PLUS_ONE_QUERY",
     "severity" : "INFO",
     "message" : "Bidirectional lazy collection 'phones' is accessed from both sides. Ensure both sides use consistent fetch strategies to avoid N+1 queries."
+  }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'phones' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
   }, {
     "ruleId" : "INDEX_OPTIMIZATION",
     "severity" : "INFO",
@@ -1147,11 +1567,11 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Employee' has 3 relationships and is a good candidate for @Cacheable annotation. Consider adding @Cacheable to improve read performance for frequently accessed entities."
+    "message" : "Entity 'Employee' has 3 relationships and is a good candidate for @Cacheable annotation."
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Employee' has collection relationships and is frequently accessed. Consider using @Cacheable with appropriate cache size and expiry settings."
+    "message" : "Entity 'Employee' has collection relationships. Consider using @Cacheable with appropriate cache size."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",
@@ -1181,6 +1601,14 @@
     "severity" : "WARNING",
     "message" : "Lazy collection 'projects' in entity 'Employee' causes N+1 queries when accessed. Add @BatchFetch or use JOIN FETCH in queries."
   }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'projects' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
+  }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'manager' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
+  }, {
     "ruleId" : "INDEX_OPTIMIZATION",
     "severity" : "INFO",
     "message" : "Relationship 'department' in entity 'Employee' creates a foreign key. Add database index for this column."
@@ -1203,7 +1631,7 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Manager' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+    "message" : "Entity 'Manager' appears immutable. Consider adding @ReadOnly annotation."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",
@@ -1219,7 +1647,7 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Contractor' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+    "message" : "Entity 'Contractor' appears immutable. Consider adding @ReadOnly annotation."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",
@@ -1235,7 +1663,7 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Address' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+    "message" : "Entity 'Address' appears immutable. Consider adding @ReadOnly annotation."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",
@@ -1257,6 +1685,10 @@
     "severity" : "INFO",
     "message" : "Lazy relationship 'owner' in entity 'Phone' could benefit from @BatchFetch when loading multiple parent entities."
   }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'owner' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
+  }, {
     "ruleId" : "INDEX_OPTIMIZATION",
     "severity" : "INFO",
     "message" : "Relationship 'owner' in entity 'Phone' creates a foreign key. Add database index for this column."
@@ -1275,7 +1707,7 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Department' has collection relationships and is frequently accessed. Consider using @Cacheable with appropriate cache size and expiry settings."
+    "message" : "Entity 'Department' has collection relationships. Consider using @Cacheable with appropriate cache size."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",
@@ -1296,6 +1728,14 @@
     "ruleId" : "N_PLUS_ONE_QUERY",
     "severity" : "INFO",
     "message" : "Bidirectional lazy collection 'employees' is accessed from both sides. Ensure both sides use consistent fetch strategies to avoid N+1 queries."
+  }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'employees' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
+  }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'locations' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
   }, {
     "ruleId" : "INDEX_OPTIMIZATION",
     "severity" : "INFO",
@@ -1331,11 +1771,11 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Project' has 3 relationships and is a good candidate for @Cacheable annotation. Consider adding @Cacheable to improve read performance for frequently accessed entities."
+    "message" : "Entity 'Project' has 3 relationships and is a good candidate for @Cacheable annotation."
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Project' has collection relationships and is frequently accessed. Consider using @Cacheable with appropriate cache size and expiry settings."
+    "message" : "Entity 'Project' has collection relationships. Consider using @Cacheable with appropriate cache size."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",
@@ -1381,6 +1821,14 @@
     "severity" : "WARNING",
     "message" : "Entity 'Project' has 2 lazy collections. Accessing multiple collections will cause multiple N+1 query patterns. Consider using global batch fetching or redesigning data access."
   }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'team' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
+  }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'tasks' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
+  }, {
     "ruleId" : "INDEX_OPTIMIZATION",
     "severity" : "INFO",
     "message" : "ManyToMany relationship 'team' uses join table. Add indexes on both foreign key columns in the join table."
@@ -1415,7 +1863,7 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Task' has collection relationships and is frequently accessed. Consider using @Cacheable with appropriate cache size and expiry settings."
+    "message" : "Entity 'Task' has collection relationships. Consider using @Cacheable with appropriate cache size."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",
@@ -1437,6 +1885,14 @@
     "severity" : "WARNING",
     "message" : "Lazy collection 'tags' in entity 'Task' causes N+1 queries when accessed. Add @BatchFetch or use JOIN FETCH in queries."
   }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'project' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
+  }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'tags' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
+  }, {
     "ruleId" : "INDEX_OPTIMIZATION",
     "severity" : "INFO",
     "message" : "Relationship 'project' in entity 'Task' creates a foreign key. Add database index for this column."
@@ -1455,7 +1911,7 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Tag' appears to be immutable or read-heavy. Consider adding @ReadOnly annotation if the entity is never modified after creation."
+    "message" : "Entity 'Tag' appears immutable. Consider adding @ReadOnly annotation."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",

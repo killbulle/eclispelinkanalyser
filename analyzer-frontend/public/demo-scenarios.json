@@ -1,0 +1,149 @@
+{
+    "timestamp": "2026-01-27T22:00:00",
+    "nodes": [
+        {
+            "name": "SystemMonitor",
+            "packageName": "org.demo.monitor",
+            "type": "ENTITY",
+            "attributes": {},
+            "relationships": [
+                {
+                    "attributeName": "cpuUsage",
+                    "targetEntity": "CPUUsage",
+                    "mappingType": "OneToMany",
+                    "cascadePersist": true,
+                    "cascadeRemove": true,
+                    "owningSide": true,
+                    "lazy": true
+                },
+                {
+                    "attributeName": "memUsage",
+                    "targetEntity": "MemoryUsage",
+                    "mappingType": "OneToMany",
+                    "cascadePersist": true,
+                    "cascadeRemove": true,
+                    "owningSide": true,
+                    "lazy": true
+                },
+                {
+                    "attributeName": "netUsage",
+                    "targetEntity": "NetworkUsage",
+                    "mappingType": "OneToMany",
+                    "cascadePersist": true,
+                    "cascadeRemove": true,
+                    "owningSide": true,
+                    "lazy": true
+                }
+            ]
+        },
+        {
+            "name": "CPUUsage",
+            "packageName": "org.demo.monitor",
+            "type": "ENTITY",
+            "attributes": {},
+            "relationships": []
+        },
+        {
+            "name": "MemoryUsage",
+            "packageName": "org.demo.monitor",
+            "type": "ENTITY",
+            "attributes": {},
+            "relationships": []
+        },
+        {
+            "name": "NetworkUsage",
+            "packageName": "org.demo.monitor",
+            "type": "ENTITY",
+            "attributes": {},
+            "relationships": []
+        },
+        {
+            "name": "Invoice",
+            "packageName": "org.demo.sales",
+            "type": "ENTITY",
+            "attributes": {},
+            "relationships": [
+                {
+                    "attributeName": "items",
+                    "targetEntity": "InvoiceLineItem",
+                    "mappingType": "OneToMany",
+                    "cascadePersist": true,
+                    "cascadeRemove": true,
+                    "owningSide": true,
+                    "lazy": true
+                }
+            ]
+        },
+        {
+            "name": "InvoiceLineItem",
+            "packageName": "org.demo.sales",
+            "type": "ENTITY",
+            "attributes": {},
+            "relationships": [
+                {
+                    "attributeName": "product",
+                    "targetEntity": "Product",
+                    "mappingType": "ManyToOne",
+                    "owningSide": true,
+                    "lazy": true
+                }
+            ]
+        },
+        {
+            "name": "Product",
+            "packageName": "org.demo.catalog",
+            "type": "ENTITY",
+            "attributes": {},
+            "relationships": []
+        },
+        {
+            "name": "Price",
+            "packageName": "org.demo.sales",
+            "type": "EMBEDDABLE",
+            "attributes": {},
+            "relationships": []
+        },
+        {
+            "name": "AccountEntry",
+            "packageName": "org.demo.accounting",
+            "type": "ENTITY",
+            "attributes": {},
+            "relationships": [
+                {
+                    "attributeName": "account",
+                    "targetEntity": "GeneralLedgerAccount",
+                    "mappingType": "ManyToOne",
+                    "owningSide": true,
+                    "lazy": true
+                }
+            ]
+        },
+        {
+            "name": "GeneralLedgerAccount",
+            "packageName": "org.demo.accounting",
+            "type": "ENTITY",
+            "attributes": {},
+            "relationships": [
+                {
+                    "attributeName": "entries",
+                    "targetEntity": "AccountEntry",
+                    "mappingType": "OneToMany",
+                    "cascadePersist": true,
+                    "owningSide": false,
+                    "lazy": true
+                }
+            ]
+        }
+    ],
+    "violations": [
+        {
+            "severity": "WARNING",
+            "message": "InvoiceLineItem has EAGER fetch which may cause N+1 queries."
+        },
+        {
+            "severity": "ERROR",
+            "message": "GeneralLedgerAccount is missing orphanRemoval for 'entries' collection."
+        }
+    ],
+    "anomalies": []
+}

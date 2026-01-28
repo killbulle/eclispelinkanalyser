@@ -27,6 +27,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +61,10 @@ public class Main {
             System.out.println("OFBiz directory detected. Starting stress-test conversion...");
             generateOfbizReport();
         }
+
+        // Generate Progressive Scenario Catalog
+        System.out.println("\n=== Generating Progressive Scenario Catalog ===");
+        generateProgressiveCatalog();
 
         System.out.println("All example reports generated successfully!");
     }
@@ -908,6 +914,139 @@ public class Main {
         runAnalysis(nodes, "Annotation_Model", "annotation-report.json");
     }
 
+    private static void generatePhase1Report() throws Exception {
+        // Entity with ObjectTypeConverter
+        EntityNode enumEntity = new EntityNode("EnumEntity", "phase1.model", "ENTITY");
+        Map<String, AttributeMetadata> enumAttrs = new HashMap<>();
+        AttributeMetadata idAttr = new AttributeMetadata("id", "Long", "BIGINT", "ID");
+        idAttr.setId(true);
+        enumAttrs.put("id", idAttr);
+
+        AttributeMetadata statusAttr = new AttributeMetadata("status", "String", "VARCHAR", "STATUS");
+        statusAttr.setObjectTypeConverter(true);
+        statusAttr.setObjectTypeDataType("java.lang.String");
+        statusAttr.setObjectTypeObjectType("com.mycompany.StatusEnum");
+        enumAttrs.put("status", statusAttr);
+        enumEntity.setAttributes(enumAttrs);
+        enumEntity.setRelationships(new ArrayList<>());
+
+        // Entity with DirectMapMapping and AggregateCollection
+        EntityNode advancedEntity = new EntityNode("AdvancedEntity", "phase1.model", "ENTITY");
+        Map<String, AttributeMetadata> advAttrs = new HashMap<>();
+        AttributeMetadata advId = new AttributeMetadata("id", "Long", "BIGINT", "ID");
+        advId.setId(true);
+        advAttrs.put("id", advId);
+        advancedEntity.setAttributes(advAttrs);
+
+        List<RelationshipMetadata> advRels = new ArrayList<>();
+
+        // DirectMapMapping (Map<String, Integer>)
+        RelationshipMetadata relDirectMap = new RelationshipMetadata("configMap", "java.lang.Integer", "DirectMap");
+        relDirectMap.setDirectMapMapping(true);
+        relDirectMap.setMapKeyType("java.lang.String");
+        relDirectMap.setMapValueType("java.lang.Integer");
+        advRels.add(relDirectMap);
+
+        // AggregateCollection (List<Embeddable>)
+        RelationshipMetadata relAggCol = new RelationshipMetadata("historyEntries", "HistoryEntry",
+                "AggregateCollection");
+        relAggCol.setAggregateCollection(true);
+        relAggCol.setLazy(false); // EAGER warning
+        advRels.add(relAggCol);
+
+        advancedEntity.setRelationships(advRels);
+
+        List<EntityNode> nodes = Arrays.asList(enumEntity, advancedEntity);
+        runAnalysis(nodes, "Phase1_Model", "phase1-report.json");
+    }
+
+    private static void generatePhase2Report() throws Exception {
+        // TransformationMapping Entity
+        EntityNode transformEntity = new EntityNode("TransformEntity", "phase2.model", "ENTITY");
+        Map<String, AttributeMetadata> trAttrs = new HashMap<>();
+        AttributeMetadata id = new AttributeMetadata("id", "Long", "BIGINT", "ID");
+        id.setId(true);
+        trAttrs.put("id", id);
+
+        AttributeMetadata fullAddress = new AttributeMetadata("fullAddress", "String", "VARCHAR", "FULL_ADDR");
+        fullAddress.setTransformationMapping(true);
+        fullAddress.setTransformationMethodName("buildFullAddress");
+        trAttrs.put("fullAddress", fullAddress);
+        transformEntity.setAttributes(trAttrs);
+        transformEntity.setRelationships(new ArrayList<>());
+
+        // VariableOneToOne Entity
+        EntityNode varEntity = new EntityNode("PolyEntity", "phase2.model", "ENTITY");
+        Map<String, AttributeMetadata> varAttrs = new HashMap<>();
+        AttributeMetadata varId = new AttributeMetadata("id", "Long", "BIGINT", "ID");
+        varId.setId(true);
+        varAttrs.put("id", varId);
+        varEntity.setAttributes(varAttrs);
+
+        List<RelationshipMetadata> varRels = new ArrayList<>();
+        RelationshipMetadata relVar = new RelationshipMetadata("contact", "ContactInterface", "VariableOneToOne");
+        relVar.setVariableOneToOne(true);
+        relVar.setVariableDiscriminatorColumn("CONTACT_TYPE");
+        varRels.add(relVar);
+        varEntity.setRelationships(varRels);
+
+        // DirectCollection (Primitive Array) & ArrayMapping (DB Array)
+        EntityNode arrayEntity = new EntityNode("ArrayEntity", "phase2.model", "ENTITY");
+        Map<String, AttributeMetadata> arrAttrs = new HashMap<>();
+        AttributeMetadata arrId = new AttributeMetadata("id", "Long", "BIGINT", "ID");
+        arrId.setId(true);
+        arrAttrs.put("id", arrId);
+        arrayEntity.setAttributes(arrAttrs);
+
+        List<RelationshipMetadata> arrRels = new ArrayList<>();
+
+        // DirectCollection (List<String>)
+        RelationshipMetadata relDirectCol = new RelationshipMetadata("tags", "String", "DirectCollection");
+        relDirectCol.setDirectCollection(true);
+        arrRels.add(relDirectCol);
+
+        // ArrayMapping (String[])
+        RelationshipMetadata relArray = new RelationshipMetadata("scores", "Integer", "Array");
+        relArray.setArrayMapping(true);
+        relArray.setArrayStructureName("SCORES_VARRAY");
+        arrRels.add(relArray);
+
+        arrayEntity.setRelationships(arrRels);
+
+        // Converter Entity
+        EntityNode convEntity = new EntityNode("ConvEntity", "phase2.model", "ENTITY");
+        Map<String, AttributeMetadata> convAttrs = new HashMap<>();
+        AttributeMetadata convId = new AttributeMetadata("id", "Long", "BIGINT", "ID");
+        convId.setId(true);
+        convAttrs.put("id", convId);
+
+        AttributeMetadata serAttr = new AttributeMetadata("config", "ConfigObj", "BLOB", "CONFIG");
+        serAttr.setSerializedObjectConverter(true);
+        convAttrs.put("config", serAttr);
+
+        AttributeMetadata typeAttr = new AttributeMetadata("legacyStatus", "String", "CHAR", "STATUS");
+        typeAttr.setTypeConversionConverter(true);
+        convAttrs.put("legacyStatus", typeAttr);
+
+        convEntity.setAttributes(convAttrs);
+        convEntity.setRelationships(new ArrayList<>());
+
+        // NestedTable Entity
+        EntityNode nestedEntity = new EntityNode("NestedEntity", "phase2.model", "ENTITY");
+        Map<String, AttributeMetadata> nestedAttrs = new HashMap<>();
+        nestedAttrs.put("id", createIdAttribute());
+        nestedEntity.setAttributes(nestedAttrs);
+        RelationshipMetadata nestedRel = new RelationshipMetadata();
+        nestedRel.setAttributeName("nestedItems");
+        nestedRel.setTargetEntity("NestedItem");
+        nestedRel.setMappingType("NestedTable");
+        nestedRel.setNestedTable(true);
+        nestedEntity.setRelationships(Collections.singletonList(nestedRel));
+
+        List<EntityNode> nodes = Arrays.asList(transformEntity, varEntity, arrayEntity, convEntity, nestedEntity);
+        runAnalysis(nodes, "Phase2_Model", "phase2-report.json");
+    }
+
     private static void runAnalysis(List<EntityNode> nodes, String dbName, String outputPath) throws Exception {
         Connection conn = DriverManager.getConnection("jdbc:h2:mem:" + dbName + ";DB_CLOSE_DELAY=-1", "sa", "");
         // Simplified DDL generation
@@ -952,11 +1091,1102 @@ public class Main {
                 new DiscriminatorRule(),
                 new NPlusOneQueryRule(),
                 new CartesianProductRule(),
-                new IndexRule());
+                new MappedSuperclassRule(), // New
+                new IndirectionPolicyRule(), // New
+                new ObjectTypeConverterRule(), // Phase 1
+                new DirectMapRule(), // Phase 1
+                new AggregateCollectionRule(), // Phase 1
+                new IndexRule(),
+                // Phase 2 Mappings
+                new TransformationMappingRule(),
+                new VariableOneToOneRule(),
+                new DirectCollectionRule(),
+                new ArrayMappingRule(),
+                new NestedTableRule(),
+                new ConverterRule());
 
         List<GlobalMappingRule> globalRules = Arrays.asList(
                 new GraphAnalysisRule());
 
         runner.runAnalysis(nodes, schema, rules, globalRules, outputPath);
+    }
+
+    private static void generateComprehensiveReport() throws Exception {
+        System.out.println("Generating Comprehensive Reference Report...");
+        List<EntityNode> allNodes = new ArrayList<>();
+
+        // 1. Standard Mappings & Indirection (ValueHolder)
+        EntityNode stdEntity = new EntityNode("StandardEntity", "ref.model", "ENTITY");
+        stdEntity.setAttributes(Collections.singletonMap("id", createIdAttribute()));
+        List<RelationshipMetadata> stdRels = new ArrayList<>();
+        stdRels.add(createRel("eagerOneToOne", "TargetA", "OneToOne", false)); // Eager Risk
+        stdRels.add(createRel("lazyOneToMany", "TargetB", "OneToMany", true));
+
+        // ValueHolder (OldLazy)
+        RelationshipMetadata vhRel = new RelationshipMetadata("legacyIndirection", "TargetA", "OneToOne");
+        vhRel.setIndirectionType("VALUEHOLDER");
+        stdRels.add(vhRel);
+        stdEntity.setRelationships(stdRels);
+        allNodes.add(stdEntity);
+        allNodes.add(new EntityNode("TargetA", "ref.model", "ENTITY"));
+        allNodes.add(new EntityNode("TargetB", "ref.model", "ENTITY"));
+
+        // 2. Phase 1 Extras (ObjectTypeConverter, DirectMap, AggCol)
+        EntityNode extra1 = new EntityNode("Phase1Extra", "ref.model", "ENTITY");
+        Map<String, AttributeMetadata> p1Attrs = new HashMap<>();
+        p1Attrs.put("id", createIdAttribute());
+        AttributeMetadata statusAttr = new AttributeMetadata("status", "String", "VARCHAR", "STATUS");
+        statusAttr.setObjectTypeConverter(true);
+        p1Attrs.put("status", statusAttr);
+        extra1.setAttributes(p1Attrs);
+
+        List<RelationshipMetadata> p1Rels = new ArrayList<>();
+        RelationshipMetadata relDirectMap = new RelationshipMetadata("configMap", "Integer", "DirectMap");
+        relDirectMap.setDirectMapMapping(true);
+        p1Rels.add(relDirectMap);
+
+        RelationshipMetadata relAggCol = new RelationshipMetadata("history", "TargetA", "AggregateCollection");
+        relAggCol.setAggregateCollection(true);
+        p1Rels.add(relAggCol);
+        extra1.setRelationships(p1Rels);
+        allNodes.add(extra1);
+
+        // 3. Phase 2 Mappings (Transformation, VarOneToOne, Array, Nested, Converters)
+        // Transformation
+        EntityNode transEntity = new EntityNode("TransEntity", "ref.model", "ENTITY");
+        Map<String, AttributeMetadata> transAttrs = new HashMap<>();
+        transAttrs.put("id", createIdAttribute());
+        AttributeMetadata trAttr = new AttributeMetadata("fullAddr", "String", "VARCHAR", "ADDR");
+        trAttr.setTransformationMapping(true);
+        transAttrs.put("fullAddr", trAttr);
+        transEntity.setAttributes(transAttrs);
+        transEntity.setRelationships(new ArrayList<>());
+        allNodes.add(transEntity);
+
+        // VariableOneToOne
+        EntityNode varEntity = new EntityNode("VarOneToOneEntity", "ref.model", "ENTITY");
+        varEntity.setAttributes(Collections.singletonMap("id", createIdAttribute()));
+        RelationshipMetadata varRel = new RelationshipMetadata("contact", "ContactInterface", "VariableOneToOne");
+        varRel.setVariableOneToOne(true);
+        varEntity.setRelationships(Collections.singletonList(varRel));
+        allNodes.add(varEntity);
+
+        // Arrays & DirectCollection
+        EntityNode arrayEntity = new EntityNode("ArrayEntity", "ref.model", "ENTITY");
+        arrayEntity.setAttributes(Collections.singletonMap("id", createIdAttribute()));
+        List<RelationshipMetadata> arrRels = new ArrayList<>();
+        RelationshipMetadata relArr = new RelationshipMetadata("scores", "Integer", "Array");
+        relArr.setArrayMapping(true);
+        arrRels.add(relArr);
+        RelationshipMetadata relDirCol = new RelationshipMetadata("tags", "String", "DirectCollection");
+        relDirCol.setDirectCollection(true);
+        arrRels.add(relDirCol);
+        arrayEntity.setRelationships(arrRels);
+        allNodes.add(arrayEntity);
+
+        // Converters & NestedTable
+        EntityNode advEntity = new EntityNode("AdvancedEntity", "ref.model", "ENTITY");
+        Map<String, AttributeMetadata> advAttrs = new HashMap<>();
+        advAttrs.put("id", createIdAttribute());
+        AttributeMetadata serAttr = new AttributeMetadata("blob", "Object", "BLOB", "BLOB");
+        serAttr.setSerializedObjectConverter(true);
+        advAttrs.put("blob", serAttr);
+        AttributeMetadata typeAttr = new AttributeMetadata("type", "String", "CHAR", "TYPE");
+        typeAttr.setTypeConversionConverter(true);
+        advAttrs.put("type", typeAttr);
+        advEntity.setAttributes(advAttrs);
+
+        RelationshipMetadata nestedRel = new RelationshipMetadata("nestedData", "NestedType", "NestedTable");
+        nestedRel.setNestedTable(true);
+        advEntity.setRelationships(Collections.singletonList(nestedRel));
+        allNodes.add(advEntity);
+
+        runAnalysis(allNodes, "Comprehensive_Model", "comprehensive-report.json");
+    }
+
+    private static RelationshipMetadata createRel(String name, String target, String type, boolean lazy) {
+        RelationshipMetadata r = new RelationshipMetadata(name, target, type);
+        r.setLazy(lazy);
+        return r;
+    }
+
+    /**
+     * Generates a complex scenario report with varied and realistic mapping
+     * patterns
+     * to comprehensively test all frontend visualization features.
+     */
+    private static void generateComplexScenarioReport() throws Exception {
+        System.out.println("Generating Complex Scenario Report...");
+        List<EntityNode> allNodes = new ArrayList<>();
+
+        // ==== 1. E-COMMERCE DOMAIN WITH INHERITANCE ====
+        // Abstract Product (SINGLE_TABLE inheritance)
+        EntityNode product = new EntityNode("Product", "ecommerce", "ABSTRACT_ENTITY");
+        product.setInheritanceStrategy("SINGLE_TABLE");
+        product.setDiscriminatorColumn("PRODUCT_TYPE");
+        product.setDiscriminatorValue("PRODUCT");
+        Map<String, AttributeMetadata> productAttrs = new HashMap<>();
+        productAttrs.put("id", createIdAttribute());
+        AttributeMetadata nameAttr = new AttributeMetadata("name", "String", "VARCHAR", "NAME");
+        productAttrs.put("name", nameAttr);
+        AttributeMetadata priceAttr = new AttributeMetadata("price", "BigDecimal", "DECIMAL", "PRICE");
+        productAttrs.put("price", priceAttr);
+        AttributeMetadata versionAttr = new AttributeMetadata("version", "Integer", "INTEGER", "VERSION");
+        versionAttr.setVersion(true);
+        productAttrs.put("version", versionAttr);
+        product.setAttributes(productAttrs);
+        product.setRelationships(new ArrayList<>());
+        allNodes.add(product);
+
+        // PhysicalProduct (inherits from Product)
+        EntityNode physicalProduct = new EntityNode("PhysicalProduct", "ecommerce", "ENTITY");
+        physicalProduct.setParentEntity("Product");
+        physicalProduct.setInheritanceStrategy("SINGLE_TABLE");
+        physicalProduct.setDiscriminatorValue("PHYSICAL");
+        Map<String, AttributeMetadata> physAttrs = new HashMap<>();
+        AttributeMetadata weightAttr = new AttributeMetadata("weight", "Double", "DOUBLE", "WEIGHT");
+        physAttrs.put("weight", weightAttr);
+        physicalProduct.setAttributes(physAttrs);
+
+        List<RelationshipMetadata> physRels = new ArrayList<>();
+        // Eager relationship (performance risk)
+        RelationshipMetadata warehouseRel = createRel("warehouse", "Warehouse", "ManyToOne", false);
+        warehouseRel.setOwningSide(true);
+        physRels.add(warehouseRel);
+        physicalProduct.setRelationships(physRels);
+        allNodes.add(physicalProduct);
+
+        // DigitalProduct (inherits from Product) with Converters
+        EntityNode digitalProduct = new EntityNode("DigitalProduct", "ecommerce", "ENTITY");
+        digitalProduct.setParentEntity("Product");
+        digitalProduct.setInheritanceStrategy("SINGLE_TABLE");
+        digitalProduct.setDiscriminatorValue("DIGITAL");
+        Map<String, AttributeMetadata> digAttrs = new HashMap<>();
+        AttributeMetadata downloadUrlAttr = new AttributeMetadata("downloadUrl", "String", "VARCHAR", "DOWNLOAD_URL");
+        digAttrs.put("downloadUrl", downloadUrlAttr);
+        AttributeMetadata licenseAttr = new AttributeMetadata("licenseType", "String", "VARCHAR", "LICENSE");
+        licenseAttr.setObjectTypeConverter(true);
+        licenseAttr.setObjectTypeDataType("java.lang.String");
+        licenseAttr.setObjectTypeObjectType("com.ecommerce.LicenseType");
+        digAttrs.put("licenseType", licenseAttr);
+        AttributeMetadata metadataAttr = new AttributeMetadata("metadata", "Object", "BLOB", "METADATA");
+        metadataAttr.setSerializedObjectConverter(true);
+        digAttrs.put("metadata", metadataAttr);
+        digitalProduct.setAttributes(digAttrs);
+        digitalProduct.setRelationships(new ArrayList<>());
+        allNodes.add(digitalProduct);
+
+        // ==== 2. SALES ORDER AGGREGATE WITH COMPLEX RELATIONSHIPS ====
+        EntityNode order = new EntityNode("SalesOrder", "ecommerce", "ENTITY");
+        order.setDddRole("AGGREGATE_ROOT");
+        order.setAggregateName("SalesOrder");
+        Map<String, AttributeMetadata> orderAttrs = new HashMap<>();
+        orderAttrs.put("id", createIdAttribute());
+        AttributeMetadata orderNumAttr = new AttributeMetadata("orderNumber", "String", "VARCHAR", "ORDER_NUM");
+        orderAttrs.put("orderNumber", orderNumAttr);
+        AttributeMetadata statusAttr = new AttributeMetadata("status", "String", "VARCHAR", "STATUS");
+        statusAttr.setEnumerated(true);
+        orderAttrs.put("status", statusAttr);
+        AttributeMetadata createdAttr = new AttributeMetadata("createdAt", "java.util.Date", "TIMESTAMP", "CREATED_AT");
+        createdAttr.setTemporal(true);
+        createdAttr.setTemporalType("TIMESTAMP");
+        orderAttrs.put("createdAt", createdAttr);
+        order.setAttributes(orderAttrs);
+
+        List<RelationshipMetadata> orderRels = new ArrayList<>();
+        // Bidirectional OneToMany (lazy, with batch fetch needed)
+        RelationshipMetadata itemsRel = createRel("items", "OrderItem", "OneToMany", true);
+        itemsRel.setOwningSide(false);
+        itemsRel.setMappedBy("order");
+        itemsRel.setCascadePersist(true);
+        itemsRel.setCascadeRemove(true);
+        itemsRel.setOrphanRemoval(true);
+        orderRels.add(itemsRel);
+
+        // Cross-aggregate reference (should show cut-point)
+        RelationshipMetadata customerRel = createRel("customer", "Customer", "ManyToOne", true);
+        customerRel.setOwningSide(true);
+        customerRel.setIndirectionType("VALUEHOLDER"); // Legacy indirection
+        orderRels.add(customerRel);
+
+        // Eager relationship (Cartesian product risk with items)
+        RelationshipMetadata paymentRel = createRel("payment", "Payment", "OneToOne", false);
+        paymentRel.setOwningSide(true);
+        orderRels.add(paymentRel);
+
+        order.setRelationships(orderRels);
+        allNodes.add(order);
+
+        // OrderItem (part of SalesOrder aggregate)
+        EntityNode orderItem = new EntityNode("OrderItem", "ecommerce", "ENTITY");
+        orderItem.setDddRole("ENTITY");
+        orderItem.setAggregateName("SalesOrder");
+        Map<String, AttributeMetadata> itemAttrs = new HashMap<>();
+        itemAttrs.put("id", createIdAttribute());
+        AttributeMetadata qtyAttr = new AttributeMetadata("quantity", "Integer", "INTEGER", "QTY");
+        itemAttrs.put("quantity", qtyAttr);
+        AttributeMetadata unitPriceAttr = new AttributeMetadata("unitPrice", "BigDecimal", "DECIMAL", "UNIT_PRICE");
+        itemAttrs.put("unitPrice", unitPriceAttr);
+        orderItem.setAttributes(itemAttrs);
+
+        List<RelationshipMetadata> itemRels = new ArrayList<>();
+        RelationshipMetadata orderBackRel = createRel("salesOrder", "SalesOrder", "ManyToOne", true);
+        orderBackRel.setOwningSide(true);
+        orderBackRel.setMappedBy("items");
+        itemRels.add(orderBackRel);
+
+        // VariableOneToOne for polymorphic product reference
+        RelationshipMetadata productRel = new RelationshipMetadata("product", "Product", "VariableOneToOne");
+        productRel.setVariableOneToOne(true);
+        productRel.setVariableDiscriminatorColumn("PRODUCT_TYPE");
+        productRel.setLazy(true);
+        itemRels.add(productRel);
+
+        orderItem.setRelationships(itemRels);
+        allNodes.add(orderItem);
+
+        // ==== 3. CUSTOMER AGGREGATE WITH ADVANCED MAPPINGS ====
+        EntityNode customer = new EntityNode("Customer", "ecommerce", "ENTITY");
+        customer.setDddRole("AGGREGATE_ROOT");
+        customer.setAggregateName("Customer");
+        Map<String, AttributeMetadata> custAttrs = new HashMap<>();
+        custAttrs.put("id", createIdAttribute());
+        AttributeMetadata emailAttr = new AttributeMetadata("email", "String", "VARCHAR", "EMAIL");
+        emailAttr.setUnique(true);
+        custAttrs.put("email", emailAttr);
+
+        // TransformationMapping for full name
+        AttributeMetadata fullNameAttr = new AttributeMetadata("fullName", "String", "VARCHAR", "FULL_NAME");
+        fullNameAttr.setTransformationMapping(true);
+        fullNameAttr.setTransformationMethodName("buildFullName");
+        custAttrs.put("fullName", fullNameAttr);
+
+        // TypeConversionConverter for legacy status
+        AttributeMetadata legacyStatusAttr = new AttributeMetadata("legacyStatus", "String", "CHAR", "LEGACY_STATUS");
+        legacyStatusAttr.setTypeConversionConverter(true);
+        custAttrs.put("legacyStatus", legacyStatusAttr);
+
+        customer.setAttributes(custAttrs);
+
+        List<RelationshipMetadata> custRels = new ArrayList<>();
+        // DirectCollection for tags
+        RelationshipMetadata tagsRel = new RelationshipMetadata("tags", "String", "DirectCollection");
+        tagsRel.setDirectCollection(true);
+        tagsRel.setLazy(true);
+        custRels.add(tagsRel);
+
+        // DirectMapMapping for preferences
+        RelationshipMetadata prefsRel = new RelationshipMetadata("preferences", "String", "DirectMap");
+        prefsRel.setDirectMapMapping(true);
+        prefsRel.setMapKeyType("java.lang.String");
+        prefsRel.setMapValueType("java.lang.String");
+        prefsRel.setLazy(true);
+        custRels.add(prefsRel);
+
+        // AggregateCollection for addresses
+        RelationshipMetadata addressesRel = new RelationshipMetadata("addresses", "Address", "AggregateCollection");
+        addressesRel.setAggregateCollection(true);
+        addressesRel.setLazy(false); // EAGER - will trigger warning
+        custRels.add(addressesRel);
+
+        customer.setRelationships(custRels);
+        allNodes.add(customer);
+
+        // ==== 4. WAREHOUSE WITH ARRAY MAPPINGS ====
+        EntityNode warehouse = new EntityNode("Warehouse", "ecommerce", "ENTITY");
+        warehouse.setDddRole("AGGREGATE_ROOT");
+        warehouse.setAggregateName("Warehouse");
+        Map<String, AttributeMetadata> whAttrs = new HashMap<>();
+        whAttrs.put("id", createIdAttribute());
+        AttributeMetadata whNameAttr = new AttributeMetadata("name", "String", "VARCHAR", "NAME");
+        whAttrs.put("name", whNameAttr);
+        warehouse.setAttributes(whAttrs);
+
+        List<RelationshipMetadata> whRels = new ArrayList<>();
+        // ArrayMapping for capacity zones
+        RelationshipMetadata zonesRel = new RelationshipMetadata("capacityZones", "Integer", "Array");
+        zonesRel.setArrayMapping(true);
+        zonesRel.setArrayStructureName("ZONES_VARRAY");
+        zonesRel.setLazy(true);
+        whRels.add(zonesRel);
+
+        // NestedTable for inventory items
+        RelationshipMetadata inventoryRel = new RelationshipMetadata("inventory", "InventoryItem", "NestedTable");
+        inventoryRel.setNestedTable(true);
+        inventoryRel.setLazy(true);
+        whRels.add(inventoryRel);
+
+        warehouse.setRelationships(whRels);
+        allNodes.add(warehouse);
+
+        // ==== 5. PAYMENT WITH SELF-REFERENCING ====
+        EntityNode payment = new EntityNode("Payment", "ecommerce", "ENTITY");
+        payment.setDddRole("ENTITY");
+        payment.setAggregateName("SalesOrder");
+        Map<String, AttributeMetadata> payAttrs = new HashMap<>();
+        payAttrs.put("id", createIdAttribute());
+        AttributeMetadata amountAttr = new AttributeMetadata("amount", "BigDecimal", "DECIMAL", "AMOUNT");
+        payAttrs.put("amount", amountAttr);
+        payment.setAttributes(payAttrs);
+
+        List<RelationshipMetadata> payRels = new ArrayList<>();
+        // Self-referencing for refund chain
+        RelationshipMetadata refundRel = createRel("refundedPayment", "Payment", "ManyToOne", true);
+        refundRel.setOwningSide(true);
+        payRels.add(refundRel);
+
+        RelationshipMetadata refundsRel = createRel("refunds", "Payment", "OneToMany", true);
+        refundsRel.setOwningSide(false);
+        refundsRel.setMappedBy("refundedPayment");
+        payRels.add(refundsRel);
+
+        payment.setRelationships(payRels);
+        allNodes.add(payment);
+
+        // ==== 6. SUPPORT ENTITIES ====
+        // Address (Embeddable - no table)
+        EntityNode address = new EntityNode("Address", "ecommerce", "EMBEDDABLE");
+        Map<String, AttributeMetadata> addrAttrs = new HashMap<>();
+        AttributeMetadata streetAttr = new AttributeMetadata("street", "String", "VARCHAR", "STREET");
+        addrAttrs.put("street", streetAttr);
+        AttributeMetadata cityAttr = new AttributeMetadata("city", "String", "VARCHAR", "CITY");
+        addrAttrs.put("city", cityAttr);
+        address.setAttributes(addrAttrs);
+        address.setRelationships(new ArrayList<>());
+        allNodes.add(address);
+
+        // InventoryItem (for NestedTable)
+        EntityNode inventoryItem = new EntityNode("InventoryItem", "ecommerce", "ENTITY");
+        Map<String, AttributeMetadata> invAttrs = new HashMap<>();
+        invAttrs.put("id", createIdAttribute());
+        AttributeMetadata skuAttr = new AttributeMetadata("sku", "String", "VARCHAR", "SKU");
+        invAttrs.put("sku", skuAttr);
+        inventoryItem.setAttributes(invAttrs);
+        inventoryItem.setRelationships(new ArrayList<>());
+        allNodes.add(inventoryItem);
+
+        runAnalysis(allNodes, "Complex_Scenario", "complex-scenario-report.json");
+    }
+
+    /**
+     * Generates the complete progressive catalog of scenarios.
+     */
+    private static void generateProgressiveCatalog() throws Exception {
+        // Level 1: Basic JPA Foundations
+        generateLevel1Basic();
+        // Level 2: JPA Intermediate
+        generateLevel2Intermediate();
+        // Level 3: JPA Advanced
+        generateLevel3Advanced();
+        // Level 4: EclipseLink Specific
+        generateLevel4EclipseLink();
+        // Level 5: EclipseLink Advanced Mappings
+        generateLevel5AdvancedMappings();
+        // Level 6: Anti-Patterns & Issues
+        generateLevel6AntiPatterns();
+        // Level 7: Real-World (keep existing complex-scenario as 7.2)
+        generateLevel7RealWorld();
+    }
+
+    // ==================== LEVEL 1: BASIC JPA ====================
+    private static void generateLevel1Basic() throws Exception {
+        System.out.println("Level 1: Basic JPA Foundations...");
+
+        // 1.1 Basic Entity
+        List<EntityNode> nodes = new ArrayList<>();
+        EntityNode person = new EntityNode("Person", "demo.basic", "ENTITY");
+        Map<String, AttributeMetadata> attrs = new HashMap<>();
+        attrs.put("id", createIdAttribute());
+        AttributeMetadata nameAttr = new AttributeMetadata("name", "String", "VARCHAR", "NAME");
+        attrs.put("name", nameAttr);
+        AttributeMetadata emailAttr = new AttributeMetadata("email", "String", "VARCHAR", "EMAIL");
+        emailAttr.setUnique(true);
+        attrs.put("email", emailAttr);
+        AttributeMetadata ageAttr = new AttributeMetadata("age", "Integer", "INTEGER", "AGE");
+        attrs.put("age", ageAttr);
+        person.setAttributes(attrs);
+        person.setRelationships(new ArrayList<>());
+        nodes.add(person);
+        runAnalysis(nodes, "L1_Basic_Entity", "catalog/1-1-basic-entity.json");
+
+        // 1.2 Basic Relationship (Unidirectional)
+        nodes = new ArrayList<>();
+        EntityNode author = new EntityNode("Author", "demo.basic", "ENTITY");
+        Map<String, AttributeMetadata> authAttrs = new HashMap<>();
+        authAttrs.put("id", createIdAttribute());
+        authAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        author.setAttributes(authAttrs);
+        List<RelationshipMetadata> authRels = new ArrayList<>();
+        RelationshipMetadata bioRel = createRel("biography", "Biography", "OneToOne", true);
+        bioRel.setOwningSide(true);
+        authRels.add(bioRel);
+        author.setRelationships(authRels);
+        nodes.add(author);
+
+        EntityNode bio = new EntityNode("Biography", "demo.basic", "ENTITY");
+        Map<String, AttributeMetadata> bioAttrs = new HashMap<>();
+        bioAttrs.put("id", createIdAttribute());
+        bioAttrs.put("content", new AttributeMetadata("content", "String", "CLOB", "CONTENT"));
+        bio.setAttributes(bioAttrs);
+        bio.setRelationships(new ArrayList<>());
+        nodes.add(bio);
+        runAnalysis(nodes, "L1_Basic_Relationship", "catalog/1-2-basic-relationship.json");
+
+        // 1.3 Bidirectional
+        nodes = new ArrayList<>();
+        EntityNode dept = new EntityNode("Department", "demo.basic", "ENTITY");
+        Map<String, AttributeMetadata> deptAttrs = new HashMap<>();
+        deptAttrs.put("id", createIdAttribute());
+        deptAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        dept.setAttributes(deptAttrs);
+        List<RelationshipMetadata> deptRels = new ArrayList<>();
+        RelationshipMetadata empsRel = createRel("employees", "Employee", "OneToMany", true);
+        empsRel.setOwningSide(false);
+        empsRel.setMappedBy("department");
+        deptRels.add(empsRel);
+        dept.setRelationships(deptRels);
+        nodes.add(dept);
+
+        EntityNode emp = new EntityNode("Employee", "demo.basic", "ENTITY");
+        Map<String, AttributeMetadata> empAttrs = new HashMap<>();
+        empAttrs.put("id", createIdAttribute());
+        empAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        emp.setAttributes(empAttrs);
+        List<RelationshipMetadata> empRels = new ArrayList<>();
+        RelationshipMetadata deptRef = createRel("department", "Department", "ManyToOne", true);
+        deptRef.setOwningSide(true);
+        empRels.add(deptRef);
+        emp.setRelationships(empRels);
+        nodes.add(emp);
+        runAnalysis(nodes, "L1_Bidirectional", "catalog/1-3-bidirectional.json");
+
+        // 1.4 Many-to-Many
+        nodes = new ArrayList<>();
+        EntityNode student = new EntityNode("Student", "demo.basic", "ENTITY");
+        Map<String, AttributeMetadata> stuAttrs = new HashMap<>();
+        stuAttrs.put("id", createIdAttribute());
+        stuAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        student.setAttributes(stuAttrs);
+        List<RelationshipMetadata> stuRels = new ArrayList<>();
+        RelationshipMetadata coursesRel = createRel("courses", "Course", "ManyToMany", true);
+        coursesRel.setOwningSide(true);
+        stuRels.add(coursesRel);
+        student.setRelationships(stuRels);
+        nodes.add(student);
+
+        EntityNode course = new EntityNode("Course", "demo.basic", "ENTITY");
+        Map<String, AttributeMetadata> crsAttrs = new HashMap<>();
+        crsAttrs.put("id", createIdAttribute());
+        crsAttrs.put("title", new AttributeMetadata("title", "String", "VARCHAR", "TITLE"));
+        course.setAttributes(crsAttrs);
+        List<RelationshipMetadata> crsRels = new ArrayList<>();
+        RelationshipMetadata studentsRel = createRel("students", "Student", "ManyToMany", true);
+        studentsRel.setOwningSide(false);
+        studentsRel.setMappedBy("courses");
+        crsRels.add(studentsRel);
+        course.setRelationships(crsRels);
+        nodes.add(course);
+        runAnalysis(nodes, "L1_ManyToMany", "catalog/1-4-many-to-many.json");
+    }
+
+    // ==================== LEVEL 2: JPA INTERMEDIATE ====================
+    private static void generateLevel2Intermediate() throws Exception {
+        System.out.println("Level 2: JPA Intermediate...");
+
+        // 2.1 Inheritance Single Table
+        List<EntityNode> nodes = new ArrayList<>();
+        EntityNode vehicle = new EntityNode("Vehicle", "demo.inheritance", "ENTITY");
+        vehicle.setInheritanceStrategy("SINGLE_TABLE");
+        vehicle.setDiscriminatorColumn("VEHICLE_TYPE");
+        vehicle.setDiscriminatorValue("VEHICLE");
+        Map<String, AttributeMetadata> vehAttrs = new HashMap<>();
+        vehAttrs.put("id", createIdAttribute());
+        vehAttrs.put("brand", new AttributeMetadata("brand", "String", "VARCHAR", "BRAND"));
+        vehicle.setAttributes(vehAttrs);
+        vehicle.setRelationships(new ArrayList<>());
+        nodes.add(vehicle);
+
+        EntityNode car = new EntityNode("Car", "demo.inheritance", "ENTITY");
+        car.setParentEntity("Vehicle");
+        car.setInheritanceStrategy("SINGLE_TABLE");
+        car.setDiscriminatorValue("CAR");
+        Map<String, AttributeMetadata> carAttrs = new HashMap<>();
+        carAttrs.put("numDoors", new AttributeMetadata("numDoors", "Integer", "INTEGER", "NUM_DOORS"));
+        car.setAttributes(carAttrs);
+        car.setRelationships(new ArrayList<>());
+        nodes.add(car);
+
+        EntityNode motorcycle = new EntityNode("Motorcycle", "demo.inheritance", "ENTITY");
+        motorcycle.setParentEntity("Vehicle");
+        motorcycle.setInheritanceStrategy("SINGLE_TABLE");
+        motorcycle.setDiscriminatorValue("MOTO");
+        Map<String, AttributeMetadata> motoAttrs = new HashMap<>();
+        motoAttrs.put("engineCC", new AttributeMetadata("engineCC", "Integer", "INTEGER", "ENGINE_CC"));
+        motorcycle.setAttributes(motoAttrs);
+        motorcycle.setRelationships(new ArrayList<>());
+        nodes.add(motorcycle);
+        runAnalysis(nodes, "L2_Inheritance_Single", "catalog/2-1-inheritance-single.json");
+
+        // 2.2 Inheritance Joined
+        nodes = new ArrayList<>();
+        EntityNode payment = new EntityNode("PaymentMethod", "demo.inheritance", "ENTITY");
+        payment.setInheritanceStrategy("JOINED");
+        Map<String, AttributeMetadata> payAttrs = new HashMap<>();
+        payAttrs.put("id", createIdAttribute());
+        payAttrs.put("ownerName", new AttributeMetadata("ownerName", "String", "VARCHAR", "OWNER_NAME"));
+        payment.setAttributes(payAttrs);
+        payment.setRelationships(new ArrayList<>());
+        nodes.add(payment);
+
+        EntityNode creditCard = new EntityNode("CreditCard", "demo.inheritance", "ENTITY");
+        creditCard.setParentEntity("PaymentMethod");
+        creditCard.setInheritanceStrategy("JOINED");
+        Map<String, AttributeMetadata> ccAttrs = new HashMap<>();
+        ccAttrs.put("cardNumber", new AttributeMetadata("cardNumber", "String", "VARCHAR", "CARD_NUM"));
+        ccAttrs.put("expiryDate", new AttributeMetadata("expiryDate", "String", "VARCHAR", "EXPIRY"));
+        creditCard.setAttributes(ccAttrs);
+        creditCard.setRelationships(new ArrayList<>());
+        nodes.add(creditCard);
+
+        EntityNode bankAccount = new EntityNode("BankAccount", "demo.inheritance", "ENTITY");
+        bankAccount.setParentEntity("PaymentMethod");
+        bankAccount.setInheritanceStrategy("JOINED");
+        Map<String, AttributeMetadata> baAttrs = new HashMap<>();
+        baAttrs.put("iban", new AttributeMetadata("iban", "String", "VARCHAR", "IBAN"));
+        baAttrs.put("bic", new AttributeMetadata("bic", "String", "VARCHAR", "BIC"));
+        bankAccount.setAttributes(baAttrs);
+        bankAccount.setRelationships(new ArrayList<>());
+        nodes.add(bankAccount);
+        runAnalysis(nodes, "L2_Inheritance_Joined", "catalog/2-2-inheritance-joined.json");
+
+        // 2.3 Embedded
+        nodes = new ArrayList<>();
+        EntityNode company = new EntityNode("Company", "demo.embedded", "ENTITY");
+        Map<String, AttributeMetadata> compAttrs = new HashMap<>();
+        compAttrs.put("id", createIdAttribute());
+        compAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        company.setAttributes(compAttrs);
+        List<RelationshipMetadata> compRels = new ArrayList<>();
+        RelationshipMetadata addrRel = new RelationshipMetadata("address", "CompanyAddress", "Embedded");
+        addrRel.setLazy(false);
+        compRels.add(addrRel);
+        company.setRelationships(compRels);
+        nodes.add(company);
+
+        EntityNode compAddr = new EntityNode("CompanyAddress", "demo.embedded", "EMBEDDABLE");
+        Map<String, AttributeMetadata> addrAttrs = new HashMap<>();
+        addrAttrs.put("street", new AttributeMetadata("street", "String", "VARCHAR", "STREET"));
+        addrAttrs.put("city", new AttributeMetadata("city", "String", "VARCHAR", "CITY"));
+        addrAttrs.put("zipCode", new AttributeMetadata("zipCode", "String", "VARCHAR", "ZIP"));
+        compAddr.setAttributes(addrAttrs);
+        compAddr.setRelationships(new ArrayList<>());
+        nodes.add(compAddr);
+        runAnalysis(nodes, "L2_Embedded", "catalog/2-3-embedded.json");
+
+        // 2.4 Element Collection
+        nodes = new ArrayList<>();
+        EntityNode user = new EntityNode("UserProfile", "demo.collection", "ENTITY");
+        Map<String, AttributeMetadata> userAttrs = new HashMap<>();
+        userAttrs.put("id", createIdAttribute());
+        userAttrs.put("username", new AttributeMetadata("username", "String", "VARCHAR", "USERNAME"));
+        user.setAttributes(userAttrs);
+        List<RelationshipMetadata> userRels = new ArrayList<>();
+        RelationshipMetadata phonesRel = new RelationshipMetadata("phoneNumbers", "String", "ElementCollection");
+        phonesRel.setLazy(true);
+        userRels.add(phonesRel);
+        RelationshipMetadata tagsRel = new RelationshipMetadata("tags", "String", "ElementCollection");
+        tagsRel.setLazy(true);
+        userRels.add(tagsRel);
+        user.setRelationships(userRels);
+        nodes.add(user);
+        runAnalysis(nodes, "L2_ElementCollection", "catalog/2-4-element-collection.json");
+    }
+
+    // ==================== LEVEL 3: JPA ADVANCED ====================
+    private static void generateLevel3Advanced() throws Exception {
+        System.out.println("Level 3: JPA Advanced...");
+
+        // 3.1 Lazy vs Eager
+        List<EntityNode> nodes = new ArrayList<>();
+        EntityNode blog = new EntityNode("Blog", "demo.fetch", "ENTITY");
+        Map<String, AttributeMetadata> blogAttrs = new HashMap<>();
+        blogAttrs.put("id", createIdAttribute());
+        blogAttrs.put("title", new AttributeMetadata("title", "String", "VARCHAR", "TITLE"));
+        blog.setAttributes(blogAttrs);
+        List<RelationshipMetadata> blogRels = new ArrayList<>();
+        RelationshipMetadata postsRel = createRel("posts", "BlogPost", "OneToMany", true);
+        postsRel.setOwningSide(false);
+        postsRel.setMappedBy("blog");
+        blogRels.add(postsRel);
+        RelationshipMetadata ownerRel = createRel("owner", "BlogOwner", "ManyToOne", false); // EAGER!
+        ownerRel.setOwningSide(true);
+        blogRels.add(ownerRel);
+        blog.setRelationships(blogRels);
+        nodes.add(blog);
+
+        EntityNode post = new EntityNode("BlogPost", "demo.fetch", "ENTITY");
+        Map<String, AttributeMetadata> postAttrs = new HashMap<>();
+        postAttrs.put("id", createIdAttribute());
+        postAttrs.put("content", new AttributeMetadata("content", "String", "CLOB", "CONTENT"));
+        post.setAttributes(postAttrs);
+        List<RelationshipMetadata> postRels = new ArrayList<>();
+        RelationshipMetadata blogRef = createRel("blog", "Blog", "ManyToOne", true);
+        blogRef.setOwningSide(true);
+        postRels.add(blogRef);
+        RelationshipMetadata commentsRel = createRel("comments", "Comment", "OneToMany", false); // EAGER!
+        commentsRel.setOwningSide(false);
+        postRels.add(commentsRel);
+        post.setRelationships(postRels);
+        nodes.add(post);
+
+        EntityNode owner = new EntityNode("BlogOwner", "demo.fetch", "ENTITY");
+        Map<String, AttributeMetadata> ownerAttrs = new HashMap<>();
+        ownerAttrs.put("id", createIdAttribute());
+        ownerAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        owner.setAttributes(ownerAttrs);
+        owner.setRelationships(new ArrayList<>());
+        nodes.add(owner);
+
+        EntityNode comment = new EntityNode("Comment", "demo.fetch", "ENTITY");
+        Map<String, AttributeMetadata> comAttrs = new HashMap<>();
+        comAttrs.put("id", createIdAttribute());
+        comAttrs.put("text", new AttributeMetadata("text", "String", "VARCHAR", "TEXT"));
+        comment.setAttributes(comAttrs);
+        comment.setRelationships(new ArrayList<>());
+        nodes.add(comment);
+        runAnalysis(nodes, "L3_Lazy_Eager", "catalog/3-1-lazy-eager.json");
+
+        // 3.2 Cascade Operations
+        nodes = new ArrayList<>();
+        EntityNode invoice = new EntityNode("Invoice", "demo.cascade", "ENTITY");
+        Map<String, AttributeMetadata> invAttrs = new HashMap<>();
+        invAttrs.put("id", createIdAttribute());
+        invAttrs.put("invoiceNumber", new AttributeMetadata("invoiceNumber", "String", "VARCHAR", "INV_NUM"));
+        invoice.setAttributes(invAttrs);
+        List<RelationshipMetadata> invRels = new ArrayList<>();
+        RelationshipMetadata linesRel = createRel("lines", "InvoiceLine", "OneToMany", true);
+        linesRel.setOwningSide(false);
+        linesRel.setMappedBy("invoice");
+        linesRel.setCascadePersist(true);
+        linesRel.setCascadeMerge(true);
+        linesRel.setCascadeRemove(true);
+        linesRel.setOrphanRemoval(true);
+        invRels.add(linesRel);
+        invoice.setRelationships(invRels);
+        nodes.add(invoice);
+
+        EntityNode line = new EntityNode("InvoiceLine", "demo.cascade", "ENTITY");
+        Map<String, AttributeMetadata> lineAttrs = new HashMap<>();
+        lineAttrs.put("id", createIdAttribute());
+        lineAttrs.put("quantity", new AttributeMetadata("quantity", "Integer", "INTEGER", "QTY"));
+        lineAttrs.put("amount", new AttributeMetadata("amount", "BigDecimal", "DECIMAL", "AMOUNT"));
+        line.setAttributes(lineAttrs);
+        List<RelationshipMetadata> lineRels = new ArrayList<>();
+        RelationshipMetadata invRef = createRel("invoice", "Invoice", "ManyToOne", true);
+        invRef.setOwningSide(true);
+        lineRels.add(invRef);
+        line.setRelationships(lineRels);
+        nodes.add(line);
+        runAnalysis(nodes, "L3_Cascade", "catalog/3-2-cascade-operations.json");
+
+        // 3.3 Version & Temporal
+        nodes = new ArrayList<>();
+        EntityNode audit = new EntityNode("AuditedEntity", "demo.temporal", "ENTITY");
+        Map<String, AttributeMetadata> audAttrs = new HashMap<>();
+        audAttrs.put("id", createIdAttribute());
+        AttributeMetadata verAttr = new AttributeMetadata("version", "Integer", "INTEGER", "VERSION");
+        verAttr.setVersion(true);
+        audAttrs.put("version", verAttr);
+        AttributeMetadata createdAttr = new AttributeMetadata("createdAt", "java.util.Date", "TIMESTAMP", "CREATED_AT");
+        createdAttr.setTemporal(true);
+        createdAttr.setTemporalType("TIMESTAMP");
+        audAttrs.put("createdAt", createdAttr);
+        AttributeMetadata modifiedAttr = new AttributeMetadata("modifiedAt", "java.util.Date", "TIMESTAMP",
+                "MODIFIED_AT");
+        modifiedAttr.setTemporal(true);
+        modifiedAttr.setTemporalType("TIMESTAMP");
+        audAttrs.put("modifiedAt", modifiedAttr);
+        AttributeMetadata birthDateAttr = new AttributeMetadata("birthDate", "java.util.Date", "DATE", "BIRTH_DATE");
+        birthDateAttr.setTemporal(true);
+        birthDateAttr.setTemporalType("DATE");
+        audAttrs.put("birthDate", birthDateAttr);
+        audit.setAttributes(audAttrs);
+        audit.setRelationships(new ArrayList<>());
+        nodes.add(audit);
+        runAnalysis(nodes, "L3_Version_Temporal", "catalog/3-3-version-temporal.json");
+
+        // 3.4 Converters
+        nodes = new ArrayList<>();
+        EntityNode config = new EntityNode("Configuration", "demo.converter", "ENTITY");
+        Map<String, AttributeMetadata> cfgAttrs = new HashMap<>();
+        cfgAttrs.put("id", createIdAttribute());
+        AttributeMetadata statusAttr = new AttributeMetadata("status", "String", "VARCHAR", "STATUS");
+        statusAttr.setEnumerated(true);
+        cfgAttrs.put("status", statusAttr);
+        AttributeMetadata jsonAttr = new AttributeMetadata("jsonData", "Object", "CLOB", "JSON_DATA");
+        jsonAttr.setConvert(true);
+        jsonAttr.setConverterName("JsonConverter");
+        cfgAttrs.put("jsonData", jsonAttr);
+        config.setAttributes(cfgAttrs);
+        config.setRelationships(new ArrayList<>());
+        nodes.add(config);
+        runAnalysis(nodes, "L3_Converters", "catalog/3-4-converters.json");
+    }
+
+    // ==================== LEVEL 4: ECLIPSELINK SPECIFIC ====================
+    private static void generateLevel4EclipseLink() throws Exception {
+        System.out.println("Level 4: EclipseLink Specific...");
+
+        // 4.1 Batch Fetch
+        List<EntityNode> nodes = new ArrayList<>();
+        EntityNode catalog = new EntityNode("ProductCatalog", "demo.batch", "ENTITY");
+        Map<String, AttributeMetadata> catAttrs = new HashMap<>();
+        catAttrs.put("id", createIdAttribute());
+        catAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        catalog.setAttributes(catAttrs);
+        List<RelationshipMetadata> catRels = new ArrayList<>();
+        RelationshipMetadata prodsRel = createRel("products", "CatalogProduct", "OneToMany", true);
+        prodsRel.setOwningSide(false);
+        prodsRel.setBatchFetchType("JOIN");
+        catRels.add(prodsRel);
+        catalog.setRelationships(catRels);
+        nodes.add(catalog);
+
+        EntityNode prod = new EntityNode("CatalogProduct", "demo.batch", "ENTITY");
+        Map<String, AttributeMetadata> prodAttrs = new HashMap<>();
+        prodAttrs.put("id", createIdAttribute());
+        prodAttrs.put("sku", new AttributeMetadata("sku", "String", "VARCHAR", "SKU"));
+        prod.setAttributes(prodAttrs);
+        List<RelationshipMetadata> prodRels = new ArrayList<>();
+        RelationshipMetadata catRef = createRel("catalog", "ProductCatalog", "ManyToOne", true);
+        catRef.setOwningSide(true);
+        prodRels.add(catRef);
+        prod.setRelationships(prodRels);
+        nodes.add(prod);
+        runAnalysis(nodes, "L4_BatchFetch", "catalog/4-1-batch-fetch.json");
+
+        // 4.2 Cache Config
+        nodes = new ArrayList<>();
+        EntityNode cached = new EntityNode("CachedReference", "demo.cache", "ENTITY");
+        cached.setCacheType("SOFT_WEAK");
+        cached.setCacheExpiry(3600);
+        cached.setCacheCoordinationType("SEND_NEW_OBJECTS_WITH_CHANGES");
+        Map<String, AttributeMetadata> cacheAttrs = new HashMap<>();
+        cacheAttrs.put("id", createIdAttribute());
+        cacheAttrs.put("code", new AttributeMetadata("code", "String", "VARCHAR", "CODE"));
+        cacheAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        cached.setAttributes(cacheAttrs);
+        cached.setRelationships(new ArrayList<>());
+        nodes.add(cached);
+        runAnalysis(nodes, "L4_Cache", "catalog/4-2-cache-config.json");
+
+        // 4.3 Indirection (ValueHolder)
+        nodes = new ArrayList<>();
+        EntityNode master = new EntityNode("MasterRecord", "demo.indirection", "ENTITY");
+        Map<String, AttributeMetadata> mastAttrs = new HashMap<>();
+        mastAttrs.put("id", createIdAttribute());
+        mastAttrs.put("code", new AttributeMetadata("code", "String", "VARCHAR", "CODE"));
+        master.setAttributes(mastAttrs);
+        List<RelationshipMetadata> mastRels = new ArrayList<>();
+        RelationshipMetadata detailRel = createRel("detail", "DetailRecord", "OneToOne", true);
+        detailRel.setOwningSide(true);
+        detailRel.setIndirectionType("VALUEHOLDER");
+        mastRels.add(detailRel);
+        RelationshipMetadata historyRel = createRel("history", "HistoryRecord", "OneToMany", true);
+        historyRel.setOwningSide(false);
+        historyRel.setIndirectionType("VALUEHOLDER");
+        mastRels.add(historyRel);
+        master.setRelationships(mastRels);
+        nodes.add(master);
+
+        EntityNode detail = new EntityNode("DetailRecord", "demo.indirection", "ENTITY");
+        Map<String, AttributeMetadata> detAttrs = new HashMap<>();
+        detAttrs.put("id", createIdAttribute());
+        detAttrs.put("info", new AttributeMetadata("info", "String", "VARCHAR", "INFO"));
+        detail.setAttributes(detAttrs);
+        detail.setRelationships(new ArrayList<>());
+        nodes.add(detail);
+
+        EntityNode history = new EntityNode("HistoryRecord", "demo.indirection", "ENTITY");
+        Map<String, AttributeMetadata> histAttrs = new HashMap<>();
+        histAttrs.put("id", createIdAttribute());
+        histAttrs.put("timestamp", new AttributeMetadata("timestamp", "java.util.Date", "TIMESTAMP", "TS"));
+        history.setAttributes(histAttrs);
+        history.setRelationships(new ArrayList<>());
+        nodes.add(history);
+        runAnalysis(nodes, "L4_Indirection", "catalog/4-3-indirection.json");
+
+        // 4.4 Private Owned
+        nodes = new ArrayList<>();
+        EntityNode parent = new EntityNode("ParentAggregate", "demo.owned", "ENTITY");
+        parent.setDddRole("AGGREGATE_ROOT");
+        Map<String, AttributeMetadata> parAttrs = new HashMap<>();
+        parAttrs.put("id", createIdAttribute());
+        parAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        parent.setAttributes(parAttrs);
+        List<RelationshipMetadata> parRels = new ArrayList<>();
+        RelationshipMetadata childRel = createRel("children", "OwnedChild", "OneToMany", true);
+        childRel.setOwningSide(false);
+        childRel.setPrivateOwned(true);
+        childRel.setCascadeAll(true);
+        parRels.add(childRel);
+        parent.setRelationships(parRels);
+        nodes.add(parent);
+
+        EntityNode child = new EntityNode("OwnedChild", "demo.owned", "ENTITY");
+        Map<String, AttributeMetadata> chAttrs = new HashMap<>();
+        chAttrs.put("id", createIdAttribute());
+        chAttrs.put("childValue", new AttributeMetadata("childValue", "String", "VARCHAR", "CHILD_VALUE"));
+        child.setAttributes(chAttrs);
+        child.setRelationships(new ArrayList<>());
+        nodes.add(child);
+        runAnalysis(nodes, "L4_PrivateOwned", "catalog/4-4-private-owned.json");
+    }
+
+    // ==================== LEVEL 5: ECLIPSELINK ADVANCED MAPPINGS
+    // ====================
+    private static void generateLevel5AdvancedMappings() throws Exception {
+        System.out.println("Level 5: EclipseLink Advanced Mappings...");
+
+        // 5.1 Transformation
+        List<EntityNode> nodes = new ArrayList<>();
+        EntityNode coord = new EntityNode("GeoCoordinate", "demo.transform", "ENTITY");
+        Map<String, AttributeMetadata> coordAttrs = new HashMap<>();
+        coordAttrs.put("id", createIdAttribute());
+        AttributeMetadata latAttr = new AttributeMetadata("latitude", "Double", "DOUBLE", "LAT");
+        latAttr.setTransformationMapping(true);
+        latAttr.setTransformationMethodName("readLatitude");
+        coordAttrs.put("latitude", latAttr);
+        AttributeMetadata lonAttr = new AttributeMetadata("longitude", "Double", "DOUBLE", "LON");
+        lonAttr.setTransformationMapping(true);
+        lonAttr.setTransformationMethodName("readLongitude");
+        coordAttrs.put("longitude", lonAttr);
+        coord.setAttributes(coordAttrs);
+        coord.setRelationships(new ArrayList<>());
+        nodes.add(coord);
+        runAnalysis(nodes, "L5_Transformation", "catalog/5-1-transformation.json");
+
+        // 5.2 Variable OneToOne
+        nodes = new ArrayList<>();
+        EntityNode container = new EntityNode("MediaContainer", "demo.variable", "ENTITY");
+        Map<String, AttributeMetadata> contAttrs = new HashMap<>();
+        contAttrs.put("id", createIdAttribute());
+        contAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        container.setAttributes(contAttrs);
+        List<RelationshipMetadata> contRels = new ArrayList<>();
+        RelationshipMetadata mediaRel = new RelationshipMetadata("media", "MediaContent", "VariableOneToOne");
+        mediaRel.setVariableOneToOne(true);
+        mediaRel.setVariableDiscriminatorColumn("MEDIA_TYPE");
+        mediaRel.setLazy(true);
+        contRels.add(mediaRel);
+        container.setRelationships(contRels);
+        nodes.add(container);
+
+        EntityNode image = new EntityNode("ImageContent", "demo.variable", "ENTITY");
+        Map<String, AttributeMetadata> imgAttrs = new HashMap<>();
+        imgAttrs.put("id", createIdAttribute());
+        imgAttrs.put("width", new AttributeMetadata("width", "Integer", "INTEGER", "WIDTH"));
+        imgAttrs.put("height", new AttributeMetadata("height", "Integer", "INTEGER", "HEIGHT"));
+        image.setAttributes(imgAttrs);
+        image.setRelationships(new ArrayList<>());
+        nodes.add(image);
+
+        EntityNode video = new EntityNode("VideoContent", "demo.variable", "ENTITY");
+        Map<String, AttributeMetadata> vidAttrs = new HashMap<>();
+        vidAttrs.put("id", createIdAttribute());
+        vidAttrs.put("duration", new AttributeMetadata("duration", "Integer", "INTEGER", "DURATION"));
+        video.setAttributes(vidAttrs);
+        video.setRelationships(new ArrayList<>());
+        nodes.add(video);
+        runAnalysis(nodes, "L5_VariableOneToOne", "catalog/5-2-variable-onetoone.json");
+
+        // 5.3 Direct Collection & Map
+        nodes = new ArrayList<>();
+        EntityNode profile = new EntityNode("UserSettings", "demo.direct", "ENTITY");
+        Map<String, AttributeMetadata> profAttrs = new HashMap<>();
+        profAttrs.put("id", createIdAttribute());
+        profAttrs.put("username", new AttributeMetadata("username", "String", "VARCHAR", "USERNAME"));
+        profile.setAttributes(profAttrs);
+        List<RelationshipMetadata> profRels = new ArrayList<>();
+        RelationshipMetadata tagsRel = new RelationshipMetadata("tags", "String", "DirectCollection");
+        tagsRel.setDirectCollection(true);
+        tagsRel.setLazy(true);
+        profRels.add(tagsRel);
+        RelationshipMetadata prefsRel = new RelationshipMetadata("preferences", "String", "DirectMap");
+        prefsRel.setDirectMapMapping(true);
+        prefsRel.setMapKeyType("java.lang.String");
+        prefsRel.setMapValueType("java.lang.String");
+        prefsRel.setLazy(true);
+        profRels.add(prefsRel);
+        profile.setRelationships(profRels);
+        nodes.add(profile);
+        runAnalysis(nodes, "L5_DirectCollectionMap", "catalog/5-3-direct-collection.json");
+
+        // 5.4 Aggregate Collection
+        nodes = new ArrayList<>();
+        EntityNode portfolio = new EntityNode("Portfolio", "demo.aggregate", "ENTITY");
+        Map<String, AttributeMetadata> portAttrs = new HashMap<>();
+        portAttrs.put("id", createIdAttribute());
+        portAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        portfolio.setAttributes(portAttrs);
+        List<RelationshipMetadata> portRels = new ArrayList<>();
+        RelationshipMetadata holdingsRel = new RelationshipMetadata("holdings", "Holding", "AggregateCollection");
+        holdingsRel.setAggregateCollection(true);
+        holdingsRel.setLazy(true);
+        portRels.add(holdingsRel);
+        portfolio.setRelationships(portRels);
+        nodes.add(portfolio);
+
+        EntityNode holding = new EntityNode("Holding", "demo.aggregate", "EMBEDDABLE");
+        Map<String, AttributeMetadata> holdAttrs = new HashMap<>();
+        holdAttrs.put("symbol", new AttributeMetadata("symbol", "String", "VARCHAR", "SYMBOL"));
+        holdAttrs.put("quantity", new AttributeMetadata("quantity", "Integer", "INTEGER", "QTY"));
+        holding.setAttributes(holdAttrs);
+        holding.setRelationships(new ArrayList<>());
+        nodes.add(holding);
+        runAnalysis(nodes, "L5_AggregateCollection", "catalog/5-4-aggregate-collection.json");
+
+        // 5.5 Array & Nested Table
+        nodes = new ArrayList<>();
+        EntityNode dataStore = new EntityNode("DataStore", "demo.oracle", "ENTITY");
+        Map<String, AttributeMetadata> dsAttrs = new HashMap<>();
+        dsAttrs.put("id", createIdAttribute());
+        dsAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        dataStore.setAttributes(dsAttrs);
+        List<RelationshipMetadata> dsRels = new ArrayList<>();
+        RelationshipMetadata valuesRel = new RelationshipMetadata("values", "Integer", "Array");
+        valuesRel.setArrayMapping(true);
+        valuesRel.setArrayStructureName("INT_VARRAY");
+        valuesRel.setLazy(true);
+        dsRels.add(valuesRel);
+        RelationshipMetadata recordsRel = new RelationshipMetadata("records", "DataRecord", "NestedTable");
+        recordsRel.setNestedTable(true);
+        recordsRel.setLazy(true);
+        dsRels.add(recordsRel);
+        dataStore.setRelationships(dsRels);
+        nodes.add(dataStore);
+
+        EntityNode record = new EntityNode("DataRecord", "demo.oracle", "ENTITY");
+        Map<String, AttributeMetadata> recAttrs = new HashMap<>();
+        recAttrs.put("id", createIdAttribute());
+        recAttrs.put("dataValue", new AttributeMetadata("dataValue", "String", "VARCHAR", "DATA_VALUE"));
+        record.setAttributes(recAttrs);
+        record.setRelationships(new ArrayList<>());
+        nodes.add(record);
+        runAnalysis(nodes, "L5_ArrayNestedTable", "catalog/5-5-array-nested.json");
+    }
+
+    // ==================== LEVEL 6: ANTI-PATTERNS ====================
+    private static void generateLevel6AntiPatterns() throws Exception {
+        System.out.println("Level 6: Anti-Patterns & Issues...");
+
+        // 6.1 Circular References
+        List<EntityNode> nodes = new ArrayList<>();
+        EntityNode nodeA = new EntityNode("NodeA", "demo.cycle", "ENTITY");
+        Map<String, AttributeMetadata> aAttrs = new HashMap<>();
+        aAttrs.put("id", createIdAttribute());
+        nodeA.setAttributes(aAttrs);
+        List<RelationshipMetadata> aRels = new ArrayList<>();
+        aRels.add(createRel("toB", "NodeB", "ManyToOne", true));
+        nodeA.setRelationships(aRels);
+        nodes.add(nodeA);
+
+        EntityNode nodeB = new EntityNode("NodeB", "demo.cycle", "ENTITY");
+        Map<String, AttributeMetadata> bAttrs = new HashMap<>();
+        bAttrs.put("id", createIdAttribute());
+        nodeB.setAttributes(bAttrs);
+        List<RelationshipMetadata> bRels = new ArrayList<>();
+        bRels.add(createRel("toC", "NodeC", "ManyToOne", true));
+        nodeB.setRelationships(bRels);
+        nodes.add(nodeB);
+
+        EntityNode nodeC = new EntityNode("NodeC", "demo.cycle", "ENTITY");
+        Map<String, AttributeMetadata> cAttrs = new HashMap<>();
+        cAttrs.put("id", createIdAttribute());
+        nodeC.setAttributes(cAttrs);
+        List<RelationshipMetadata> cRels = new ArrayList<>();
+        cRels.add(createRel("toA", "NodeA", "ManyToOne", true)); // Cycle!
+        nodeC.setRelationships(cRels);
+        nodes.add(nodeC);
+        runAnalysis(nodes, "L6_Circular", "catalog/6-1-circular-refs.json");
+
+        // 6.2 Cartesian Product Risk
+        nodes = new ArrayList<>();
+        EntityNode report = new EntityNode("SalesReport", "demo.cartesian", "ENTITY");
+        Map<String, AttributeMetadata> repAttrs = new HashMap<>();
+        repAttrs.put("id", createIdAttribute());
+        repAttrs.put("title", new AttributeMetadata("title", "String", "VARCHAR", "TITLE"));
+        report.setAttributes(repAttrs);
+        List<RelationshipMetadata> repRels = new ArrayList<>();
+        // Multiple EAGER collections = Cartesian product!
+        RelationshipMetadata reg1 = createRel("regions", "Region", "OneToMany", false);
+        reg1.setOwningSide(false);
+        repRels.add(reg1);
+        RelationshipMetadata prod1 = createRel("products", "ReportProduct", "OneToMany", false);
+        prod1.setOwningSide(false);
+        repRels.add(prod1);
+        RelationshipMetadata cust1 = createRel("customers", "ReportCustomer", "OneToMany", false);
+        cust1.setOwningSide(false);
+        repRels.add(cust1);
+        report.setRelationships(repRels);
+        nodes.add(report);
+
+        EntityNode region = new EntityNode("Region", "demo.cartesian", "ENTITY");
+        region.setAttributes(Map.of("id", createIdAttribute()));
+        region.setRelationships(new ArrayList<>());
+        nodes.add(region);
+
+        EntityNode rprod = new EntityNode("ReportProduct", "demo.cartesian", "ENTITY");
+        rprod.setAttributes(Map.of("id", createIdAttribute()));
+        rprod.setRelationships(new ArrayList<>());
+        nodes.add(rprod);
+
+        EntityNode rcust = new EntityNode("ReportCustomer", "demo.cartesian", "ENTITY");
+        rcust.setAttributes(Map.of("id", createIdAttribute()));
+        rcust.setRelationships(new ArrayList<>());
+        nodes.add(rcust);
+        runAnalysis(nodes, "L6_Cartesian", "catalog/6-2-cartesian-product.json");
+
+        // 6.3 Missing Optimizations
+        nodes = new ArrayList<>();
+        EntityNode largeEntity = new EntityNode("LargeEntity", "demo.missing", "ENTITY");
+        Map<String, AttributeMetadata> lgAttrs = new HashMap<>();
+        lgAttrs.put("id", createIdAttribute());
+        lgAttrs.put("name", new AttributeMetadata("name", "String", "VARCHAR", "NAME"));
+        largeEntity.setAttributes(lgAttrs);
+        List<RelationshipMetadata> lgRels = new ArrayList<>();
+        // No batch fetch, no join fetch
+        RelationshipMetadata items = createRel("items", "LargeItem", "OneToMany", true);
+        items.setOwningSide(false);
+        // No batchFetch set -> N+1 risk
+        lgRels.add(items);
+        largeEntity.setRelationships(lgRels);
+        nodes.add(largeEntity);
+
+        EntityNode lItem = new EntityNode("LargeItem", "demo.missing", "ENTITY");
+        Map<String, AttributeMetadata> liAttrs = new HashMap<>();
+        liAttrs.put("id", createIdAttribute());
+        lItem.setAttributes(liAttrs);
+        lItem.setRelationships(new ArrayList<>());
+        nodes.add(lItem);
+        runAnalysis(nodes, "L6_MissingOpt", "catalog/6-3-missing-optimizations.json");
+    }
+
+    // ==================== LEVEL 7: REAL-WORLD ====================
+    private static void generateLevel7RealWorld() throws Exception {
+        System.out.println("Level 7: Real-World Integration...");
+
+        // 7.1 DDD Aggregates (reuse complex scenario patterns)
+        // Just reference to complex-scenario-report.json in the catalog
+
+        // 7.2 is handled by ofbiz-report.json
+
+        System.out.println("Level 7 uses existing reports: complex-scenario-report.json and ofbiz-report.json");
+    }
+
+    private static AttributeMetadata createIdAttribute() {
+        AttributeMetadata id = new AttributeMetadata("id", "Long", "BIGINT", "ID");
+        id.setId(true);
+        return id;
     }
 }

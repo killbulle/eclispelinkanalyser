@@ -20,6 +20,28 @@ public class RelationshipMetadata {
     private boolean privateOwned;
     private boolean mutable;
     private boolean readOnly;
+    private String indirectionType; // VALUEHOLDER, WEAVED, TRANSPARENT, NONE
+
+    // Phase 1 Mappings
+    private boolean isAggregateCollection; // EclipseLink @AggregateCollection
+    private boolean isDirectMapMapping; // EclipseLink Key/Value pair (e.g. Map<String, Integer>)
+    private boolean isDirectCollection;
+    private boolean isVariableOneToOne;
+    private boolean isArrayMapping;
+    private boolean isNestedTable;
+
+    public boolean isNestedTable() {
+        return isNestedTable;
+    }
+
+    public void setNestedTable(boolean nestedTable) {
+        isNestedTable = nestedTable;
+    }
+
+    private String variableDiscriminatorColumn;
+    private String arrayStructureName;
+    private String mapKeyType; // Type of the map key (if applicable)
+    private String mapValueType; // Type of the map value (if applicable)
 
     public RelationshipMetadata() {
     }
@@ -181,5 +203,85 @@ public class RelationshipMetadata {
 
     public void setReadOnly(boolean readOnly) {
         this.readOnly = readOnly;
+    }
+
+    public String getIndirectionType() {
+        return indirectionType;
+    }
+
+    public void setIndirectionType(String indirectionType) {
+        this.indirectionType = indirectionType;
+    }
+
+    public boolean isAggregateCollection() {
+        return isAggregateCollection;
+    }
+
+    public void setAggregateCollection(boolean aggregateCollection) {
+        isAggregateCollection = aggregateCollection;
+    }
+
+    public boolean isDirectMapMapping() {
+        return isDirectMapMapping;
+    }
+
+    public void setDirectMapMapping(boolean directMapMapping) {
+        isDirectMapMapping = directMapMapping;
+    }
+
+    public String getMapKeyType() {
+        return mapKeyType;
+    }
+
+    public void setMapKeyType(String mapKeyType) {
+        this.mapKeyType = mapKeyType;
+    }
+
+    public String getMapValueType() {
+        return mapValueType;
+    }
+
+    public void setMapValueType(String mapValueType) {
+        this.mapValueType = mapValueType;
+    }
+
+    public boolean isDirectCollection() {
+        return isDirectCollection;
+    }
+
+    public void setDirectCollection(boolean directCollection) {
+        isDirectCollection = directCollection;
+    }
+
+    public boolean isVariableOneToOne() {
+        return isVariableOneToOne;
+    }
+
+    public void setVariableOneToOne(boolean variableOneToOne) {
+        isVariableOneToOne = variableOneToOne;
+    }
+
+    public boolean isArrayMapping() {
+        return isArrayMapping;
+    }
+
+    public void setArrayMapping(boolean arrayMapping) {
+        isArrayMapping = arrayMapping;
+    }
+
+    public String getVariableDiscriminatorColumn() {
+        return variableDiscriminatorColumn;
+    }
+
+    public void setVariableDiscriminatorColumn(String variableDiscriminatorColumn) {
+        this.variableDiscriminatorColumn = variableDiscriminatorColumn;
+    }
+
+    public String getArrayStructureName() {
+        return arrayStructureName;
+    }
+
+    public void setArrayStructureName(String arrayStructureName) {
+        this.arrayStructureName = arrayStructureName;
     }
 }

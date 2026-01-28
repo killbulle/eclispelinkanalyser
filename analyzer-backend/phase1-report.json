@@ -1,0 +1,244 @@
+{
+  "nodes" : [ {
+    "name" : "EnumEntity",
+    "packageName" : "phase1.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : true,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "status" : {
+        "name" : "status",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "STATUS",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : "java.lang.String",
+        "objectTypeObjectType" : "com.mycompany.StatusEnum",
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : true,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
+  }, {
+    "name" : "AdvancedEntity",
+    "packageName" : "phase1.model",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : true,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ {
+      "attributeName" : "configMap",
+      "targetEntity" : "java.lang.Integer",
+      "mappingType" : "DirectMap",
+      "mappedBy" : null,
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : null,
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : "java.lang.String",
+      "mapValueType" : "java.lang.Integer",
+      "owningSide" : false,
+      "lazy" : false,
+      "aggregateCollection" : false,
+      "directMapMapping" : true,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
+    }, {
+      "attributeName" : "historyEntries",
+      "targetEntity" : "HistoryEntry",
+      "mappingType" : "AggregateCollection",
+      "mappedBy" : null,
+      "cascadePersist" : false,
+      "cascadeMerge" : false,
+      "cascadeRemove" : false,
+      "cascadeRefresh" : false,
+      "cascadeDetach" : false,
+      "cascadeAll" : false,
+      "orphanRemoval" : false,
+      "optional" : false,
+      "batchFetchType" : null,
+      "joinFetch" : false,
+      "privateOwned" : false,
+      "mutable" : false,
+      "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : false,
+      "lazy" : false,
+      "aggregateCollection" : true,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
+    } ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Model",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
+  } ],
+  "violations" : [ {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'EnumEntity' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'EnumEntity' appears immutable. Consider adding @ReadOnly annotation."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'EnumEntity' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "OBJECT_TYPE_CONVERTER",
+    "severity" : "INFO",
+    "message" : "Attribute 'status' uses @ObjectTypeConverter with String dataType. If mapping an Enum, consider standard JPA @Enumerated(EnumType.STRING) for portability."
+  }, {
+    "ruleId" : "REL_EAGER_FETCH",
+    "severity" : "WARNING",
+    "message" : "Relationship 'configMap' in AdvancedEntity uses EAGER fetch. Use LAZY for better performance."
+  }, {
+    "ruleId" : "REL_EAGER_FETCH",
+    "severity" : "WARNING",
+    "message" : "Relationship 'historyEntries' in AdvancedEntity uses EAGER fetch. Use LAZY for better performance."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'AdvancedEntity' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'AdvancedEntity' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "INFO",
+    "message" : "Eager relationship 'configMap' in entity 'AdvancedEntity' may cause unnecessary joins. Consider LAZY fetch unless always needed."
+  }, {
+    "ruleId" : "N_PLUS_ONE_QUERY",
+    "severity" : "INFO",
+    "message" : "Eager relationship 'historyEntries' in entity 'AdvancedEntity' may cause unnecessary joins. Consider LAZY fetch unless always needed."
+  }, {
+    "ruleId" : "CARTESIAN_PRODUCT",
+    "severity" : "ERROR",
+    "message" : "Entity 'AdvancedEntity' has 2 eager relationships: configMap, historyEntries. This will cause Cartesian product explosion. Change all to LAZY fetch."
+  }, {
+    "ruleId" : "DIRECT_MAP_MAPPING",
+    "severity" : "INFO",
+    "message" : "Relationship 'configMap' uses EclipseLink DirectMapMapping (Map<java.lang.String, java.lang.Integer>). Consider using standard JPA @ElementCollection for better portability if advanced EclipseLink features are not used."
+  }, {
+    "ruleId" : "AGGREGATE_COLLECTION",
+    "severity" : "INFO",
+    "message" : "Relationship 'historyEntries' uses @AggregateCollection. Consider using standard JPA @ElementCollection for collections of embeddables."
+  }, {
+    "ruleId" : "AGGREGATE_COLLECTION",
+    "severity" : "WARNING",
+    "message" : "AggregateCollection 'historyEntries' is configured as EAGER. This can cause significant performance overhead if the collection is large. Consider Lazy loading."
+  } ],
+  "anomalies" : [ ]
+}

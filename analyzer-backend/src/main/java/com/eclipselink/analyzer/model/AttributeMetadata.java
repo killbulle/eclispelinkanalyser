@@ -21,6 +21,17 @@ public class AttributeMetadata {
     private boolean isBasic;
     private boolean isElementCollection;
 
+    // EclipseLink Converter Metadata
+    private String converterType; // OBJECT_TYPE, TYPE_CONVERSION, SERIALIZED, CUSTOM
+    private boolean isObjectTypeConverter;
+    private boolean isTypeConversionConverter;
+    private boolean isSerializedObjectConverter;
+
+    private boolean isTransformationMapping;
+    private String transformationMethodName;
+    private String objectTypeDataType; // e.g. java.lang.String (DB side)
+    private String objectTypeObjectType; // e.g. com.my.Enum (Java side)
+
     public AttributeMetadata() {
     }
 
@@ -181,5 +192,69 @@ public class AttributeMetadata {
 
     public void setElementCollection(boolean elementCollection) {
         isElementCollection = elementCollection;
+    }
+
+    public String getConverterType() {
+        return converterType;
+    }
+
+    public void setConverterType(String converterType) {
+        this.converterType = converterType;
+    }
+
+    public boolean isObjectTypeConverter() {
+        return isObjectTypeConverter;
+    }
+
+    public void setObjectTypeConverter(boolean objectTypeConverter) {
+        isObjectTypeConverter = objectTypeConverter;
+    }
+
+    public String getObjectTypeDataType() {
+        return objectTypeDataType;
+    }
+
+    public void setObjectTypeDataType(String objectTypeDataType) {
+        this.objectTypeDataType = objectTypeDataType;
+    }
+
+    public String getObjectTypeObjectType() {
+        return objectTypeObjectType;
+    }
+
+    public void setObjectTypeObjectType(String objectTypeObjectType) {
+        this.objectTypeObjectType = objectTypeObjectType;
+    }
+
+    public boolean isTypeConversionConverter() {
+        return isTypeConversionConverter;
+    }
+
+    public void setTypeConversionConverter(boolean typeConversionConverter) {
+        isTypeConversionConverter = typeConversionConverter;
+    }
+
+    public boolean isSerializedObjectConverter() {
+        return isSerializedObjectConverter;
+    }
+
+    public void setSerializedObjectConverter(boolean serializedObjectConverter) {
+        isSerializedObjectConverter = serializedObjectConverter;
+    }
+
+    public boolean isTransformationMapping() {
+        return isTransformationMapping;
+    }
+
+    public void setTransformationMapping(boolean transformationMapping) {
+        isTransformationMapping = transformationMapping;
+    }
+
+    public String getTransformationMethodName() {
+        return transformationMethodName;
+    }
+
+    public void setTransformationMethodName(String transformationMethodName) {
+        this.transformationMethodName = transformationMethodName;
     }
 }

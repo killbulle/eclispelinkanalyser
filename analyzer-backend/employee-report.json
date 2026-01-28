@@ -16,6 +16,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -25,6 +29,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -37,6 +45,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -46,6 +58,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -58,6 +74,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -67,6 +87,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -79,6 +103,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -88,6 +116,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -111,8 +143,19 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : true,
       "lazy" : false,
-      "owningSide" : true
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     }, {
       "attributeName" : "phones",
       "targetEntity" : "Phone",
@@ -131,12 +174,26 @@
       "privateOwned" : false,
       "mutable" : false,
       "readOnly" : false,
+      "indirectionType" : null,
+      "variableDiscriminatorColumn" : null,
+      "arrayStructureName" : null,
+      "mapKeyType" : null,
+      "mapValueType" : null,
+      "owningSide" : false,
       "lazy" : true,
-      "owningSide" : false
+      "aggregateCollection" : false,
+      "directMapMapping" : false,
+      "directCollection" : false,
+      "variableOneToOne" : false,
+      "arrayMapping" : false,
+      "nestedTable" : false
     } ],
     "dddRole" : "ENTITY",
     "aggregateName" : "Model",
-    "violations" : null
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   }, {
     "name" : "Address",
     "packageName" : "eclipselink.example.jpa.employee.model",
@@ -154,6 +211,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -163,6 +224,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -175,6 +240,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -184,6 +253,10 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
@@ -196,6 +269,10 @@
         "temporalType" : null,
         "converterName" : null,
         "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
         "lob" : false,
         "temporal" : false,
         "enumerated" : false,
@@ -205,15 +282,22 @@
         "id" : false,
         "basic" : false,
         "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
         "nullable" : false,
         "transient" : false,
         "version" : false
       }
     },
-    "relationships" : null,
+    "relationships" : [ ],
     "dddRole" : "ENTITY",
     "aggregateName" : "Model",
-    "violations" : null
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
   } ],
   "violations" : [ {
     "ruleId" : "REL_EAGER_FETCH",
@@ -234,7 +318,7 @@
   }, {
     "ruleId" : "CACHE_OPTIMIZATION",
     "severity" : "INFO",
-    "message" : "Entity 'Employee' has collection relationships and is frequently accessed. Consider using @Cacheable with appropriate cache size and expiry settings."
+    "message" : "Entity 'Employee' has collection relationships. Consider using @Cacheable with appropriate cache size."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",
@@ -260,6 +344,10 @@
     "severity" : "INFO",
     "message" : "Bidirectional lazy collection 'phones' is accessed from both sides. Ensure both sides use consistent fetch strategies to avoid N+1 queries."
   }, {
+    "ruleId" : "INDIRECTION_POLICY",
+    "severity" : "INFO",
+    "message" : "Relationship 'phones' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
+  }, {
     "ruleId" : "INDEX_OPTIMIZATION",
     "severity" : "INFO",
     "message" : "Relationship 'address' in entity 'Employee' creates a foreign key. Add database index for this column."
@@ -271,6 +359,10 @@
     "ruleId" : "OPTIMISTIC_LOCKING",
     "severity" : "WARNING",
     "message" : "Entity 'Address' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Address' appears immutable. Consider adding @ReadOnly annotation."
   }, {
     "ruleId" : "VERSION_ANNOTATION",
     "severity" : "INFO",

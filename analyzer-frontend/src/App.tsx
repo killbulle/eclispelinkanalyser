@@ -21,7 +21,7 @@ import { jsPDF } from 'jspdf';
 import { getAggregateForNode, heuristics, type HeuristicType } from './utils/aggregateHeuristics';
 import { runAnalysis, type AnalysisConfig, type AnalysisReport as AdvancedAnalysisReport } from './analysis/engine';
 import { SemanticProfile } from './analysis/semantic';
-import { Layout, AlertCircle, Info, Loader2, RefreshCw, Eye, EyeOff, GitGraph, Upload, ShieldAlert, Database, ChevronLeft, ChevronRight, Activity, Layers, FileDown, Settings, Brain, GitCommit, Scissors, Box } from 'lucide-react';
+import { Layout, AlertCircle, CircleAlert, Info, Loader2, RefreshCw, Eye, EyeOff, GitGraph, Upload, ShieldAlert, Database, ChevronLeft, ChevronRight, Activity, Layers, FileDown, Brain, Box, GitMerge } from 'lucide-react';
 
 interface AttributeMetadata {
   name: string;
@@ -65,6 +65,13 @@ interface RelationshipMetadata {
   privateOwned?: boolean;
   mutable?: boolean;
   readOnly?: boolean;
+  indirectionType?: string;
+  directCollection?: boolean;
+  variableOneToOne?: boolean;
+  arrayMapping?: boolean;
+  nestedTable?: boolean;
+  aggregateCollection?: boolean;
+  directMapMapping?: boolean;
 }
 
 interface Anomaly {
@@ -260,6 +267,99 @@ const getRadialLayout = (nodes: Node[], edges: Edge[]) => {
   return { nodes: newNodes, edges };
 };
 
+// Cluster Layout: Groups nodes by aggregate with gravity towards cluster centers
+const getClusterLayout = (nodes: Node[], edges: Edge[], getAggFn: (node: Node) => string) => {
+  interface SimNode extends d3Force.SimulationNodeDatum {
+    id: string;
+    originalNode: Node;
+    cluster: string;
+  }
+
+  interface SimLink extends d3Force.SimulationLinkDatum<SimNode> {
+    source: string | SimNode;
+    target: string | SimNode;
+  }
+
+  // Group nodes by aggregate
+  const clusters = new Map<string, Node[]>();
+  nodes.forEach(node => {
+    const agg = getAggFn(node);
+    if (!clusters.has(agg)) clusters.set(agg, []);
+    clusters.get(agg)!.push(node);
+  });
+
+  // Calculate cluster center positions (arrange in a grid with more spacing)
+  const clusterNames = Array.from(clusters.keys());
+  const cols = Math.ceil(Math.sqrt(clusterNames.length));
+  // Increase spacing based on cluster size for better separation
+  const baseSpacing = 500;
+  const clusterCenters = new Map<string, { x: number; y: number }>();
+
+  clusterNames.forEach((name, idx) => {
+    const row = Math.floor(idx / cols);
+    const col = idx % cols;
+    // Add extra spacing based on position
+    const clusterSize = clusters.get(name)?.length || 1;
+    const sizeFactor = Math.min(clusterSize * 40, 200);
+    clusterCenters.set(name, {
+      x: col * (baseSpacing + sizeFactor),
+      y: row * (baseSpacing + sizeFactor)
+    });
+  });
+
+  // Create simulation nodes
+  const simNodes: SimNode[] = nodes.map((node) => {
+    const cluster = getAggFn(node);
+    const center = clusterCenters.get(cluster) || { x: 0, y: 0 };
+    return {
+      id: node.id,
+      originalNode: node,
+      cluster,
+      x: center.x + (Math.random() - 0.5) * 150,
+      y: center.y + (Math.random() - 0.5) * 150,
+    };
+  });
+
+  // Create simulation links
+  const simLinks: SimLink[] = edges.map(edge => ({
+    source: edge.source,
+    target: edge.target,
+  }));
+
+  // Create force simulation with stronger cluster gravity
+  const simulation = d3Force.forceSimulation(simNodes)
+    .force('link', d3Force.forceLink<SimNode, SimLink>(simLinks)
+      .id(d => d.id)
+      .distance(100)
+      .strength(0.2))
+    .force('charge', d3Force.forceManyBody()
+      .strength(-500)
+      .distanceMax(300))
+    .force('collision', d3Force.forceCollide().radius(100)) // Larger collision radius
+    // Stronger pull to cluster center
+    .force('clusterX', d3Force.forceX<SimNode>(d => clusterCenters.get(d.cluster)?.x || 0).strength(0.6))
+    .force('clusterY', d3Force.forceY<SimNode>(d => clusterCenters.get(d.cluster)?.y || 0).strength(0.6))
+    .stop();
+
+  // Run simulation
+  for (let i = 0; i < 200; i++) {
+    simulation.tick();
+  }
+
+  // Apply positions
+  const newNodes = simNodes.map(simNode => ({
+    ...simNode.originalNode,
+    targetPosition: Position.Top,
+    sourcePosition: Position.Bottom,
+    position: {
+      x: simNode.x || 0,
+      y: simNode.y || 0,
+    },
+  }));
+
+  return { nodes: newNodes, edges };
+};
+
 function AnalyzerApp() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -269,7 +369,7 @@ function AnalyzerApp() {
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [stats, setStats] = useState({ nodes: 0, anomalies: 0, violations: 0, eager: 0, errorCount: 0, warningCount: 0, infoCount: 0 });
   const [showAttributes, setShowAttributes] = useState(false);
-  const [selectedReport, setSelectedReport] = useState('employee-report.json');
+  const [selectedReport, setSelectedReport] = useState('demo-scenarios.json');
   const [activeTab, setActiveTab] = useState<'mapping' | 'anomalies' | 'violations'>('mapping');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(480);
@@ -277,7 +377,8 @@ function AnalyzerApp() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [violationFilters, setViolationFilters] = useState<Record<string, boolean>>({ ERROR: true, WARNING: true, INFO: true });
   const [groupingMode, setGroupingMode] = useState(false);
-  const [activeLayer, setActiveLayer] = useState<'all' | 'aggregates' | 'cycles' | 'cuts' | 'perf'>('all');
+  const [activeLayer, setActiveLayer] = useState<'all' | 'aggregates' | 'cycles' | 'cuts' | 'perf' | 'vo' | 'anomalies'>('all');
+  const [selectedHeuristic, setSelectedHeuristic] = useState<HeuristicType>('shared');
 
   // Advanced Analysis State
   const [analysisConfig, setAnalysisConfig] = useState<AnalysisConfig>({
@@ -353,18 +454,39 @@ function AnalyzerApp() {
   }, [isResizing, handleResize, handleResizeEnd]);
 
   const reports = [
-    { id: 'employee-report.json', name: 'Employee Model' },
-    { id: 'phone-report.json', name: 'Phone Model' },
-    { id: 'project-report.json', name: 'Project Mgmt Model' },
-    { id: 'order-report.json', name: 'Order Proc. Model' },
-    { id: 'advanced-report.json', name: 'Advanced JPA Model' },
-    { id: 'student-report.json', name: 'Student Graph' },
-    { id: 'cyclic-report.json', name: 'Circular Refs' },
-    { id: 'performance-report.json', name: 'Performance Risks' },
-    { id: 'complex-inheritance-report.json', name: 'Inheritance Tree' },
-    { id: 'invalid-mapping-report.json', name: 'Invalid Mappings' },
-    { id: 'annotation-report.json', name: 'Annotation Meta' },
-    { id: 'ofbiz-report.json', name: 'OFBiz Stress Test' },
+    // === Level 1: Basic JPA ===
+    { id: 'catalog/1-1-basic-entity.json', name: '1.1 📗 Basic Entity' },
+    { id: 'catalog/1-2-basic-relationship.json', name: '1.2 📗 Basic Relationship' },
+    { id: 'catalog/1-3-bidirectional.json', name: '1.3 📗 Bidirectional' },
+    { id: 'catalog/1-4-many-to-many.json', name: '1.4 📗 Many-to-Many' },
+    // === Level 2: JPA Intermediate ===
+    { id: 'catalog/2-1-inheritance-single.json', name: '2.1 📘 Inheritance (Single)' },
+    { id: 'catalog/2-2-inheritance-joined.json', name: '2.2 📘 Inheritance (Joined)' },
+    { id: 'catalog/2-3-embedded.json', name: '2.3 📘 Embedded' },
+    { id: 'catalog/2-4-element-collection.json', name: '2.4 📘 ElementCollection' },
+    // === Level 3: JPA Advanced ===
+    { id: 'catalog/3-1-lazy-eager.json', name: '3.1 📙 Lazy vs Eager' },
+    { id: 'catalog/3-2-cascade-operations.json', name: '3.2 📙 Cascade Operations' },
+    { id: 'catalog/3-3-version-temporal.json', name: '3.3 📙 Version & Temporal' },
+    { id: 'catalog/3-4-converters.json', name: '3.4 📙 Converters' },
+    // === Level 4: EclipseLink Specific ===
+    { id: 'catalog/4-1-batch-fetch.json', name: '4.1 🔷 Batch Fetch' },
+    { id: 'catalog/4-2-cache-config.json', name: '4.2 🔷 Cache Config' },
+    { id: 'catalog/4-3-indirection.json', name: '4.3 🔷 Indirection (ValueHolder)' },
+    { id: 'catalog/4-4-private-owned.json', name: '4.4 🔷 Private Owned' },
+    // === Level 5: EclipseLink Advanced ===
+    { id: 'catalog/5-1-transformation.json', name: '5.1 🔶 Transformation Mapping' },
+    { id: 'catalog/5-2-variable-onetoone.json', name: '5.2 🔶 Variable OneToOne' },
+    { id: 'catalog/5-3-direct-collection.json', name: '5.3 🔶 DirectCollection & Map' },
+    { id: 'catalog/5-4-aggregate-collection.json', name: '5.4 🔶 AggregateCollection' },
+    { id: 'catalog/5-5-array-nested.json', name: '5.5 🔶 Array & NestedTable' },
+    // === Level 6: Anti-Patterns ===
+    { id: 'catalog/6-1-circular-refs.json', name: '6.1 ⚠️ Circular References' },
+    { id: 'catalog/6-2-cartesian-product.json', name: '6.2 ⚠️ Cartesian Product' },
+    { id: 'catalog/6-3-missing-optimizations.json', name: '6.3 ⚠️ Missing Optimizations' },
+    // === Level 7: Real-World ===
+    { id: 'complex-scenario-report.json', name: '7.1 🏢 Complex Domain (E-commerce)' },
+    { id: 'ofbiz-report.json', name: '7.2 🚀 OFBiz Stress Test (113 entities)' },
   ];
   const { fitView } = useReactFlow();
 
@@ -388,6 +510,102 @@ function AnalyzerApp() {
     const anomalies = data.anomalies || [];
     const violations = data.violations || [];
 
+    // Pre-compute analysis data for badges
+    // Detect nodes with EAGER relationships (performance risk)
+    const nodesWithEagerRisk = new Set<string>();
+    nodesList.forEach((n: EntityNodeData) => {
+      if (n.relationships?.some((r: RelationshipMetadata) => !r.lazy)) {
+        nodesWithEagerRisk.add(n.name);
+      }
+    });
+
+    // Detect potential Value Objects (Embeddables or entities with no ID/relationships)
+    const potentialVOs = new Set<string>();
+    nodesList.forEach((n: EntityNodeData) => {
+      const rels = Array.isArray(n.relationships) ? n.relationships : [];
+      if (n.type === 'EMBEDDABLE' ||
+        (rels.length === 0 && Object.keys(n.attributes || {}).length <= 3)) {
+        potentialVOs.add(n.name);
+      }
+    });
+
+    // Detect cut-points (entities that connect different aggregates)
+    const cutPoints = new Set<string>();
+    nodesList.forEach((n: EntityNodeData) => {
+      if (n.relationships?.some((r: RelationshipMetadata) => {
+        const target = nodesList.find((t: EntityNodeData) => t.name === r.targetEntity);
+        return target && target.aggregateName !== n.aggregateName && n.aggregateName && target.aggregateName;
+      })) {
+        cutPoints.add(n.name);
+      }
+    });
+
+    // Detect cycles (bidirectional relationships)
+    const nodesInCycle = new Set<string>();
+    nodesList.forEach((n: EntityNodeData) => {
+      const rels = Array.isArray(n.relationships) ? n.relationships : [];
+      rels.forEach((rel: RelationshipMetadata) => {
+        const target = nodesList.find((t: EntityNodeData) => t.name === rel.targetEntity);
+        if (target?.relationships?.some((tr: RelationshipMetadata) => tr.targetEntity === n.name)) {
+          nodesInCycle.add(n.name);
+          nodesInCycle.add(rel.targetEntity);
+        }
+      });
+    });
+
+    // Detect Aggregate Roots - the node with most outgoing owned relationships in each aggregate
+    const aggregateRoots = new Set<string>();
+    const aggregateGroups = new Map<string, EntityNodeData[]>();
+
+    // Group nodes by aggregate
+    nodesList.forEach((n: EntityNodeData) => {
+      const agg = n.aggregateName || n.packageName?.split('.').pop() || 'General';
+      if (!aggregateGroups.has(agg)) aggregateGroups.set(agg, []);
+      aggregateGroups.get(agg)!.push(n);
+    });
+
+    // For each aggregate, find the root (most outgoing owned relationships or explicit dddRole)
+    aggregateGroups.forEach((members, aggName) => {
+      // Check if any member already has dddRole set
+      const existingRoot = members.find(m => m.dddRole === 'AGGREGATE_ROOT');
+      if (existingRoot) {
+        aggregateRoots.add(existingRoot.name);
+        return;
+      }
+
+      // If only one member, it's the root
+      if (members.length === 1) {
+        aggregateRoots.add(members[0].name);
+        return;
+      }
+
+      // Otherwise, calculate: node with most outgoing owned relationships
+      let bestRoot: EntityNodeData = members[0]; // Default to first member
+      let bestScore = -Infinity;
+
+      members.forEach(m => {
+        // Skip potential VOs - they shouldn't be roots
+        if (m.type === 'EMBEDDABLE') return;
+
+        const ownedRelCount = (m.relationships || []).filter((r: RelationshipMetadata) => r.owningSide).length;
+        const totalRelCount = m.relationships?.length || 0;
+        const incomingCount = nodesList.filter((other: EntityNodeData) =>
+          other.relationships?.some((r: RelationshipMetadata) => r.targetEntity === m.name)
+        ).length || 0;
+
+        // Score: owned relations + total relations - incoming (roots have more outgoing, less incoming)
+        const score = ownedRelCount * 3 + totalRelCount - incomingCount * 2;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestRoot = m;
+        }
+      });
+
+      aggregateRoots.add(bestRoot.name);
+      console.log(`[DDD] Aggregate "${aggName}" root: ${bestRoot.name} (score: ${bestScore})`);
+    });
+
     const transformedNodes: Node[] = nodesList.map((n: EntityNodeData) => ({
       id: n.name,
       type: 'entityNode',
@@ -396,74 +614,120 @@ function AnalyzerApp() {
         ...n,
         showAttributes: false,
         hasAnomalies: anomalies.some((a: Anomaly) => a.entityName === n.name),
-        violations: violations.filter((v: Violation) => v.message.includes(n.name))
+        violations: violations.filter((v: Violation) => v.message.includes(n.name)),
+        // Analysis badges
+        isCutPoint: cutPoints.has(n.name),
+        isInCycle: nodesInCycle.has(n.name),
+        hasEagerRisk: nodesWithEagerRisk.has(n.name),
+        isPotentialVO: potentialVOs.has(n.name),
+        // Auto-detect aggregate root if not already set
+        dddRole: n.dddRole || (aggregateRoots.has(n.name) ? 'AGGREGATE_ROOT' : undefined),
+        focusOpacity: 1
       },
     }));
 
     const transformedEdges: Edge[] = [];
 
     nodesList.forEach((n: EntityNodeData) => {
-      if (n.relationships) {
-        n.relationships.forEach((rel: RelationshipMetadata, rIdx: number) => {
-          const targetNode = nodesList.find((tn: EntityNodeData) => tn.name === rel.targetEntity);
-          if (targetNode) {
-            const violationCount = countViolationsForRelationship(n.name, rel);
-            const hasViolations = violationCount > 0;
-            const isEager = !rel.lazy;
-            const hasProblems = isEager || hasViolations;
+      const rels = Array.isArray(n.relationships) ? n.relationships : [];
+      rels.forEach((rel: RelationshipMetadata, rIdx: number) => {
+        const targetNode = nodesList.find((tn: EntityNodeData) => tn.name === rel.targetEntity);
+        if (targetNode) {
+          const violationCount = countViolationsForRelationship(n.name, rel);
+          const hasViolations = violationCount > 0;
+          const isEager = !rel.lazy;
+          const hasProblems = isEager || hasViolations;
 
-            // Determine base style based on mapping type
-            let baseStrokeColor = '#10b981'; // green for normal relations
-            let baseDashArray = rel.owningSide ? '' : '5 5';
+          // Detect cut-point edges (cross aggregate boundaries)
+          const isCutPointEdge = n.aggregateName && targetNode.aggregateName &&
+            n.aggregateName !== targetNode.aggregateName;
 
-            if (rel.mappingType === 'Embedded') {
-              baseStrokeColor = '#a78bfa'; // purple for embedded
-              baseDashArray = '8 4';
-            } else if (rel.mappingType === 'ElementCollection') {
-              baseStrokeColor = '#ec4899'; // pink for element collection
-              baseDashArray = '4 2';
-            }
+          // Determine base style based on mapping type
+          let baseStrokeColor = '#10b981'; // green for normal relations
+          let baseDashArray = rel.owningSide ? '' : '5 5';
 
-            // Override with warning color if there are problems
-            const strokeColor = hasProblems ? '#f59e0b' : baseStrokeColor;
-            const strokeDasharray = hasProblems ? '' : baseDashArray;
-
-            transformedEdges.push({
-              id: `e-${n.name}-${rel.targetEntity}-${rIdx}`,
-              source: n.name,
-              target: rel.targetEntity,
-              label: rel.mappingType + (rel.owningSide ? ' (O)' : '') + (isEager ? ' (E)' : '') + (violationCount > 0 ? ` (${violationCount})` : ''),
-              animated: hasProblems,
-              type: 'smoothstep',
-              style: {
-                stroke: strokeColor,
-                strokeWidth: rel.owningSide ? 2.5 : 1.5,
-                strokeDasharray: strokeDasharray
-              },
-              labelStyle: {
-                fill: strokeColor,
-                fontWeight: '600',
-                fontSize: '10px',
-                background: 'white',
-                padding: '1px 4px',
-                borderRadius: '3px',
-                border: `1px solid ${strokeColor}`
-              },
-              markerEnd: rel.owningSide ? 'arrowclosed' : undefined,
-              data: {
-                ...rel,
-                violationCount,
-                hasProblems,
-                isEager
-              }
-            });
+          // Phase 2 Mapping Styles
+          if (rel.nestedTable) {
+            baseStrokeColor = '#f97316'; // orange for Oracle NestedTable
+            baseDashArray = '3 3';
+          } else if (rel.arrayMapping) {
+            baseStrokeColor = '#64748b'; // slate for SQL Array
+            baseDashArray = '1 1';
+          } else if (rel.variableOneToOne) {
+            baseStrokeColor = '#eab308'; // yellow for VariableOneToOne
+            baseDashArray = '10 2';
+          } else if (rel.mappingType === 'Embedded') {
+            baseStrokeColor = '#a78bfa'; // purple for embedded
+            baseDashArray = '8 4';
+          } else if (rel.mappingType === 'ElementCollection' || rel.directCollection || rel.aggregateCollection || rel.directMapMapping) {
+            baseStrokeColor = '#ec4899'; // pink for element collection
+            baseDashArray = '4 2';
           }
-        });
-      }
+
+          // Special styling for cut-point edges (cyan dashed - more visible)
+          let strokeColor = baseStrokeColor;
+          let strokeDasharray = baseDashArray;
+
+          if (isCutPointEdge) {
+            strokeColor = '#00F0FF'; // Cyan for cut-points
+            strokeDasharray = '10 5'; // Longer dashes, more visible
+          } else if (hasProblems) {
+            strokeColor = '#f59e0b'; // Orange for problems
+            strokeDasharray = '';
+          }
+
+          let fetchLabel = "";
+          // Check for "OldLazy" (ValueHolder)
+          if (rel.indirectionType === 'VALUEHOLDER') {
+            fetchLabel = " (OldLazy)";
+          } else if (isEager) {
+            fetchLabel = " (E)";
+          }
+
+          let mappingLabel = rel.mappingType;
+          if (rel.nestedTable) mappingLabel = "NestedTable";
+          else if (rel.arrayMapping) mappingLabel = "Array";
+          else if (rel.variableOneToOne) mappingLabel = "VarOneToOne";
+          else if (rel.directCollection) mappingLabel = "DirectCol";
+          else if (rel.aggregateCollection) mappingLabel = "AggCol";
+          else if (rel.directMapMapping) mappingLabel = "DirectMap";
+
+          transformedEdges.push({
+            id: `e-${n.name}-${rel.targetEntity}-${rIdx}`,
+            source: n.name,
+            target: rel.targetEntity,
+            label: (isCutPointEdge ? '✂️ ' : '') + mappingLabel + (rel.owningSide ? ' (O)' : '') + fetchLabel + (violationCount > 0 ? ` (${violationCount})` : ''),
+            animated: hasProblems && !isCutPointEdge,
+            type: 'smoothstep',
+            style: {
+              stroke: strokeColor,
+              strokeWidth: isCutPointEdge ? 3.5 : (rel.owningSide ? 2.5 : 1.5),
+              strokeDasharray: strokeDasharray
+            },
+            labelStyle: {
+              fill: strokeColor,
+              fontWeight: '600',
+              fontSize: '10px',
+              background: 'white',
+              padding: '1px 4px',
+              borderRadius: '3px',
+              border: `1px solid ${strokeColor}`
+            },
+            markerEnd: rel.owningSide ? 'arrowclosed' : undefined,
+            data: {
+              ...rel,
+              violationCount,
+              hasProblems,
+              isEager,
+              isCutPointEdge
+            }
+          });
+        }
+      });
     });
 
     // Add inheritance edges
-    data.nodes.forEach((n: EntityNodeData) => {
+    (data.nodes || []).forEach((n: EntityNodeData) => {
       if (n.parentEntity) {
         const parentNode = data.nodes.find((tn: EntityNodeData) => tn.name === n.parentEntity);
         if (parentNode) {
@@ -501,14 +765,14 @@ function AnalyzerApp() {
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(transformedNodes, transformedEdges);
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
-    const eagerCount = data.nodes.reduce((count, n) => count + (n.relationships ? n.relationships.filter((r: RelationshipMetadata) => !r.lazy).length : 0), 0);
-    const errorCount = data.violations.filter((v: Violation) => v.severity === 'ERROR').length;
-    const warningCount = data.violations.filter((v: Violation) => v.severity === 'WARNING').length;
-    const infoCount = data.violations.filter((v: Violation) => v.severity === 'INFO').length;
+    const eagerCount = (data.nodes || []).reduce((count, n) => count + (n.relationships ? n.relationships.filter((r: RelationshipMetadata) => !r.lazy).length : 0), 0);
+    const errorCount = (data.violations || []).filter((v: Violation) => v.severity === 'ERROR').length;
+    const warningCount = (data.violations || []).filter((v: Violation) => v.severity === 'WARNING').length;
+    const infoCount = (data.violations || []).filter((v: Violation) => v.severity === 'INFO').length;
     setStats({
-      nodes: data.nodes.length,
-      anomalies: data.anomalies.length,
-      violations: data.violations.length,
+      nodes: (data.nodes || []).length,
+      anomalies: (data.anomalies || []).length,
+      violations: (data.violations || []).length,
       eager: eagerCount,
       errorCount,
       warningCount,
@@ -574,7 +838,7 @@ function AnalyzerApp() {
     reader.readAsText(file);
   }, [processReportData]);
 
-  const onLayout = useCallback((direction: 'TB' | 'LR' | 'ORGANIC' | 'GRID' | 'RADIAL') => {
+  const onLayout = useCallback((direction: 'TB' | 'LR' | 'ORGANIC' | 'GRID' | 'RADIAL' | 'CLUSTER') => {
     setNodes((nds) => {
       // First, filter out any existing groupNodes and remove parentId from entity nodes
       const entityNodesOnly = nds
@@ -586,50 +850,65 @@ function AnalyzerApp() {
         case 'ORGANIC': result = getOrganicLayout(entityNodesOnly, edges); break;
         case 'RADIAL': result = getRadialLayout(entityNodesOnly, edges); break;
         case 'GRID': result = getGridLayout(entityNodesOnly, edges); break;
+        case 'CLUSTER':
+          result = getClusterLayout(entityNodesOnly, edges, (n) => getAggregateForNode(n, entityNodesOnly, edges, heuristics[selectedHeuristic], analysisConfig));
+          break;
         default: result = getLayoutedElements(entityNodesOnly, edges, direction);
       }
 
       const layoutedNodes = result.nodes;
 
       if (groupingMode) {
-        // Use the combined heuristic from aggregateHeuristics module
-        const selectedHeuristic = heuristics.combined;
+        // Use the selected heuristic (default is server-side truth)
+        const heuristicFn = heuristics[selectedHeuristic];
 
         // Create aggregate groups using the selected heuristic
         const aggregates = new Map<string, Node[]>();
         layoutedNodes.filter(n => n.type === 'entityNode').forEach(n => {
-          const agg = getAggregateForNode(n, layoutedNodes, edges, selectedHeuristic);
+          const agg = getAggregateForNode(n, layoutedNodes, edges, heuristicFn, analysisConfig);
           if (!aggregates.has(agg)) aggregates.set(agg, []);
           aggregates.get(agg)?.push(n);
         });
 
         const groupNodes: Node[] = [];
         const updatedEntityNodes = layoutedNodes.filter(n => n.type === 'entityNode').map(n => {
-          const agg = getAggregateForNode(n, layoutedNodes, edges, selectedHeuristic);
+          const agg = getAggregateForNode(n, layoutedNodes, edges, heuristicFn, analysisConfig);
           return { ...n, parentId: `group-${agg}` };
         });
 
         aggregates.forEach((children, agg) => {
-          // Calculate bounds
+          // Calculate bounds with more padding to avoid overlap
+          const padding = 80;
+          const headerSpace = 50;
+          const nodeWidth = 120;
+          const nodeHeight = 70;
           const minX = Math.min(...children.map(c => c.position.x));
           const minY = Math.min(...children.map(c => c.position.y));
-          const maxX = Math.max(...children.map(c => c.position.x + 180));
-          const maxY = Math.max(...children.map(c => c.position.y + 40));
+          const maxX = Math.max(...children.map(c => c.position.x + nodeWidth));
+          const maxY = Math.max(...children.map(c => c.position.y + (c.data.showAttributes ? 200 : nodeHeight)));
 
           groupNodes.push({
             id: `group-${agg}`,
             type: 'groupNode',
-            position: { x: minX - 40, y: minY - 60 },
-            style: { width: maxX - minX + 80, height: maxY - minY + 100 },
-            data: { label: agg, aggregateName: agg },
+            position: { x: minX - padding, y: minY - padding - headerSpace },
+            style: {
+              width: maxX - minX + padding * 2,
+              height: maxY - minY + padding * 2 + headerSpace
+            },
+            data: {
+              label: agg,
+              aggregateName: agg,
+              color: getAggregateColor(agg),
+              memberCount: children.length
+            },
             zIndex: -1,
           });
 
           // Adjust children positions to be relative to parent
           updatedEntityNodes.filter(n => n.parentId === `group-${agg}`).forEach(n => {
             n.position = {
-              x: n.position.x - (minX - 40),
-              y: n.position.y - (minY - 60)
+              x: n.position.x - (minX - padding),
+              y: n.position.y - (minY - padding - headerSpace)
             };
           });
         });
@@ -641,7 +920,7 @@ function AnalyzerApp() {
       return layoutedNodes.map(n => ({ ...n, parentId: undefined }));
     });
     setTimeout(() => fitView({ padding: 0.2 }), 100);
-  }, [edges, setNodes, fitView, groupingMode]);
+  }, [edges, setNodes, fitView, groupingMode, selectedHeuristic, analysisConfig]);
 
   const toggleAttributes = useCallback(() => {
     setShowAttributes(prev => {
@@ -774,49 +1053,90 @@ function AnalyzerApp() {
     doc.save(`eclipselink-report-${new Date().toISOString().slice(0, 10)}.pdf`);
   }, [nodes, stats, selectedReport]);
 
+  // When toggling expert options, ensure we are using the Shared or Combined engine to see results
+  const handleConfigChange = useCallback((key: keyof AnalysisConfig, value: boolean | string) => {
+    setAnalysisConfig(prev => ({ ...prev, [key]: value }));
+
+    // Auto-switch to shared heuristic if not already selected, so the user sees the effect immediately
+    if (selectedHeuristic === 'server' || selectedHeuristic === 'package') {
+      setSelectedHeuristic('shared');
+    }
+  }, [selectedHeuristic]);
+
   // DDD Layers filtering logic - apply opacity and color based on active layer
+
+  // AUTO-LAYOUT TRIGGER
+  // When heuristics or config change, automatically re-run the layout
+  useEffect(() => {
+    if (nodes.length > 0) {
+      // Debounce slightly to avoid flicker on rapid toggles
+      const timer = setTimeout(() => {
+        onLayout('CLUSTER');
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [analysisConfig, selectedHeuristic]);
   const layerColors = {
     aggregates: '#7000FF', // Purple
     cycles: '#FF0040',     // Red
     cuts: '#00F0FF',       // Cyan
     perf: '#FF8A00',       // Orange
+    vo: '#A855F7',         // Light Purple for VOs
+    anomalies: '#FF0040',  // Red for Anomalies
   };
 
   const filteredNodes = useMemo(() => {
-    if (activeLayer === 'all') return nodes;
-
-    const layerColor = layerColors[activeLayer as keyof typeof layerColors];
+    if (activeLayer === 'all') {
+      // Reset all nodes to full opacity
+      return nodes.map(node => ({
+        ...node,
+        data: { ...node.data, focusOpacity: 1 }
+      }));
+    }
 
     return nodes.map(node => {
       let isRelevant = false;
 
       switch (activeLayer) {
         case 'aggregates':
-          // Show aggregate roots prominently
-          isRelevant = node.data.dddRole === 'AGGREGATE_ROOT' || node.data.aggregateName;
+          // Only show aggregate roots
+          isRelevant = node.data.dddRole === 'AGGREGATE_ROOT';
           break;
         case 'cycles':
-          // TODO: Detect cycles - for now show nodes with bidirectional relationships
-          isRelevant = (node.data.relationships?.length || 0) > 2;
+          isRelevant = node.data.isInCycle === true;
           break;
         case 'cuts':
-          // Show nodes that have weak relationships (candidates for decoupling)
-          isRelevant = node.data.relationships?.some((r: { mappingType: string }) => r.mappingType === 'ManyToOne' || r.mappingType === 'OneToMany') || false;
+          isRelevant = node.data.isCutPoint === true;
           break;
         case 'perf':
-          // Show nodes with EAGER fetch relationships
-          isRelevant = node.data.relationships?.some((r: { lazy: boolean }) => !r.lazy) || false;
+          isRelevant = node.data.hasEagerRisk === true;
           break;
+        case 'vo':
+          isRelevant = node.data.isPotentialVO === true;
+          break;
+        case 'anomalies':
+          isRelevant = node.data.hasAnomalies === true;
+          break;
+      }
+
+      // Special handling for VO mode - hide others completely and expand properties
+      if (activeLayer === 'vo') {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            focusOpacity: isRelevant ? 1 : 0, // Hide completely
+            showAttributes: isRelevant ? true : node.data.showAttributes // Expand VOs
+          },
+          hidden: !isRelevant // Actually hide non-VO nodes
+        };
       }
 
       return {
         ...node,
-        style: {
-          ...node.style,
-          opacity: isRelevant ? 1 : 0.05,
-          border: isRelevant ? `2px solid ${layerColor}` : undefined,
-          boxShadow: isRelevant ? `0 0 12px ${layerColor}40` : 'none',
-          transition: 'all 0.3s ease-in-out'
+        data: {
+          ...node.data,
+          focusOpacity: isRelevant ? 1 : 0.15
         }
       };
     });
@@ -845,6 +1165,13 @@ function AnalyzerApp() {
         case 'perf':
           // Highlight EAGER edges
           isRelevant = edge.data?.isEager === true;
+          break;
+        case 'vo':
+          // Hide all edges in VO mode - VOs have no relationships
+          isRelevant = false;
+          break;
+        case 'anomalies':
+          isRelevant = edge.data?.hasProblems === true;
           break;
       }
 
@@ -952,105 +1279,199 @@ function AnalyzerApp() {
             </button>
           </div>
 
-          <div>
-            <h3 className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted font-medium" style={{ color: 'var(--text-muted)' }}>Advanced Analysis</h3>
-            <div className="px-3 space-y-3">
+
+
+          <div className="space-y-4">
+            <div>
+              <h3 className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted font-bold flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+                <Database size={12} /> JPA Mapping Analysis
+              </h3>
+
+              <div className="mx-3 mb-3 p-2 bg-body/50 border border-subtle rounded flex items-center justify-between text-[11px]" style={{ backgroundColor: 'var(--bg-panel-hover)', borderColor: 'var(--border-subtle)' }}>
+                <div className="flex flex-col items-center flex-1">
+                  <span className="font-bold text-score-low" style={{ color: 'var(--score-low)' }}>{stats.errorCount}</span>
+                  <span className="text-[9px] text-muted" style={{ color: 'var(--text-muted)' }}>ERR</span>
+                </div>
+                <div className="w-px h-6 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
+                <div className="flex flex-col items-center flex-1">
+                  <span className="font-bold text-score-med" style={{ color: 'var(--score-med)' }}>{stats.warningCount}</span>
+                  <span className="text-[9px] text-muted" style={{ color: 'var(--text-muted)' }}>WARN</span>
+                </div>
+                <div className="w-px h-6 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
+                <div className="flex flex-col items-center flex-1">
+                  <span className="font-bold text-primary" style={{ color: 'var(--primary)' }}>{stats.infoCount}</span>
+                  <span className="text-[9px] text-muted" style={{ color: 'var(--text-muted)' }}>INFO</span>
+                </div>
+              </div>
               <div className="space-y-1">
-                <label className="text-[11px] text-secondary font-medium" style={{ color: 'var(--text-secondary)' }}>Semantic Profile</label>
-                <select
-                  value={analysisConfig.semanticProfile}
-                  onChange={(e) => setAnalysisConfig(prev => ({ ...prev, semanticProfile: e.target.value as SemanticProfile }))}
-                  className="w-full bg-panel border px-2 py-1.5 rounded text-[12px] focus:outline-none focus:ring-1 focus:ring-primary"
-                  style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)', color: 'var(--text-main)' }}
+                <button
+                  onClick={() => setActiveLayer('all')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'all' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
+                  style={{
+                    color: activeLayer === 'all' ? 'var(--text-main)' : 'var(--text-secondary)',
+                    backgroundColor: activeLayer === 'all' ? 'var(--accent-glow)' : 'transparent',
+                    boxShadow: activeLayer === 'all' ? 'inset 2px 0 0 var(--primary)' : 'none'
+                  }}
                 >
-                  <option value={SemanticProfile.GENERIC}>Generic Domain</option>
-                  <option value={SemanticProfile.ECOMMERCE_OFBIZ}>E-Commerce (OFBiz)</option>
-                  <option value={SemanticProfile.TREASURY_ISO20022}>Treasury (ISO 20022)</option>
-                </select>
+                  <Layout size={16} />
+                  <span>Overview</span>
+                </button>
+                <button
+                  onClick={() => setActiveLayer('anomalies')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'anomalies' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
+                  style={{
+                    color: activeLayer === 'anomalies' ? 'var(--text-main)' : 'var(--text-secondary)',
+                    backgroundColor: activeLayer === 'anomalies' ? 'var(--accent-glow)' : 'transparent',
+                    boxShadow: activeLayer === 'anomalies' ? 'inset 2px 0 0 var(--score-low)' : 'none'
+                  }}
+                >
+                  <ShieldAlert size={16} style={{ color: 'var(--score-low)' }} />
+                  <span>Schema Anomalies</span>
+                  {stats.anomalies > 0 && <span className="ml-auto text-[10px] bg-score-low/20 text-score-low px-1.5 rounded-full font-bold">{stats.anomalies}</span>}
+                </button>
+                <button
+                  onClick={() => setActiveLayer('perf')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'perf' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
+                  style={{
+                    color: activeLayer === 'perf' ? 'var(--text-main)' : 'var(--text-secondary)',
+                    backgroundColor: activeLayer === 'perf' ? 'var(--accent-glow)' : 'transparent',
+                    boxShadow: activeLayer === 'perf' ? 'inset 2px 0 0 var(--score-med)' : 'none'
+                  }}
+                >
+                  <Activity size={16} style={{ color: 'var(--score-med)' }} />
+                  <span>Performance Risks</span>
+                  {stats.eager > 0 && <span className="ml-auto text-[10px] bg-score-med/20 text-score-med px-1.5 rounded-full font-bold">{stats.eager}</span>}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted font-bold flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+                <GitGraph size={12} /> DDD Graph Analysis
+              </h3>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setActiveLayer('aggregates')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'aggregates' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
+                  style={{
+                    color: activeLayer === 'aggregates' ? 'var(--text-main)' : 'var(--text-secondary)',
+                    backgroundColor: activeLayer === 'aggregates' ? 'var(--accent-glow)' : 'transparent',
+                    boxShadow: activeLayer === 'aggregates' ? 'inset 2px 0 0 var(--accent-purple)' : 'none'
+                  }}
+                  title="Entités racines contrôlant un groupe cohérent d'objets"
+                >
+                  <Layers size={16} style={{ color: 'var(--accent-purple)' }} />
+                  <span>Aggregates Viewer</span>
+                </button>
+                <button
+                  onClick={() => setActiveLayer('cuts')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'cuts' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
+                  style={{
+                    color: activeLayer === 'cuts' ? 'var(--text-main)' : 'var(--text-secondary)',
+                    backgroundColor: activeLayer === 'cuts' ? 'var(--accent-glow)' : 'transparent',
+                    boxShadow: activeLayer === 'cuts' ? 'inset 2px 0 0 var(--primary)' : 'none'
+                  }}
+                  title="Limites logiques séparant les domaines métier (Bounded Contexts DDD)"
+                >
+                  <Box size={16} style={{ color: 'var(--primary)' }} />
+                  <span>Bounded Contexts</span>
+                </button>
+                <button
+                  onClick={() => setActiveLayer('vo')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'vo' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
+                  style={{
+                    color: activeLayer === 'vo' ? 'var(--text-main)' : 'var(--text-secondary)',
+                    backgroundColor: activeLayer === 'vo' ? 'var(--accent-glow)' : 'transparent',
+                    boxShadow: activeLayer === 'vo' ? 'inset 2px 0 0 #A855F7' : 'none'
+                  }}
+                  title="Objets immuables définis par leurs attributs (pas d'identité propre)"
+                >
+                  <Info size={16} style={{ color: '#A855F7' }} />
+                  <span>Value Objects</span>
+                </button>
+                <button
+                  onClick={() => setActiveLayer('cycles')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'cycles' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
+                  style={{
+                    color: activeLayer === 'cycles' ? 'var(--text-main)' : 'var(--text-secondary)',
+                    backgroundColor: activeLayer === 'cycles' ? 'var(--accent-glow)' : 'transparent',
+                    boxShadow: activeLayer === 'cycles' ? 'inset 2px 0 0 var(--score-low)' : 'none'
+                  }}
+                  title="Références mutuelles créant des boucles de dépendances"
+                >
+                  <GitMerge size={16} style={{ color: 'var(--score-low)' }} />
+                  <span>Dependency Cycles</span>
+                </button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setAnalysisConfig(prev => ({ ...prev, enableSemantic: !prev.enableSemantic }))}
-                  className={`flex-1 py-1.5 rounded text-[11px] font-medium border transition-colors ${analysisConfig.enableSemantic ? 'bg-primary/20 border-primary text-primary' : 'bg-panel border-subtle text-muted'}`}
-                  style={{ borderColor: analysisConfig.enableSemantic ? 'var(--primary)' : 'var(--border-subtle)', color: analysisConfig.enableSemantic ? 'var(--primary)' : 'var(--text-muted)' }}
-                >
-                  Semantic
-                </button>
-                <button
-                  onClick={() => setAnalysisConfig(prev => ({ ...prev, enableTopology: !prev.enableTopology }))}
-                  className={`flex-1 py-1.5 rounded text-[11px] font-medium border transition-colors ${analysisConfig.enableTopology ? 'bg-accent-purple/20 border-accent-purple text-accent-purple' : 'bg-panel border-subtle text-muted'}`}
-                  style={{ borderColor: analysisConfig.enableTopology ? 'var(--accent-purple)' : 'var(--border-subtle)', color: analysisConfig.enableTopology ? 'var(--accent-purple)' : 'var(--text-muted)' }}
-                >
-                  Topology
-                </button>
+              {/* EXPERT DDD TUNING (Client-side only) */}
+              <div className="mt-4 px-3 py-3 bg-panel/30 border border-dashed border-subtle rounded-lg" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-tighter" style={{ color: 'var(--text-muted)' }}>Expert Heuristics (Local)</span>
+                  <Brain size={12} className="text-muted" style={{ color: 'var(--text-muted)' }} />
+                </div>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted font-medium" style={{ color: 'var(--text-muted)' }}>Analysis engine</label>
+                    <div className="w-full bg-body/50 border border-subtle px-2 py-1.5 rounded text-[11px] font-bold text-primary flex items-center justify-between"
+                      style={{ backgroundColor: 'var(--bg-panel-hover)', borderColor: 'var(--border-subtle)', color: 'var(--primary)' }}
+                    >
+                      <span>Shared Rules (Official)</span>
+                      <ShieldAlert size={12} className="opacity-50" />
+                    </div>
+                    <p className="text-[9px] text-muted mt-1" style={{ color: 'var(--text-muted)' }}>Using standardized Java/TS hybrid engine</p>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted font-medium" style={{ color: 'var(--text-muted)' }}>Semantic Knowledge</label>
+                    <select
+                      value={analysisConfig.semanticProfile}
+                      onChange={(e) => handleConfigChange('semanticProfile', e.target.value)}
+                      className="w-full bg-body border border-subtle px-2 py-1.5 rounded text-[11px] focus:outline-none"
+                      style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)', color: 'var(--text-main)' }}
+                    >
+                      <option value={SemanticProfile.GENERIC}>Generic Domain</option>
+                      <option value={SemanticProfile.ECOMMERCE_OFBIZ}>E-Commerce (OFBiz)</option>
+                      <option value={SemanticProfile.TREASURY_ISO20022}>Treasury (ISO 20022)</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleConfigChange('enableSemantic', !analysisConfig.enableSemantic)}
+                      className={`flex-1 py-1 rounded text-[10px] font-bold border ${analysisConfig.enableSemantic ? 'bg-primary/20 border-primary text-primary' : 'bg-transparent border-subtle text-muted'}`}
+                      style={{ borderColor: analysisConfig.enableSemantic ? 'var(--primary)' : 'var(--border-subtle)', color: analysisConfig.enableSemantic ? 'var(--primary)' : 'var(--text-muted)' }}
+                    >
+                      Name Analysis
+                    </button>
+                    <button
+                      onClick={() => handleConfigChange('enableTopology', !analysisConfig.enableTopology)}
+                      className={`flex-1 py-1 rounded text-[10px] font-bold border ${analysisConfig.enableTopology ? 'bg-accent-purple/20 border-accent-purple text-accent-purple' : 'bg-transparent border-subtle text-muted'}`}
+                      style={{ borderColor: analysisConfig.enableTopology ? 'var(--accent-purple)' : 'var(--border-subtle)', color: analysisConfig.enableTopology ? 'var(--accent-purple)' : 'var(--text-muted)' }}
+                    >
+                      Graph Shape
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {advancedReport && (
-                <div className="flex items-center justify-between text-[11px] text-secondary bg-panel-hover px-2 py-1 rounded" style={{ backgroundColor: 'var(--bg-panel-hover)', color: 'var(--text-secondary)' }}>
-                  <div className="flex gap-2 font-mono">
-                    <span title="Aggregates" style={{ color: 'var(--primary)' }}>{advancedReport.aggregates.length} Aggs</span>
-                    <span title="Value Objects" style={{ color: 'var(--score-med)' }}>{advancedReport.valueObjects.length} VOs</span>
-                    <span title="Cuts" style={{ color: 'var(--score-low)' }}>{advancedReport.cuts.length} Cuts</span>
+                <div className="mt-3 mx-3 px-3 py-2 bg-panel-hover rounded-lg border border-subtle flex items-center justify-between" style={{ backgroundColor: 'var(--bg-panel-hover)', borderColor: 'var(--border-subtle)' }}>
+                  <div className="flex gap-3 text-[10px] font-mono">
+                    <div className="flex flex-col">
+                      <span className="text-muted" style={{ color: 'var(--text-muted)' }}>ADDS</span>
+                      <span style={{ color: 'var(--primary)' }}>{advancedReport.aggregates.length}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-muted" style={{ color: 'var(--text-muted)' }}>VOS</span>
+                      <span style={{ color: 'var(--score-med)' }}>{advancedReport.valueObjects.length}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-muted" style={{ color: 'var(--text-muted)' }}>CUTS</span>
+                      <span style={{ color: 'var(--score-low)' }}>{advancedReport.cuts.length}</span>
+                    </div>
                   </div>
-                  <Brain size={12} className="text-muted" style={{ color: 'var(--text-muted)' }} />
+                  <Brain size={14} className="text-primary animate-pulse" style={{ color: 'var(--primary)' }} />
                 </div>
               )}
-            </div>
-          </div>
-
-
-          <div>
-            <h3 className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted font-medium" style={{ color: 'var(--text-muted)' }}>Analysis Layers</h3>
-            <div className="space-y-1">
-              <button
-                onClick={() => setActiveLayer('aggregates')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'aggregates' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-                style={{
-                  color: activeLayer === 'aggregates' ? 'var(--text-main)' : 'var(--text-secondary)',
-                  backgroundColor: activeLayer === 'aggregates' ? 'var(--accent-glow)' : 'transparent',
-                  boxShadow: activeLayer === 'aggregates' ? 'inset 2px 0 0 var(--accent-purple)' : 'none'
-                }}
-              >
-                <span style={{ color: 'var(--accent-purple)' }}>●</span>
-                <span>Aggregates DDD</span>
-              </button>
-              <button
-                onClick={() => setActiveLayer('cycles')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'cycles' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-                style={{
-                  color: activeLayer === 'cycles' ? 'var(--text-main)' : 'var(--text-secondary)',
-                  backgroundColor: activeLayer === 'cycles' ? 'var(--accent-glow)' : 'transparent',
-                  boxShadow: activeLayer === 'cycles' ? 'inset 2px 0 0 var(--score-low)' : 'none'
-                }}
-              >
-                <span style={{ color: 'var(--score-low)' }}>●</span>
-                <span>Circular Deps</span>
-              </button>
-              <button
-                onClick={() => setActiveLayer('cuts')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'cuts' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-                style={{
-                  color: activeLayer === 'cuts' ? 'var(--text-main)' : 'var(--text-secondary)',
-                  backgroundColor: activeLayer === 'cuts' ? 'var(--accent-glow)' : 'transparent',
-                  boxShadow: activeLayer === 'cuts' ? 'inset 2px 0 0 var(--primary)' : 'none'
-                }}
-              >
-                <span style={{ color: 'var(--primary)' }}>●</span>
-                <span>Cut-Points</span>
-              </button>
-              <button
-                onClick={() => setActiveLayer('perf')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all group ${activeLayer === 'perf' ? 'bg-primary/10 text-main' : 'text-secondary hover:bg-panel-hover hover:text-main'}`}
-                style={{
-                  color: activeLayer === 'perf' ? 'var(--text-main)' : 'var(--text-secondary)',
-                  backgroundColor: activeLayer === 'perf' ? 'var(--accent-glow)' : 'transparent',
-                  boxShadow: activeLayer === 'perf' ? 'inset 2px 0 0 var(--score-med)' : 'none'
-                }}
-              >
-                <span style={{ color: 'var(--score-med)' }}>●</span>
-                <span>Perf Risks</span>
-              </button>
             </div>
           </div>
 
@@ -1121,6 +1542,9 @@ function AnalyzerApp() {
           </button>
           <button onClick={() => onLayout('GRID')} className="p-1.5 text-muted hover:text-primary transition-colors" title="Grid Layout" style={{ color: 'var(--text-muted)' }}>
             <Layout size={16} />
+          </button>
+          <button onClick={() => onLayout('CLUSTER')} className="p-1.5 text-muted hover:text-accent-purple transition-colors" title="Cluster by Aggregate - Groups entities by DDD aggregate" style={{ color: 'var(--text-muted)' }}>
+            <Layers size={16} />
           </button>
           <div className="w-px h-4 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
           <button
@@ -1217,7 +1641,7 @@ function AnalyzerApp() {
                     </h2>
                     <div className="w-8 h-8 rounded-full border-2 border-subtle border-t-score-med flex items-center justify-center text-[10px] font-bold text-score-med"
                       style={{ borderColor: 'var(--border-subtle)', color: 'var(--score-med)', borderTopColor: 'var(--score-med)' }}>
-                      {selectedNode ? Math.max(100 - (selectedNode.data.violations.length * 10), 0) : '65'}
+                      {selectedNode ? Math.max(100 - ((selectedNode.data.violations?.length || 0) * 10), 0) : '65'}
                     </div>
                   </div>
                   <p className="text-[12px] font-bold text-accent-purple uppercase tracking-wider" style={{ color: 'var(--accent-purple)' }}>
@@ -1231,14 +1655,21 @@ function AnalyzerApp() {
                     className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'mapping' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
                     style={{ color: activeTab === 'mapping' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'mapping' ? 'var(--primary)' : 'transparent' }}
                   >
-                    Analysis & DDD
+                    Bounded Context (AI)
                   </button>
                   <button
                     onClick={() => setActiveTab('anomalies')}
                     className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'anomalies' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
                     style={{ color: activeTab === 'anomalies' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'anomalies' ? 'var(--primary)' : 'transparent' }}
                   >
-                    JPA Inspector
+                    JPA Mapping Details
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('violations')}
+                    className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'violations' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
+                    style={{ color: activeTab === 'violations' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'violations' ? 'var(--primary)' : 'transparent' }}
+                  >
+                    Global Issues
                   </button>
                 </div>
 
@@ -1251,16 +1682,82 @@ function AnalyzerApp() {
                           <div style={{ color: getAggregateColor(selectedNode?.data.aggregateName) }}>
                             {selectedNode?.data.dddRole === 'AGGREGATE_ROOT' ? '💠' : '📦'}
                           </div>
+                          <h4 className="text-[13px] font-semibold text-main" style={{ color: 'var(--text-main)' }}>
+                            {selectedNode?.data.dddRole === 'AGGREGATE_ROOT' ? 'Aggregate Root' : 'Domain Entity'}
+                          </h4>
                         </div>
-                        <div className="text-[12px] font-bold text-main" style={{ color: 'var(--text-main)' }}>
-                          Heuristic Analysis
+                        <div className="text-[12px] font-bold text-main mb-2" style={{ color: 'var(--text-main)' }}>
+                          Aggregate: <span style={{ color: getAggregateColor(selectedNode?.data.aggregateName) }}>{selectedNode?.data.aggregateName || 'General'}</span>
                         </div>
-                        <p className="text-[12px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                          Part of <span className="text-main font-semibold" style={{ color: 'var(--text-main)' }}>{selectedNode?.data.aggregateName || 'General'}</span> cluster.
+                        <p className="text-[11px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                           {selectedNode?.data.dddRole === 'AGGREGATE_ROOT'
-                            ? ' This entity acts as an entry point and controls the lifecycle of its members.'
-                            : ' This entity is an internal part of the domain cluster.'}
+                            ? 'High centrality score. This entity acts as an entry point and controls the lifecycle of related entities.'
+                            : 'Internal member of the domain cluster. Lifecycle managed by the aggregate root.'}
                         </p>
+                      </div>
+
+                      {/* Algorithm Explanation Section */}
+                      <div className="px-5 py-2 text-[11px] uppercase tracking-wider font-bold text-primary" style={{ color: 'var(--primary)' }}>Algorithm Details</div>
+                      <div className="mx-5 mb-4 space-y-2">
+                        {/* Package-based grouping */}
+                        <div className="p-3 bg-panel/50 border border-subtle rounded-md" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold" style={{ color: 'var(--primary)' }}>PACKAGE</span>
+                            <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Grouping Rule</span>
+                          </div>
+                          <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
+                            Entities in <code className="text-primary">{selectedNode?.data.packageName?.split('.').slice(-1)[0] || 'root'}</code> package are clustered together.
+                          </p>
+                        </div>
+
+                        {/* Relationship Analysis */}
+                        <div className="p-3 bg-panel/50 border border-subtle rounded-md" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-purple/20 text-accent-purple font-bold" style={{ color: 'var(--accent-purple)' }}>RELATIONS</span>
+                            <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Ownership Analysis</span>
+                          </div>
+                          <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
+                            {selectedNode?.data.relationships?.length || 0} relationships detected.
+                            {selectedNode?.data.relationships?.filter((r: RelationshipMetadata) => r.owningSide).length || 0} owned (controlling lifecycle).
+                          </p>
+                        </div>
+
+                        {/* Cycle/Cut Analysis */}
+                        {selectedNode?.data.isInCycle && (
+                          <div className="p-3 bg-score-low/10 border border-score-low/30 rounded-md">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-score-low/30 text-score-low font-bold" style={{ color: 'var(--score-low)' }}>CYCLE</span>
+                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Bidirectional Dependency</span>
+                            </div>
+                            <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
+                              This entity has a bidirectional relationship with another entity, creating a cycle. Consider reviewing fetch strategies.
+                            </p>
+                          </div>
+                        )}
+
+                        {selectedNode?.data.isCutPoint && (
+                          <div className="p-3 bg-primary/10 border border-primary/30 rounded-md">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/30 text-primary font-bold" style={{ color: 'var(--primary)' }}>✂️ CUT</span>
+                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Cross-Aggregate Bridge</span>
+                            </div>
+                            <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
+                              This entity connects different aggregates. Consider decoupling via ID reference instead of direct object reference.
+                            </p>
+                          </div>
+                        )}
+
+                        {selectedNode?.data.isPotentialVO && (
+                          <div className="p-3 bg-accent-purple/10 border border-accent-purple/30 rounded-md">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-purple/30 text-accent-purple font-bold" style={{ color: 'var(--accent-purple)' }}>💎 VO</span>
+                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Potential Value Object</span>
+                            </div>
+                            <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
+                              Few attributes, no outgoing relationships. Could be refactored as an @Embeddable value object.
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="px-5 py-2">
@@ -1376,6 +1873,66 @@ function AnalyzerApp() {
                           </div>
                         </>
                       )}
+                    </div>
+                  )}
+
+                  {activeTab === 'violations' && (
+                    <div className="p-0">
+                      <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-red" style={{ color: 'var(--score-low)' }}>
+                        Global Health ({stats.errorCount + stats.warningCount} Issues)
+                      </div>
+
+                      <div className="px-5 mb-4">
+                        <div className="flex gap-2 mb-2">
+                          <button
+                            onClick={() => setViolationFilters(prev => ({ ...prev, ERROR: !prev.ERROR }))}
+                            className={`flex-1 py-1.5 px-2 rounded text-[10px] border flex items-center justify-center gap-1 ${violationFilters.ERROR ? 'bg-score-low/10 border-score-low text-score-low' : 'bg-transparent border-subtle text-muted'}`}
+                            style={{ color: violationFilters.ERROR ? 'var(--score-low)' : 'var(--text-muted)', borderColor: violationFilters.ERROR ? 'var(--score-low)' : 'var(--border-subtle)' }}
+                          >
+                            <ShieldAlert size={12} /> Errors ({stats.errorCount})
+                          </button>
+                          <button
+                            onClick={() => setViolationFilters(prev => ({ ...prev, WARNING: !prev.WARNING }))}
+                            className={`flex-1 py-1.5 px-2 rounded text-[10px] border flex items-center justify-center gap-1 ${violationFilters.WARNING ? 'bg-score-med/10 border-score-med text-score-med' : 'bg-transparent border-subtle text-muted'}`}
+                            style={{ color: violationFilters.WARNING ? 'var(--score-med)' : 'var(--text-muted)', borderColor: violationFilters.WARNING ? 'var(--score-med)' : 'var(--border-subtle)' }}
+                          >
+                            <CircleAlert size={12} /> Warnings ({stats.warningCount})
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-0">
+                        {Array.from(new Set(nodes.flatMap(n => (n.data.violations || []).map(v => JSON.stringify({ ...v, source: n.data.name }))))).map(s => JSON.parse(s)).filter((v: any) => violationFilters[v.severity as string]).map((v, i) => (
+                          <div key={i} className="px-5 py-3 border-b border-subtle hover:bg-panel-hover group cursor-pointer"
+                            style={{ borderColor: 'var(--border-subtle)' }}
+                            onClick={() => {
+                              const node = nodes.find(n => n.data.name === v.source);
+                              if (node) {
+                                onNodeClick({} as any, node);
+                                setActiveTab('anomalies');
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${v.severity === 'ERROR' ? 'bg-score-low text-white' : 'bg-score-med text-white'}`}
+                                style={{ backgroundColor: v.severity === 'ERROR' ? 'var(--score-low)' : 'var(--score-med)' }}
+                              >
+                                {v.severity}
+                              </div>
+                              <div className="text-[11px] font-mono text-primary truncate" style={{ color: 'var(--primary)' }}>{v.source}</div>
+                            </div>
+                            <p className="text-[11px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                              {v.message}
+                            </p>
+                          </div>
+                        ))}
+
+                        {(stats.errorCount + stats.warningCount === 0) && (
+                          <div className="px-5 py-8 text-center text-muted italic text-[12px]">
+                            No global violations found. Great job!
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

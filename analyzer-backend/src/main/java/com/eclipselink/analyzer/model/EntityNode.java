@@ -17,7 +17,16 @@ public class EntityNode {
     private String aggregateName; // Name of the aggregate this entity belongs to
     private List<String> violations; // List of violation descriptions
 
+    // EclipseLink Cache Configuration
+    private String cacheType; // FULL, WEAK, SOFT, NONE
+    private Integer cacheExpiry; // Expiry in milliseconds
+    private String cacheCoordinationType; // SEND_OBJECT_CHANGES, INVALIDATE_CHANGED_OBJECTS,
+                                          // SEND_NEW_OBJECTS_WITH_CHANGES, NONE
+
     public EntityNode() {
+        this.attributes = new java.util.HashMap<>();
+        this.relationships = new java.util.ArrayList<>();
+        this.violations = new java.util.ArrayList<>();
     }
 
     public List<String> getViolations() {
@@ -29,6 +38,7 @@ public class EntityNode {
     }
 
     public EntityNode(String name, String packageName, String type) {
+        this();
         this.name = name;
         this.packageName = packageName;
         this.type = type;
@@ -121,5 +131,30 @@ public class EntityNode {
 
     public void setDiscriminatorValue(String discriminatorValue) {
         this.discriminatorValue = discriminatorValue;
+    }
+
+    // Cache Configuration Getters/Setters
+    public String getCacheType() {
+        return cacheType;
+    }
+
+    public void setCacheType(String cacheType) {
+        this.cacheType = cacheType;
+    }
+
+    public Integer getCacheExpiry() {
+        return cacheExpiry;
+    }
+
+    public void setCacheExpiry(Integer cacheExpiry) {
+        this.cacheExpiry = cacheExpiry;
+    }
+
+    public String getCacheCoordinationType() {
+        return cacheCoordinationType;
+    }
+
+    public void setCacheCoordinationType(String cacheCoordinationType) {
+        this.cacheCoordinationType = cacheCoordinationType;
     }
 }

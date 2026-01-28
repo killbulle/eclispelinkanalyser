@@ -1,0 +1,248 @@
+{
+  "nodes" : [ {
+    "name" : "Vehicle",
+    "packageName" : "demo.inheritance",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : "SINGLE_TABLE",
+    "discriminatorColumn" : "VEHICLE_TYPE",
+    "discriminatorValue" : "VEHICLE",
+    "attributes" : {
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : true,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "brand" : {
+        "name" : "brand",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "BRAND",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Inheritance",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
+  }, {
+    "name" : "Car",
+    "packageName" : "demo.inheritance",
+    "type" : "ENTITY",
+    "parentEntity" : "Vehicle",
+    "inheritanceStrategy" : "SINGLE_TABLE",
+    "discriminatorColumn" : null,
+    "discriminatorValue" : "CAR",
+    "attributes" : {
+      "numDoors" : {
+        "name" : "numDoors",
+        "javaType" : "Integer",
+        "databaseType" : "INTEGER",
+        "columnName" : "NUM_DOORS",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Inheritance",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
+  }, {
+    "name" : "Motorcycle",
+    "packageName" : "demo.inheritance",
+    "type" : "ENTITY",
+    "parentEntity" : "Vehicle",
+    "inheritanceStrategy" : "SINGLE_TABLE",
+    "discriminatorColumn" : null,
+    "discriminatorValue" : "MOTO",
+    "attributes" : {
+      "engineCC" : {
+        "name" : "engineCC",
+        "javaType" : "Integer",
+        "databaseType" : "INTEGER",
+        "columnName" : "ENGINE_CC",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Inheritance",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
+  } ],
+  "violations" : [ {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Vehicle' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Vehicle' appears immutable. Consider adding @ReadOnly annotation."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Vehicle' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Root entity 'Vehicle' defines inheritance strategy 'SINGLE_TABLE'. Ensure all subclasses use the same strategy."
+  }, {
+    "ruleId" : "DISCRIMINATOR_USAGE",
+    "severity" : "INFO",
+    "message" : "Entity 'Vehicle' uses discriminator column 'VEHICLE_TYPE'. Consider using CHAR discriminator type (default) for single-character values for better performance."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "SINGLE_TABLE inheritance used. Discriminator column 'VEHICLE_TYPE' should be indexed for efficient subclass filtering."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Car' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Car' appears immutable. Consider adding @ReadOnly annotation."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Car' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Entity 'Car' uses SINGLE_TABLE inheritance. Monitor table growth and consider partitioning for large hierarchies."
+  }, {
+    "ruleId" : "DISCRIMINATOR_USAGE",
+    "severity" : "ERROR",
+    "message" : "Entity 'Car' uses SINGLE_TABLE inheritance but has no discriminator column. Add @DiscriminatorColumn annotation."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "SINGLE_TABLE inheritance used. Discriminator column 'DTYPE' should be indexed for efficient subclass filtering."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'Motorcycle' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Motorcycle' appears immutable. Consider adding @ReadOnly annotation."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'Motorcycle' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Entity 'Motorcycle' uses SINGLE_TABLE inheritance. Monitor table growth and consider partitioning for large hierarchies."
+  }, {
+    "ruleId" : "DISCRIMINATOR_USAGE",
+    "severity" : "ERROR",
+    "message" : "Entity 'Motorcycle' uses SINGLE_TABLE inheritance but has no discriminator column. Add @DiscriminatorColumn annotation."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "SINGLE_TABLE inheritance used. Discriminator column 'DTYPE' should be indexed for efficient subclass filtering."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "INFO",
+    "message" : "Potential inheritance hierarchy detected with base class 'Vehicle' and 2 subclasses. Ensure proper @Inheritance strategy."
+  } ],
+  "anomalies" : [ ]
+}

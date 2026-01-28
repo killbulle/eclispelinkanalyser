@@ -1,6 +1,5 @@
 import { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { ShieldAlert } from 'lucide-react';
 
 interface AttributeMetadata {
     name: string;
@@ -22,6 +21,11 @@ interface AttributeMetadata {
     transient?: boolean;
     basic?: boolean;
     elementCollection?: boolean;
+    // Phase 2 Mappings
+    transformationMapping?: boolean;
+    serializedObjectConverter?: boolean;
+    typeConversionConverter?: boolean;
+    objectTypeConverter?: boolean;
 }
 
 interface RelationshipMetadata {
@@ -67,6 +71,12 @@ interface EntityNodeData {
     showAttributes: boolean;
     hasAnomalies: boolean;
     violations: Violation[];
+    // Focus mode properties
+    isCutPoint?: boolean;
+    isInCycle?: boolean;
+    hasEagerRisk?: boolean;
+    isPotentialVO?: boolean;
+    focusOpacity?: number; // 0-1, controlled by focus mode
 }
 
 interface EntityNodeProps {
@@ -99,12 +109,69 @@ const EntityNode = ({ data, selected }: EntityNodeProps) => {
     const errorCount = data.violations.filter(v => v.severity === 'ERROR').length;
     const isRoot = data.dddRole === 'AGGREGATE_ROOT';
     const aggColor = getAggregateColor(data.aggregateName);
+    const focusOpacity = data.focusOpacity ?? 1;
+    const hasBadges = data.isCutPoint || data.isInCycle || data.hasEagerRisk || data.isPotentialVO;
+
+    // Glow effect when node is highlighted in focus mode
+    const glowStyle = focusOpacity === 1 && hasBadges ? {
+        boxShadow: data.isInCycle ? '0 0 12px rgba(255, 0, 64, 0.4)' :
+            data.isCutPoint ? '0 0 12px rgba(0, 133, 255, 0.4)' :
+                data.hasEagerRisk ? '0 0 12px rgba(255, 170, 0, 0.4)' :
+                    data.isPotentialVO ? '0 0 12px rgba(168, 85, 247, 0.5)' : 'none'
+    } : {};
+
+    // Dashed outline for potential VOs
+    const voStyle = data.isPotentialVO ? {
+        outline: '2px dashed #A855F7',
+        outlineOffset: '2px'
+    } : {};
 
     return (
         <div className={`relative min-w-[100px] max-w-[100px] min-h-[50px] rounded bg-node border transition-all duration-300 shadow-sm overflow-hidden 
             ${selected ? 'border-primary ring-1 ring-primary/30 z-10' : 'border-subtle'}
             ${isRoot ? 'ring-1 ring-primary/20' : ''}`}
-            style={{ backgroundColor: 'var(--bg-node)', borderColor: selected ? 'var(--primary)' : 'var(--border-subtle)' }}>
+            style={{
+                backgroundColor: 'var(--bg-node)',
+                borderColor: selected ? 'var(--primary)' : 'var(--border-subtle)',
+                opacity: focusOpacity,
+                transition: 'opacity 0.3s ease, box-shadow 0.3s ease',
+                ...glowStyle,
+                ...voStyle
+            }}>
+
+            {/* Analysis Badges - Bottom Center */}
+            {hasBadges && (
+                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-0.5 z-20">
+                    {data.isInCycle && (
+                        <span title="Part of Circular Dependency"
+                            className="px-1 py-0.5 rounded text-[5px] font-bold text-white shadow-md"
+                            style={{ backgroundColor: 'var(--score-low)' }}>
+                            🔄
+                        </span>
+                    )}
+                    {data.isCutPoint && (
+                        <span title="Cut Point - Can be decoupled"
+                            className="px-1 py-0.5 rounded text-[5px] font-bold text-white shadow-md"
+                            style={{ backgroundColor: 'var(--primary)' }}>
+                            ✂️
+                        </span>
+                    )}
+                    {data.hasEagerRisk && (
+                        <span title="Eager Fetch Risk"
+                            className="px-1 py-0.5 rounded text-[5px] font-bold text-white shadow-md"
+                            style={{ backgroundColor: 'var(--score-med)' }}>
+                            ⚠️
+                        </span>
+                    )}
+                    {data.isPotentialVO && (
+                        <span title="Potential Value Object"
+                            className="px-1 py-0.5 rounded text-[5px] font-bold text-white shadow-md"
+                            style={{ backgroundColor: 'var(--accent-purple)' }}>
+                            💎
+                        </span>
+                    )}
+                </div>
+            )}
 
             {/* Aggregate Indicator Bar - Thinner */}
             <div className="h-0.5 w-full" style={{ backgroundColor: aggColor }}></div>
@@ -144,7 +211,15 @@ const EntityNode = ({ data, selected }: EntityNodeProps) => {
                             <div key={name} className="flex items-center justify-between gap-1 group">
                                 <div className="flex items-center gap-1 overflow-hidden min-w-0">
                                     {isId ? (
-                                        <div className="w-1 h-1 rounded-full bg-score-med shrink-0 shadow-[0_0_3px_var(--score-med)]" style={{ backgroundColor: 'var(--score-med)' }}></div>
+                                        <div className="w-1 h-1 rounded-full bg-score-med shrink-0 shadow-[0_0_3px_var(--score-med)]" style={{ backgroundColor: 'var(--score-med)' }} title="ID"></div>
+                                    ) : attr.transformationMapping ? (
+                                        <div className="w-1 h-1 rounded-full bg-orange-500 shrink-0" style={{ backgroundColor: '#f97316' }} title="Transformation Mapping"></div>
+                                    ) : attr.serializedObjectConverter ? (
+                                        <div className="w-1 h-1 rounded-full bg-red-500 shrink-0" style={{ backgroundColor: '#ef4444' }} title="Serialized Object"></div>
+                                    ) : attr.typeConversionConverter ? (
+                                        <div className="w-1 h-1 rounded-full bg-blue-500 shrink-0" style={{ backgroundColor: '#3b82f6' }} title="Type Conversion"></div>
+                                    ) : attr.objectTypeConverter ? (
+                                        <div className="w-1 h-1 rounded-full bg-cyan-500 shrink-0" style={{ backgroundColor: '#06b6d4' }} title="Object Type Converter"></div>
                                     ) : (
                                         <div className="w-0.5 h-0.5 rounded-full bg-border-active shrink-0" style={{ backgroundColor: 'var(--border-active)' }}></div>
                                     )}

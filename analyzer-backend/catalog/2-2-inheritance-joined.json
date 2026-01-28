@@ -1,0 +1,302 @@
+{
+  "nodes" : [ {
+    "name" : "PaymentMethod",
+    "packageName" : "demo.inheritance",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : "JOINED",
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "ownerName" : {
+        "name" : "ownerName",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "OWNER_NAME",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "id" : {
+        "name" : "id",
+        "javaType" : "Long",
+        "databaseType" : "BIGINT",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : true,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Inheritance",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
+  }, {
+    "name" : "CreditCard",
+    "packageName" : "demo.inheritance",
+    "type" : "ENTITY",
+    "parentEntity" : "PaymentMethod",
+    "inheritanceStrategy" : "JOINED",
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "expiryDate" : {
+        "name" : "expiryDate",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "EXPIRY",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "cardNumber" : {
+        "name" : "cardNumber",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "CARD_NUM",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Inheritance",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
+  }, {
+    "name" : "BankAccount",
+    "packageName" : "demo.inheritance",
+    "type" : "ENTITY",
+    "parentEntity" : "PaymentMethod",
+    "inheritanceStrategy" : "JOINED",
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "iban" : {
+        "name" : "iban",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "IBAN",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      },
+      "bic" : {
+        "name" : "bic",
+        "javaType" : "String",
+        "databaseType" : "VARCHAR",
+        "columnName" : "BIC",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "temporal" : false,
+        "enumerated" : false,
+        "convert" : false,
+        "generatedValue" : false,
+        "unique" : false,
+        "id" : false,
+        "basic" : false,
+        "elementCollection" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transformationMapping" : false,
+        "nullable" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Inheritance",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
+  } ],
+  "violations" : [ {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'PaymentMethod' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'PaymentMethod' appears immutable. Consider adding @ReadOnly annotation."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'PaymentMethod' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Root entity 'PaymentMethod' defines inheritance strategy 'JOINED'. Ensure all subclasses use the same strategy."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "JOINED inheritance used. Ensure foreign key columns in subclass tables are indexed."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'CreditCard' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'CreditCard' appears immutable. Consider adding @ReadOnly annotation."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'CreditCard' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Entity 'CreditCard' uses JOINED inheritance. Ensure foreign key indexes are created for performance."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Entity 'CreditCard' has only 2 attributes. Consider SINGLE_TABLE strategy for simple hierarchies to avoid joins."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "JOINED inheritance used. Ensure foreign key columns in subclass tables are indexed."
+  }, {
+    "ruleId" : "OPTIMISTIC_LOCKING",
+    "severity" : "WARNING",
+    "message" : "Entity 'BankAccount' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+  }, {
+    "ruleId" : "CACHE_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "Entity 'BankAccount' appears immutable. Consider adding @ReadOnly annotation."
+  }, {
+    "ruleId" : "VERSION_ANNOTATION",
+    "severity" : "INFO",
+    "message" : "Entity 'BankAccount' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Entity 'BankAccount' uses JOINED inheritance. Ensure foreign key indexes are created for performance."
+  }, {
+    "ruleId" : "INHERITANCE_STRATEGY",
+    "severity" : "INFO",
+    "message" : "Entity 'BankAccount' has only 2 attributes. Consider SINGLE_TABLE strategy for simple hierarchies to avoid joins."
+  }, {
+    "ruleId" : "INDEX_OPTIMIZATION",
+    "severity" : "INFO",
+    "message" : "JOINED inheritance used. Ensure foreign key columns in subclass tables are indexed."
+  }, {
+    "ruleId" : "GRAPH_ANALYSIS",
+    "severity" : "INFO",
+    "message" : "Potential inheritance hierarchy detected with base class 'PaymentMethod' and 2 subclasses. Ensure proper @Inheritance strategy."
+  } ],
+  "anomalies" : [ ]
+}
