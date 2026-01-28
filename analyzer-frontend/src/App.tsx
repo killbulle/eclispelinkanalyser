@@ -21,7 +21,7 @@ import { jsPDF } from 'jspdf';
 import { getAggregateForNode, heuristics, type HeuristicType } from './utils/aggregateHeuristics';
 import { runAnalysis, type AnalysisConfig, type AnalysisReport as AdvancedAnalysisReport } from './analysis/engine';
 import { SemanticProfile } from './analysis/semantic';
-import { Layout, AlertCircle, CircleAlert, Info, Loader2, RefreshCw, Eye, EyeOff, GitGraph, Upload, ShieldAlert, Database, ChevronLeft, ChevronRight, Activity, Layers, FileDown, Brain, Box, GitMerge, ChevronDown } from 'lucide-react';
+import { Layout, AlertCircle, CircleAlert, Info, Loader2, RefreshCw, Eye, EyeOff, GitGraph, Upload, ShieldAlert, Database, ChevronLeft, ChevronRight, Activity, Layers, FileDown, Brain, Box, GitMerge, ChevronDown, LayoutDashboard } from 'lucide-react';
 
 interface AttributeMetadata {
   name: string;
@@ -1088,7 +1088,7 @@ function AnalyzerApp() {
   };
 
   const filteredNodes = useMemo(() => {
-    if (activeLayer === 'all') {
+    if (activeLayer === 'aggregates') {
       // Reset all nodes to full opacity
       return nodes.map(node => ({
         ...node,
@@ -1228,7 +1228,7 @@ function AnalyzerApp() {
   }, [nodes, edges, activeLayer]);
 
   const filteredEdges = useMemo(() => {
-    if (activeLayer === 'all') return edges;
+    if (activeLayer === 'aggregates') return edges;
 
     const layerColor = layerColors[activeLayer as keyof typeof layerColors];
 
@@ -1238,9 +1238,6 @@ function AnalyzerApp() {
       let overrideOpacity = undefined;
 
       switch (activeLayer) {
-        case 'aggregates':
-          isRelevant = true;
-          break;
         case 'cycles':
           // Highlight complex cycles (length > 2) in RED
           if (complexCycleEdges.has(edge.id)) {
@@ -1436,10 +1433,10 @@ function AnalyzerApp() {
                   {/* Active Layer Indicator / Legend */}
                   <div className="mt-2 text-[11px] px-2 py-1.5 rounded flex items-center gap-2"
                     style={{
-                      backgroundColor: activeLayer === 'all' ? 'transparent' : 'var(--bg-panel-hover)',
-                      border: activeLayer === 'all' ? 'none' : '1px solid var(--border-subtle)'
+                      backgroundColor: activeLayer === 'aggregates' ? 'transparent' : 'var(--bg-panel-hover)',
+                      border: activeLayer === 'aggregates' ? 'none' : '1px solid var(--border-subtle)'
                     }}>
-                    {activeLayer === 'all' && <Layout size={12} className="text-secondary" />}
+                    {activeLayer === 'aggregates' && <LayoutDashboard size={12} className="text-secondary" />}
                     {activeLayer === 'anomalies' && <ShieldAlert size={12} className="text-score-low" />}
                     {activeLayer === 'perf' && <Activity size={12} className="text-score-med" />}
                     {activeLayer === 'cycles' && <GitMerge size={12} className="text-score-low" />}
@@ -1448,7 +1445,7 @@ function AnalyzerApp() {
                     {activeLayer === 'vo' && <Info size={12} style={{ color: '#A855F7' }} />}
 
                     <span className="text-muted" style={{ color: 'var(--text-muted)' }}>
-                      {activeLayer === 'all' && "Showing full graph layout"}
+                      {activeLayer === 'aggregates' && "Showing Aggregate DDD analysis"}
                       {activeLayer === 'anomalies' && "Filtering consistency issues"}
                       {activeLayer === 'perf' && "Highlighting EAGER & N+1 risks"}
                       {activeLayer === 'cycles' && "Red edges indicate cycles"}
