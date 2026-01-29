@@ -1,305 +1,325 @@
 {
-  "nodes" : [ {
-    "name" : "Student",
-    "packageName" : "demo.basic",
-    "type" : "ENTITY",
-    "parentEntity" : null,
-    "inheritanceStrategy" : null,
-    "discriminatorColumn" : null,
-    "discriminatorValue" : null,
-    "attributes" : {
-      "name" : {
-        "name" : "name",
-        "javaType" : "String",
-        "databaseType" : "VARCHAR",
-        "columnName" : "NAME",
-        "temporalType" : null,
-        "converterName" : null,
-        "generationStrategy" : null,
-        "converterType" : null,
-        "transformationMethodName" : null,
-        "objectTypeDataType" : null,
-        "objectTypeObjectType" : null,
-        "lob" : false,
-        "temporal" : false,
-        "enumerated" : false,
-        "convert" : false,
-        "generatedValue" : false,
-        "unique" : false,
-        "id" : false,
-        "basic" : false,
-        "elementCollection" : false,
-        "objectTypeConverter" : false,
-        "typeConversionConverter" : false,
-        "serializedObjectConverter" : false,
-        "transformationMapping" : false,
-        "nullable" : false,
-        "transient" : false,
-        "version" : false
+  "nodes": [
+    {
+      "name": "Student",
+      "packageName": "demo.basic",
+      "type": "ENTITY",
+      "parentEntity": null,
+      "inheritanceStrategy": null,
+      "discriminatorColumn": null,
+      "discriminatorValue": null,
+      "attributes": {
+        "name": {
+          "name": "name",
+          "javaType": "String",
+          "databaseType": "VARCHAR",
+          "columnName": "NAME",
+          "temporalType": null,
+          "converterName": null,
+          "generationStrategy": null,
+          "converterType": null,
+          "transformationMethodName": null,
+          "objectTypeDataType": null,
+          "objectTypeObjectType": null,
+          "lob": false,
+          "temporal": false,
+          "enumerated": false,
+          "convert": false,
+          "generatedValue": false,
+          "unique": false,
+          "id": false,
+          "basic": false,
+          "elementCollection": false,
+          "objectTypeConverter": false,
+          "typeConversionConverter": false,
+          "serializedObjectConverter": false,
+          "transformationMapping": false,
+          "nullable": false,
+          "transient": false,
+          "version": false
+        },
+        "id": {
+          "name": "id",
+          "javaType": "Long",
+          "databaseType": "BIGINT",
+          "columnName": "ID",
+          "temporalType": null,
+          "converterName": null,
+          "generationStrategy": null,
+          "converterType": null,
+          "transformationMethodName": null,
+          "objectTypeDataType": null,
+          "objectTypeObjectType": null,
+          "lob": false,
+          "temporal": false,
+          "enumerated": false,
+          "convert": false,
+          "generatedValue": false,
+          "unique": false,
+          "id": true,
+          "basic": false,
+          "elementCollection": false,
+          "objectTypeConverter": false,
+          "typeConversionConverter": false,
+          "serializedObjectConverter": false,
+          "transformationMapping": false,
+          "nullable": false,
+          "transient": false,
+          "version": false
+        }
       },
-      "id" : {
-        "name" : "id",
-        "javaType" : "Long",
-        "databaseType" : "BIGINT",
-        "columnName" : "ID",
-        "temporalType" : null,
-        "converterName" : null,
-        "generationStrategy" : null,
-        "converterType" : null,
-        "transformationMethodName" : null,
-        "objectTypeDataType" : null,
-        "objectTypeObjectType" : null,
-        "lob" : false,
-        "temporal" : false,
-        "enumerated" : false,
-        "convert" : false,
-        "generatedValue" : false,
-        "unique" : false,
-        "id" : true,
-        "basic" : false,
-        "elementCollection" : false,
-        "objectTypeConverter" : false,
-        "typeConversionConverter" : false,
-        "serializedObjectConverter" : false,
-        "transformationMapping" : false,
-        "nullable" : false,
-        "transient" : false,
-        "version" : false
-      }
+      "relationships": [
+        {
+          "attributeName": "courses",
+          "targetEntity": "Course",
+          "mappingType": "ManyToMany",
+          "mappedBy": null,
+          "cascadePersist": false,
+          "cascadeMerge": false,
+          "cascadeRemove": false,
+          "cascadeRefresh": false,
+          "cascadeDetach": false,
+          "cascadeAll": false,
+          "orphanRemoval": false,
+          "optional": false,
+          "batchFetchType": null,
+          "joinFetch": false,
+          "privateOwned": false,
+          "mutable": false,
+          "readOnly": false,
+          "indirectionType": null,
+          "variableDiscriminatorColumn": null,
+          "arrayStructureName": null,
+          "mapKeyType": null,
+          "mapValueType": null,
+          "owningSide": true,
+          "lazy": true,
+          "aggregateCollection": false,
+          "directMapMapping": false,
+          "directCollection": false,
+          "variableOneToOne": false,
+          "arrayMapping": false,
+          "nestedTable": false
+        }
+      ],
+      "dddRole": "ENTITY",
+      "aggregateName": "Basic",
+      "violations": [],
+      "cacheType": null,
+      "cacheExpiry": null,
+      "cacheCoordinationType": null
     },
-    "relationships" : [ {
-      "attributeName" : "courses",
-      "targetEntity" : "Course",
-      "mappingType" : "ManyToMany",
-      "mappedBy" : null,
-      "cascadePersist" : false,
-      "cascadeMerge" : false,
-      "cascadeRemove" : false,
-      "cascadeRefresh" : false,
-      "cascadeDetach" : false,
-      "cascadeAll" : false,
-      "orphanRemoval" : false,
-      "optional" : false,
-      "batchFetchType" : null,
-      "joinFetch" : false,
-      "privateOwned" : false,
-      "mutable" : false,
-      "readOnly" : false,
-      "indirectionType" : null,
-      "variableDiscriminatorColumn" : null,
-      "arrayStructureName" : null,
-      "mapKeyType" : null,
-      "mapValueType" : null,
-      "owningSide" : true,
-      "lazy" : true,
-      "aggregateCollection" : false,
-      "directMapMapping" : false,
-      "directCollection" : false,
-      "variableOneToOne" : false,
-      "arrayMapping" : false,
-      "nestedTable" : false
-    } ],
-    "dddRole" : "ENTITY",
-    "aggregateName" : "Basic",
-    "violations" : [ ],
-    "cacheType" : null,
-    "cacheExpiry" : null,
-    "cacheCoordinationType" : null
-  }, {
-    "name" : "Course",
-    "packageName" : "demo.basic",
-    "type" : "ENTITY",
-    "parentEntity" : null,
-    "inheritanceStrategy" : null,
-    "discriminatorColumn" : null,
-    "discriminatorValue" : null,
-    "attributes" : {
-      "id" : {
-        "name" : "id",
-        "javaType" : "Long",
-        "databaseType" : "BIGINT",
-        "columnName" : "ID",
-        "temporalType" : null,
-        "converterName" : null,
-        "generationStrategy" : null,
-        "converterType" : null,
-        "transformationMethodName" : null,
-        "objectTypeDataType" : null,
-        "objectTypeObjectType" : null,
-        "lob" : false,
-        "temporal" : false,
-        "enumerated" : false,
-        "convert" : false,
-        "generatedValue" : false,
-        "unique" : false,
-        "id" : true,
-        "basic" : false,
-        "elementCollection" : false,
-        "objectTypeConverter" : false,
-        "typeConversionConverter" : false,
-        "serializedObjectConverter" : false,
-        "transformationMapping" : false,
-        "nullable" : false,
-        "transient" : false,
-        "version" : false
+    {
+      "name": "Course",
+      "packageName": "demo.basic",
+      "type": "ENTITY",
+      "parentEntity": null,
+      "inheritanceStrategy": null,
+      "discriminatorColumn": null,
+      "discriminatorValue": null,
+      "attributes": {
+        "id": {
+          "name": "id",
+          "javaType": "Long",
+          "databaseType": "BIGINT",
+          "columnName": "ID",
+          "temporalType": null,
+          "converterName": null,
+          "generationStrategy": null,
+          "converterType": null,
+          "transformationMethodName": null,
+          "objectTypeDataType": null,
+          "objectTypeObjectType": null,
+          "lob": false,
+          "temporal": false,
+          "enumerated": false,
+          "convert": false,
+          "generatedValue": false,
+          "unique": false,
+          "id": true,
+          "basic": false,
+          "elementCollection": false,
+          "objectTypeConverter": false,
+          "typeConversionConverter": false,
+          "serializedObjectConverter": false,
+          "transformationMapping": false,
+          "nullable": false,
+          "transient": false,
+          "version": false
+        },
+        "title": {
+          "name": "title",
+          "javaType": "String",
+          "databaseType": "VARCHAR",
+          "columnName": "TITLE",
+          "temporalType": null,
+          "converterName": null,
+          "generationStrategy": null,
+          "converterType": null,
+          "transformationMethodName": null,
+          "objectTypeDataType": null,
+          "objectTypeObjectType": null,
+          "lob": false,
+          "temporal": false,
+          "enumerated": false,
+          "convert": false,
+          "generatedValue": false,
+          "unique": false,
+          "id": false,
+          "basic": false,
+          "elementCollection": false,
+          "objectTypeConverter": false,
+          "typeConversionConverter": false,
+          "serializedObjectConverter": false,
+          "transformationMapping": false,
+          "nullable": false,
+          "transient": false,
+          "version": false
+        }
       },
-      "title" : {
-        "name" : "title",
-        "javaType" : "String",
-        "databaseType" : "VARCHAR",
-        "columnName" : "TITLE",
-        "temporalType" : null,
-        "converterName" : null,
-        "generationStrategy" : null,
-        "converterType" : null,
-        "transformationMethodName" : null,
-        "objectTypeDataType" : null,
-        "objectTypeObjectType" : null,
-        "lob" : false,
-        "temporal" : false,
-        "enumerated" : false,
-        "convert" : false,
-        "generatedValue" : false,
-        "unique" : false,
-        "id" : false,
-        "basic" : false,
-        "elementCollection" : false,
-        "objectTypeConverter" : false,
-        "typeConversionConverter" : false,
-        "serializedObjectConverter" : false,
-        "transformationMapping" : false,
-        "nullable" : false,
-        "transient" : false,
-        "version" : false
-      }
+      "relationships": [
+        {
+          "attributeName": "students",
+          "targetEntity": "Student",
+          "mappingType": "ManyToMany",
+          "mappedBy": "courses",
+          "cascadePersist": false,
+          "cascadeMerge": false,
+          "cascadeRemove": false,
+          "cascadeRefresh": false,
+          "cascadeDetach": false,
+          "cascadeAll": false,
+          "orphanRemoval": false,
+          "optional": false,
+          "batchFetchType": null,
+          "joinFetch": false,
+          "privateOwned": false,
+          "mutable": false,
+          "readOnly": false,
+          "indirectionType": null,
+          "variableDiscriminatorColumn": null,
+          "arrayStructureName": null,
+          "mapKeyType": null,
+          "mapValueType": null,
+          "owningSide": false,
+          "lazy": true,
+          "aggregateCollection": false,
+          "directMapMapping": false,
+          "directCollection": false,
+          "variableOneToOne": false,
+          "arrayMapping": false,
+          "nestedTable": false
+        }
+      ],
+      "dddRole": "ENTITY",
+      "aggregateName": "Basic",
+      "violations": [],
+      "cacheType": null,
+      "cacheExpiry": null,
+      "cacheCoordinationType": null
+    }
+  ],
+  "violations": [
+    {
+      "ruleId": "OPTIMISTIC_LOCKING",
+      "severity": "WARNING",
+      "message": "Entity 'Student' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
     },
-    "relationships" : [ {
-      "attributeName" : "students",
-      "targetEntity" : "Student",
-      "mappingType" : "ManyToMany",
-      "mappedBy" : "courses",
-      "cascadePersist" : false,
-      "cascadeMerge" : false,
-      "cascadeRemove" : false,
-      "cascadeRefresh" : false,
-      "cascadeDetach" : false,
-      "cascadeAll" : false,
-      "orphanRemoval" : false,
-      "optional" : false,
-      "batchFetchType" : null,
-      "joinFetch" : false,
-      "privateOwned" : false,
-      "mutable" : false,
-      "readOnly" : false,
-      "indirectionType" : null,
-      "variableDiscriminatorColumn" : null,
-      "arrayStructureName" : null,
-      "mapKeyType" : null,
-      "mapValueType" : null,
-      "owningSide" : false,
-      "lazy" : true,
-      "aggregateCollection" : false,
-      "directMapMapping" : false,
-      "directCollection" : false,
-      "variableOneToOne" : false,
-      "arrayMapping" : false,
-      "nestedTable" : false
-    } ],
-    "dddRole" : "ENTITY",
-    "aggregateName" : "Basic",
-    "violations" : [ ],
-    "cacheType" : null,
-    "cacheExpiry" : null,
-    "cacheCoordinationType" : null
-  } ],
-  "violations" : [ {
-    "ruleId" : "OPTIMISTIC_LOCKING",
-    "severity" : "WARNING",
-    "message" : "Entity 'Student' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
-  }, {
-    "ruleId" : "FK_INDEX",
-    "severity" : "WARNING",
-    "message" : "Relationship 'courses' in Student uses foreign key column(s). Ensure database indexes are created on foreign key columns for better query performance."
-  }, {
-    "ruleId" : "LARGE_COLLECTION",
-    "severity" : "WARNING",
-    "message" : "Relationship 'courses' in Student is a collection mapping that could return many objects. Consider implementing pagination (@BatchFetch, @FetchJoin, or query limits) to avoid loading too many objects into memory."
-  }, {
-    "ruleId" : "VERSION_ANNOTATION",
-    "severity" : "INFO",
-    "message" : "Entity 'Student' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
-  }, {
-    "ruleId" : "BATCH_FETCH",
-    "severity" : "INFO",
-    "message" : "Collection relationship 'courses' in entity 'Student' does not use batch fetching. Consider adding @BatchFetch to optimize N+1 queries."
-  }, {
-    "ruleId" : "BATCH_FETCH",
-    "severity" : "WARNING",
-    "message" : "Lazy collection 'courses' does not use batch fetching. This will cause N+1 queries when accessing the collection."
-  }, {
-    "ruleId" : "N_PLUS_ONE_QUERY",
-    "severity" : "WARNING",
-    "message" : "Lazy collection 'courses' in entity 'Student' causes N+1 queries when accessed. Add @BatchFetch or use JOIN FETCH in queries."
-  }, {
-    "ruleId" : "INDIRECTION_POLICY",
-    "severity" : "INFO",
-    "message" : "Relationship 'courses' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
-  }, {
-    "ruleId" : "INDEX_OPTIMIZATION",
-    "severity" : "INFO",
-    "message" : "ManyToMany relationship 'courses' uses join table. Add indexes on both foreign key columns in the join table."
-  }, {
-    "ruleId" : "OPTIMISTIC_LOCKING",
-    "severity" : "WARNING",
-    "message" : "Entity 'Course' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
-  }, {
-    "ruleId" : "LARGE_COLLECTION",
-    "severity" : "WARNING",
-    "message" : "Relationship 'students' in Course is a collection mapping that could return many objects. Consider implementing pagination (@BatchFetch, @FetchJoin, or query limits) to avoid loading too many objects into memory."
-  }, {
-    "ruleId" : "VERSION_ANNOTATION",
-    "severity" : "INFO",
-    "message" : "Entity 'Course' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
-  }, {
-    "ruleId" : "BATCH_FETCH",
-    "severity" : "INFO",
-    "message" : "Collection relationship 'students' in entity 'Course' does not use batch fetching. Consider adding @BatchFetch to optimize N+1 queries."
-  }, {
-    "ruleId" : "BATCH_FETCH",
-    "severity" : "WARNING",
-    "message" : "Lazy collection 'students' does not use batch fetching. This will cause N+1 queries when accessing the collection."
-  }, {
-    "ruleId" : "N_PLUS_ONE_QUERY",
-    "severity" : "WARNING",
-    "message" : "Lazy collection 'students' in entity 'Course' causes N+1 queries when accessed. Add @BatchFetch or use JOIN FETCH in queries."
-  }, {
-    "ruleId" : "N_PLUS_ONE_QUERY",
-    "severity" : "INFO",
-    "message" : "Bidirectional lazy collection 'students' is accessed from both sides. Ensure both sides use consistent fetch strategies to avoid N+1 queries."
-  }, {
-    "ruleId" : "INDIRECTION_POLICY",
-    "severity" : "INFO",
-    "message" : "Relationship 'students' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
-  }, {
-    "ruleId" : "INDEX_OPTIMIZATION",
-    "severity" : "INFO",
-    "message" : "Bidirectional relationship 'students' has inverse side mapped by 'courses'. Ensure both sides have appropriate indexes."
-  }, {
-    "ruleId" : "GRAPH_ANALYSIS",
-    "severity" : "ERROR",
-    "message" : "Entity 'Student' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
-  }, {
-    "ruleId" : "GRAPH_ANALYSIS",
-    "severity" : "ERROR",
-    "message" : "Entity 'Course' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
-  }, {
-    "ruleId" : "GRAPH_ANALYSIS",
-    "severity" : "WARNING",
-    "message" : "No root entities found (all entities have incoming relationships). This may indicate a circular model with no clear entry points."
-  }, {
-    "ruleId" : "GRAPH_ANALYSIS",
-    "severity" : "INFO",
-    "message" : "No leaf entities found (all entities have outgoing relationships). This may indicate a highly interconnected model."
-  } ],
-  "anomalies" : [ ]
+    {
+      "ruleId": "FK_INDEX",
+      "severity": "WARNING",
+      "message": "Relationship 'courses' in Student uses foreign key column(s). Ensure database indexes are created on foreign key columns for better query performance."
+    },
+    {
+      "ruleId": "LARGE_COLLECTION",
+      "severity": "WARNING",
+      "message": "Relationship 'courses' in Student is a collection mapping that could return many objects. Consider implementing pagination (@BatchFetch, @FetchJoin, or query limits) to avoid loading too many objects into memory."
+    },
+    {
+      "ruleId": "VERSION_ANNOTATION",
+      "severity": "INFO",
+      "message": "Entity 'Student' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+    },
+    {
+      "ruleId": "BATCH_FETCH",
+      "severity": "INFO",
+      "message": "Collection relationship 'courses' in entity 'Student' does not use batch fetching. Consider adding @BatchFetch to optimize N+1 queries."
+    },
+    {
+      "ruleId": "BATCH_FETCH",
+      "severity": "WARNING",
+      "message": "Lazy collection 'courses' does not use batch fetching. This will cause N+1 queries when accessing the collection."
+    },
+    {
+      "ruleId": "N_PLUS_ONE_QUERY",
+      "severity": "WARNING",
+      "message": "Lazy collection 'courses' in entity 'Student' causes N+1 queries when accessed. Add @BatchFetch or use JOIN FETCH in queries."
+    },
+    {
+      "ruleId": "INDIRECTION_POLICY",
+      "severity": "INFO",
+      "message": "Relationship 'courses' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
+    },
+    {
+      "ruleId": "INDEX_OPTIMIZATION",
+      "severity": "INFO",
+      "message": "ManyToMany relationship 'courses' uses join table. Add indexes on both foreign key columns in the join table."
+    },
+    {
+      "ruleId": "OPTIMISTIC_LOCKING",
+      "severity": "WARNING",
+      "message": "Entity 'Course' does not have a version field for optimistic locking. Consider adding @Version to prevent concurrent modification issues."
+    },
+    {
+      "ruleId": "LARGE_COLLECTION",
+      "severity": "WARNING",
+      "message": "Relationship 'students' in Course is a collection mapping that could return many objects. Consider implementing pagination (@BatchFetch, @FetchJoin, or query limits) to avoid loading too many objects into memory."
+    },
+    {
+      "ruleId": "VERSION_ANNOTATION",
+      "severity": "INFO",
+      "message": "Entity 'Course' does not have a @Version field. Consider adding optimistic locking support for concurrent updates."
+    },
+    {
+      "ruleId": "BATCH_FETCH",
+      "severity": "INFO",
+      "message": "Collection relationship 'students' in entity 'Course' does not use batch fetching. Consider adding @BatchFetch to optimize N+1 queries."
+    },
+    {
+      "ruleId": "BATCH_FETCH",
+      "severity": "WARNING",
+      "message": "Lazy collection 'students' does not use batch fetching. This will cause N+1 queries when accessing the collection."
+    },
+    {
+      "ruleId": "N_PLUS_ONE_QUERY",
+      "severity": "WARNING",
+      "message": "Lazy collection 'students' in entity 'Course' causes N+1 queries when accessed. Add @BatchFetch or use JOIN FETCH in queries."
+    },
+    {
+      "ruleId": "N_PLUS_ONE_QUERY",
+      "severity": "INFO",
+      "message": "Bidirectional lazy collection 'students' is accessed from both sides. Ensure both sides use consistent fetch strategies to avoid N+1 queries."
+    },
+    {
+      "ruleId": "INDIRECTION_POLICY",
+      "severity": "INFO",
+      "message": "Relationship 'students' is lazy but indirection type is not specified. Ensure EclipseLink weaving is enabled for proper lazy loading."
+    },
+    {
+      "ruleId": "INDEX_OPTIMIZATION",
+      "severity": "INFO",
+      "message": "Bidirectional relationship 'students' has inverse side mapped by 'courses'. Ensure both sides have appropriate indexes."
+    },
+    {
+      "ruleId": "GRAPH_ANALYSIS",
+      "severity": "WARNING",
+      "message": "No root entities found (all entities have incoming relationships). This may indicate a circular model with no clear entry points."
+    },
+    {
+      "ruleId": "GRAPH_ANALYSIS",
+      "severity": "INFO",
+      "message": "No leaf entities found (all entities have outgoing relationships). This may indicate a highly interconnected model."
+    }
+  ],
+  "anomalies": []
 }

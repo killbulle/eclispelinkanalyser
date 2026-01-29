@@ -534,17 +534,44 @@ function AnalyzerApp() {
       }
     });
 
-    // Detect cycles (bidirectional relationships)
+    // Detect deep cycles (length > 2)
     const nodesInCycle = new Set<string>();
+    const adj = new Map<string, string[]>();
     nodesList.forEach((n: EntityNodeData) => {
       const rels = Array.isArray(n.relationships) ? n.relationships : [];
-      rels.forEach((rel: RelationshipMetadata) => {
-        const target = nodesList.find((t: EntityNodeData) => t.name === rel.targetEntity);
-        if (target?.relationships?.some((tr: RelationshipMetadata) => tr.targetEntity === n.name)) {
-          nodesInCycle.add(n.name);
-          nodesInCycle.add(rel.targetEntity);
+      adj.set(n.name, rels.map(r => r.targetEntity));
+    });
+
+    const visitedForCycle = new Set<string>();
+    const recursionStack = new Set<string>();
+    const currentPath: string[] = [];
+
+    const findCycles = (nodeName: string) => {
+      visitedForCycle.add(nodeName);
+      recursionStack.add(nodeName);
+      currentPath.push(nodeName);
+
+      const neighbors = adj.get(nodeName) || [];
+      for (const neighbor of neighbors) {
+        if (!visitedForCycle.has(neighbor)) {
+          findCycles(neighbor);
+        } else if (recursionStack.has(neighbor)) {
+          const startIndex = currentPath.indexOf(neighbor);
+          if (startIndex !== -1) {
+            const cycle = currentPath.slice(startIndex);
+            if (cycle.length > 2) {
+              cycle.forEach(name => nodesInCycle.add(name));
+            }
+          }
         }
-      });
+      }
+
+      currentPath.pop();
+      recursionStack.delete(nodeName);
+    };
+
+    nodesList.forEach(n => {
+      if (!visitedForCycle.has(n.name)) findCycles(n.name);
     });
 
     // Detect Aggregate Roots - the node with most outgoing owned relationships in each aggregate
@@ -1234,15 +1261,6 @@ function AnalyzerApp() {
             overrideColor = '#FF0040';
             overrideOpacity = 1;
           }
-          // Highlight simple bidirectional
-          else {
-            const reverseEdge = edges.find(e => e.source === edge.target && e.target === edge.source);
-            if (reverseEdge) {
-              isRelevant = true;
-              overrideColor = '#FF0040';
-              overrideOpacity = 1;
-            }
-          }
           break;
         case 'cuts':
           isRelevant = edge.data?.mappingType === 'ManyToOne' || edge.data?.mappingType === 'OneToMany';
@@ -1599,17 +1617,6 @@ function AnalyzerApp() {
             <Layers size={16} />
           </button>
           <div className="w-px h-4 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
-          <button
-            onClick={() => {
-              setGroupingMode(!groupingMode);
-              setTimeout(() => onLayout('TB'), 50);
-            }}
-            className={`p-1.5 transition-colors ${groupingMode ? 'text-primary' : 'text-muted hover:text-primary'}`}
-            title="Toggle Grouping Mode (Surround Aggregates)"
-            style={{ color: groupingMode ? 'var(--primary)' : 'var(--text-muted)' }}
-          >
-            <Layers size={16} />
-          </button>
           <button onClick={toggleAttributes} className="p-1.5 text-muted hover:text-primary transition-colors" title="Toggle Attributes" style={{ color: 'var(--text-muted)' }}>
             {showAttributes ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
@@ -1783,10 +1790,10 @@ function AnalyzerApp() {
                           <div className="p-3 bg-score-low/10 border border-score-low/30 rounded-md">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-score-low/30 text-score-low font-bold" style={{ color: 'var(--score-low)' }}>CYCLE</span>
-                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Bidirectional Dependency</span>
+                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Deep Dependency Cycle</span>
                             </div>
                             <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                              This entity has a bidirectional relationship with another entity, creating a cycle. Consider reviewing fetch strategies.
+                              This entity is part of a deep dependency cycle (length 3 or more). Consider reviewing domain boundaries and fetch strategies.
                             </p>
                           </div>
                         )}

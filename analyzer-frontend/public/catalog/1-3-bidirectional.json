@@ -274,14 +274,6 @@
     "message" : "Relationship 'department' in entity 'Employee' creates a foreign key. Add database index for this column."
   }, {
     "ruleId" : "GRAPH_ANALYSIS",
-    "severity" : "ERROR",
-    "message" : "Entity 'Department' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
-  }, {
-    "ruleId" : "GRAPH_ANALYSIS",
-    "severity" : "ERROR",
-    "message" : "Entity 'Employee' is part of a cyclic dependency. Cycles can cause issues with serialization, transaction boundaries, and object loading. Consider breaking the cycle or using @XmlIDREF/@JsonManagedReference/@JsonBackReference annotations."
-  }, {
-    "ruleId" : "GRAPH_ANALYSIS",
     "severity" : "WARNING",
     "message" : "No root entities found (all entities have incoming relationships). This may indicate a circular model with no clear entry points."
   }, {
