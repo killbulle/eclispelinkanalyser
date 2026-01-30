@@ -11,6 +11,12 @@ public class DDDAnalyzer {
 
     private ScriptEngine engine;
 
+    // Configurable thresholds (can be externalized to config file)
+    private static final int REF_ENTITY_MIN_TOTAL_RELATIONS = 3;
+    private static final double REF_ENTITY_IN_OUT_RATIO = 1.5;
+    private static final int REF_ENTITY_MAX_ATTRIBUTES = 5;
+    private static final int ROOT_MIN_OUT_DEGREE = 3;
+
     public DDDAnalyzer() {
         ScriptEngineManager manager = new ScriptEngineManager();
         this.engine = manager.getEngineByName("JavaScript");
@@ -45,7 +51,22 @@ public class DDDAnalyzer {
         Map<String, EntityNode> nodeMap = nodes.stream()
                 .collect(Collectors.toMap(EntityNode::getName, n -> n));
 
-        // 1 & 2. Identify Roles using JS if possible, otherwise native
+        // 1. Identify Roles using JS if available, otherwise native
+        // Also compute embedded entity status for each node
+        Map<String, Boolean> embeddedStatus = new HashMap<>();
+        for (EntityNode node : nodes) {
+            embeddedStatus.put(node.getName(), isEmbeddedEntity(node, nodes));
+        }
+
+        // Store embedded status in node metadata for frontend use
+        for (EntityNode node : nodes) {
+            if (embeddedStatus.getOrDefault(node.getName(), false)) {
+                // Find which entity embeds this one
+                String embeddedBy = findEmbeddingOwner(node, nodes);
+                node.setAggregateName(embeddedBy != null ? embeddedBy : node.getAggregateName());
+            }
+        }
+
         for (EntityNode node : nodes) {
             String role = "ENTITY";
             try {
@@ -54,99 +75,114 @@ public class DDDAnalyzer {
                     Object result = inv.invokeMethod(engine.get("DDDRules"), "identifyRole", node, nodes);
                     role = result.toString();
                 } else {
-                    role = identifyRoleNative(node, nodes);
+                    role = identifyRoleNative(node, nodes, embeddedStatus);
                 }
             } catch (Exception e) {
-                role = identifyRoleNative(node, nodes);
+                role = identifyRoleNative(node, nodes, embeddedStatus);
             }
             node.setDddRole(role);
         }
 
-        // 3. Cluster into Aggregates
-        // Default: package-based
-        for (EntityNode node : nodes) {
-            String pkg = node.getPackageName();
-            if (pkg != null && pkg.contains(".")) {
-                String aggregateName = pkg.substring(pkg.lastIndexOf('.') + 1);
-                node.setAggregateName(aggregateName.substring(0, 1).toUpperCase() + aggregateName.substring(1));
-            } else {
-                node.setAggregateName("Default");
-            }
-        }
-
-        // Refining aggregates: if Entity A is owned by Root R, it joins R's aggregate
-        List<EntityNode> roots = nodes.stream().filter(n -> "AGGREGATE_ROOT".equals(n.getDddRole()))
-                .collect(Collectors.toList());
-
-        // Sort roots by "importance" (out-degree) to ensure they claim children
-        // correctly
-        roots.sort((a, b) -> {
-            int aOut = a.getRelationships() != null ? a.getRelationships().size() : 0;
-            int bOut = b.getRelationships() != null ? b.getRelationships().size() : 0;
-            return Integer.compare(bOut, aOut);
-        });
-
-        for (EntityNode root : roots) {
-            String aggName = root.getName(); // Simple: Aggregate named after its root
-            propagateAggregate(root, aggName, nodeMap, new HashSet<>());
-        }
+        // 2. Cluster into Aggregates using improved logic
+        clusterIntoAggregates(nodes, nodeMap);
     }
 
-    private String identifyRoleNative(EntityNode node, List<EntityNode> allNodes) {
-        if ("EMBEDDABLE".equals(node.getType()))
-            return "VALUE_OBJECT";
-        if ("ABSTRACT_ENTITY".equals(node.getType()) || "MAPPED_SUPERCLASS".equals(node.getType()))
-            return "ENTITY";
-
-        // Calculate incoming and outgoing relations
-        int incomingRelations = 0;
-        int outgoingRelations = node.getRelationships() != null ? node.getRelationships().size() : 0;
-        boolean hasCollections = false;
-        
-        // Check for collection relationships (OneToMany, ManyToMany)
-        if (node.getRelationships() != null) {
-            for (RelationshipMetadata rel : node.getRelationships()) {
-                String mappingType = rel.getMappingType();
-                if (mappingType != null && (mappingType.contains("OneToMany") || mappingType.contains("ManyToMany"))) {
-                    hasCollections = true;
-                    break;
-                }
-            }
+    /**
+     * Check if an entity is embedded (has incoming Embedded relationship)
+     */
+    private boolean isEmbeddedEntity(EntityNode node, List<EntityNode> allNodes) {
+        // EMBEDDABLE type is already handled
+        if ("EMBEDDABLE".equals(node.getType())) {
+            return true;
         }
-        
-        // Count incoming relations
+
+        // Check for incoming Embedded relationships
         for (EntityNode other : allNodes) {
-            if (other == node) continue;
+            if (other == node)
+                continue;
             if (other.getRelationships() != null) {
                 for (RelationshipMetadata rel : other.getRelationships()) {
-                    if (rel.getTargetEntity().equals(node.getName())) {
-                        incomingRelations++;
+                    if (rel.getTargetEntity().equals(node.getName()) &&
+                            "Embedded".equals(rel.getMappingType())) {
+                        return true;
                     }
                 }
             }
         }
-        
-        int totalRelations = incomingRelations + outgoingRelations;
-        int attributeCount = node.getAttributes() != null ? node.getAttributes().size() : 0;
-        
-        // Reference entity heuristic: highly connected, few attributes, no collections, more incoming than outgoing
-        if (totalRelations > 3 && 
-            incomingRelations > outgoingRelations * 1.5 && 
-            attributeCount < 5 && 
-            !hasCollections &&
-            "ENTITY".equals(node.getType())) {
-            return "REFERENCE_ENTITY";
+        return false;
+    }
+
+    /**
+     * Find which entity embeds the given node
+     */
+    private String findEmbeddingOwner(EntityNode node, List<EntityNode> allNodes) {
+        for (EntityNode other : allNodes) {
+            if (other == node)
+                continue;
+            if (other.getRelationships() != null) {
+                for (RelationshipMetadata rel : other.getRelationships()) {
+                    if (rel.getTargetEntity().equals(node.getName()) &&
+                            "Embedded".equals(rel.getMappingType())) {
+                        return other.getName();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private String identifyRoleNative(EntityNode node, List<EntityNode> allNodes, Map<String, Boolean> embeddedStatus) {
+        if ("EMBEDDABLE".equals(node.getType())) {
+            return "VALUE_OBJECT";
+        }
+        if ("ABSTRACT_ENTITY".equals(node.getType()) ||
+                "MAPPED_SUPERCLASS".equals(node.getType())) {
+            return "ENTITY";
         }
 
-        // Strong ownership check
+        // If already identified as embedded, it cannot be an aggregate root
+        if (embeddedStatus.getOrDefault(node.getName(), false)) {
+            return "ENTITY";
+        }
+
+        // Calculate metrics
+        int incomingRelations = 0;
+        int outgoingRelations = node.getRelationships() != null ? node.getRelationships().size() : 0;
+        boolean hasCollections = false;
+        boolean hasEmbeddedRelations = false;
+        long cascadeCount = 0;
         boolean isStronglyOwned = false;
+
+        // Analyze outgoing relationships
+        if (node.getRelationships() != null) {
+            for (RelationshipMetadata rel : node.getRelationships()) {
+                String mappingType = rel.getMappingType();
+
+                if (mappingType != null && (mappingType.contains("OneToMany") || mappingType.contains("ManyToMany"))) {
+                    hasCollections = true;
+                }
+
+                if (mappingType != null && mappingType.equals("Embedded")) {
+                    hasEmbeddedRelations = true;
+                }
+
+                if (rel.isCascadePersist() || rel.isCascadeRemove()) {
+                    cascadeCount++;
+                }
+            }
+        }
+
+        // Analyze incoming relationships and ownership
         for (EntityNode other : allNodes) {
             if (other == node)
                 continue;
             if (other.getRelationships() != null) {
                 for (RelationshipMetadata rel : other.getRelationships()) {
                     if (rel.getTargetEntity().equals(node.getName())) {
-                        if (rel.isCascadePersist() || rel.isCascadeRemove()) {
+                        incomingRelations++;
+
+                        // Strong ownership: cascade OR privateOwned (EclipseLink composition marker)
+                        if (rel.isCascadePersist() || rel.isCascadeRemove() || rel.isPrivateOwned()) {
                             isStronglyOwned = true;
                             break;
                         }
@@ -157,15 +193,90 @@ public class DDDAnalyzer {
                 break;
         }
 
-        long outDegree = outgoingRelations;
-        long cascadeCount = node.getRelationships() != null
-                ? node.getRelationships().stream().filter(r -> r.isCascadePersist()).count()
-                : 0;
+        int totalRelations = incomingRelations + outgoingRelations;
+        int attributeCount = node.getAttributes() != null ? node.getAttributes().size() : 0;
 
-        if (!isStronglyOwned && (cascadeCount > 0 || outDegree > 3)) {
+        // Reference entity heuristic
+        // Allow all entity types except EMBEDDABLE
+        if (!"EMBEDDABLE".equals(node.getType()) &&
+                totalRelations >= REF_ENTITY_MIN_TOTAL_RELATIONS &&
+                incomingRelations > outgoingRelations * REF_ENTITY_IN_OUT_RATIO &&
+                attributeCount <= REF_ENTITY_MAX_ATTRIBUTES &&
+                !hasCollections) {
+
+            return "REFERENCE_ENTITY";
+        }
+
+        long outDegree = outgoingRelations;
+
+        // Aggregate Root heuristic
+        if (!isStronglyOwned && (cascadeCount > 0 || outDegree >= ROOT_MIN_OUT_DEGREE)) {
             return "AGGREGATE_ROOT";
         }
+
         return "ENTITY";
+    }
+
+    private void clusterIntoAggregates(List<EntityNode> nodes, Map<String, EntityNode> nodeMap) {
+        // 1. Initial package-based clustering (as fallback)
+        for (EntityNode node : nodes) {
+            if (node.getAggregateName() == null || "Default".equals(node.getAggregateName())) {
+                String pkg = node.getPackageName();
+                if (pkg != null && pkg.contains(".")) {
+                    String aggregateName = pkg.substring(pkg.lastIndexOf('.') + 1);
+                    node.setAggregateName(aggregateName.substring(0, 1).toUpperCase() + aggregateName.substring(1));
+                } else {
+                    node.setAggregateName("General");
+                }
+            }
+        }
+
+        // 2. Identify aggregate roots
+        List<EntityNode> roots = nodes.stream()
+                .filter(n -> "AGGREGATE_ROOT".equals(n.getDddRole()) && !isEmbeddedByRelation(n, nodeMap))
+                .collect(Collectors.toList());
+
+        // 3. Sort roots by out-degree to ensure they claim children correctly
+        roots.sort((a, b) -> {
+            int aOut = a.getRelationships() != null ? a.getRelationships().size() : 0;
+            int bOut = b.getRelationships() != null ? b.getRelationships().size() : 0;
+            return Integer.compare(bOut, aOut);
+        });
+
+        // 4. Propagate aggregate names through cascade relationships
+        Set<String> processedRoots = new HashSet<>();
+        for (EntityNode root : roots) {
+            String aggName = root.getName(); // Aggregate named after its root
+            if (!processedRoots.contains(aggName)) {
+                propagateAggregate(root, aggName, nodeMap, new HashSet<>());
+                processedRoots.add(aggName);
+            }
+        }
+    }
+
+    /**
+     * Check if entity is embedded by an incoming relationship (not type-based
+     * check)
+     */
+    private boolean isEmbeddedByRelation(EntityNode node, Map<String, EntityNode> nodeMap) {
+        for (EntityNode other : nodeMap.values()) {
+            if (other == node)
+                continue;
+            if (other.getRelationships() != null) {
+                for (RelationshipMetadata rel : other.getRelationships()) {
+                    if (rel.getTargetEntity().equals(node.getName())) {
+                        // Check if this is an embedded/cascade relationship
+                        if ("Embedded".equals(rel.getMappingType()) ||
+                                rel.isCascadePersist() ||
+                                rel.isCascadeRemove() ||
+                                rel.isPrivateOwned()) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private void propagateAggregate(EntityNode parent, String aggName, Map<String, EntityNode> nodeMap,
@@ -174,18 +285,28 @@ public class DDDAnalyzer {
             return;
         visited.add(parent.getName());
 
+        // Set aggregate name on the parent
         parent.setAggregateName(aggName);
 
         if (parent.getRelationships() != null) {
             for (RelationshipMetadata rel : parent.getRelationships()) {
-                // Focus on composition/ownership: cascade persist OR not lazy (Eager loading
-                // often implies tight coupling)
-                if (rel.isCascadePersist() || !rel.isLazy()) {
-                    EntityNode child = nodeMap.get(rel.getTargetEntity());
-                    // Only propagate to non-roots (don't steal children of other roots unless they
-                    // are specifically cascading)
-                    if (child != null && (!"AGGREGATE_ROOT".equals(child.getDddRole()) || rel.isCascadePersist())) {
-                        propagateAggregate(child, aggName, nodeMap, visited);
+                EntityNode target = nodeMap.get(rel.getTargetEntity());
+                if (target == null)
+                    continue;
+
+                // Focus on composition/ownership: cascade persist, cascade remove, privateOwned
+                // (EclipseLink composition marker)
+                // Embedded relationships also indicate ownership
+                boolean isOwnership = "Embedded".equals(rel.getMappingType()) ||
+                        rel.isCascadePersist() ||
+                        rel.isCascadeRemove() ||
+                        rel.isPrivateOwned();
+
+                if (isOwnership) {
+                    // Only propagate to non-roots or if explicitly cascading
+                    // Embedded entities are always part of the aggregate
+                    if (!isEmbeddedByRelation(target, nodeMap)) {
+                        propagateAggregate(target, aggName, nodeMap, visited);
                     }
                 }
             }

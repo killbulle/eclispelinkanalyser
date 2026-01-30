@@ -1,35 +1,12 @@
 package com.eclipselink.analyzer;
 
-import com.eclipselink.analyzer.graph.GraphAnalyzer;
 import com.eclipselink.analyzer.model.AttributeMetadata;
 import com.eclipselink.analyzer.model.EntityNode;
-import com.eclipselink.analyzer.model.RelationshipMetadata;
 import com.eclipselink.analyzer.rules.*;
-import com.eclipselink.analyzer.rules.EagerFetchRule;
-import com.eclipselink.analyzer.rules.MappingRule;
-import com.eclipselink.analyzer.rules.RelationshipOwnerRule;
-import com.eclipselink.analyzer.rules.RedundantUpdateRule;
-import com.eclipselink.analyzer.rules.OptimisticLockingRule;
-import com.eclipselink.analyzer.rules.ForeignKeyIndexRule;
-import com.eclipselink.analyzer.rules.LargeCollectionRule;
-import com.eclipselink.analyzer.rules.SelfReferencingRule;
-import com.eclipselink.analyzer.rules.InheritanceRule;
-import com.eclipselink.analyzer.rules.GraphAnalysisRule;
-import com.eclipselink.analyzer.rules.LobRule;
-import com.eclipselink.analyzer.rules.TemporalRule;
-import com.eclipselink.analyzer.rules.VersionRule;
-import com.eclipselink.analyzer.rules.BatchFetchRule;
-import com.eclipselink.analyzer.rules.InheritanceStrategyRule;
-import com.eclipselink.analyzer.rules.DiscriminatorRule;
-import com.eclipselink.analyzer.rules.NPlusOneQueryRule;
-import com.eclipselink.analyzer.rules.CartesianProductRule;
-import com.eclipselink.analyzer.rules.IndexRule;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +26,6 @@ public class Main {
 
         // 2. Generate Real Catalog for All Levels (Extracts from Metamodel)
         generateRealCatalogAll();
-
 
         // 4. OFBiz stress test if available
         java.io.File ofbizDir = new java.io.File("ofbiz-stress-test");
@@ -152,7 +128,19 @@ public class Main {
             reportsDir.mkdirs();
         }
         String finalPath = "reports/" + outputPath;
-        runner.runAnalysis(nodes, schema, rules, globalRules, finalPath);
+        // The instruction implies a change to the AnalysisRunner.runAnalysis signature
+        // and the use of NativeDDLGenerator. Since 'session' is not available here,
+        // and the instruction snippet is partial, we'll assume the intent is to
+        // align with the new runAnalysis signature that takes nativeDdl directly.
+        // For this method, we'll pass an empty string for nativeDdl as it's not
+        // generated here.
+        // The original call was: runner.runAnalysis(nodes, schema, rules, globalRules,
+        // finalPath);
+        // The instruction implies: runner.runAnalysis(nodes, schema, rules, nativeDdl,
+        // outputPath);
+        // To make it syntactically correct and follow the spirit of the instruction,
+        // we'll adapt the call to the new signature, passing an empty DDL string.
+        runner.runAnalysis(nodes, schema, rules, globalRules, "", finalPath);
     }
 
     private static void generateRealCatalogAll() throws Exception {
@@ -165,50 +153,52 @@ public class Main {
         }
 
         List<EntityNode> allNodes = AgentAnalysisTrigger.run(session);
+        String nativeDdl = NativeDDLGenerator.generate(session); // Changed DDL generation
 
         // Level 1: Basic
-        runRealAnalysis(allNodes, "1-1-basic-entity-real.json", "l1_basic");
+        runRealAnalysis(allNodes, nativeDdl, "1-1-basic-entity-real.json", "l1_basic");
 
         // Level 2: Relationships
-        runRealAnalysis(allNodes, "2-1-onetoone-real.json", "l2_relationships.onetoone");
-        runRealAnalysis(allNodes, "2-2-onetomany-real.json", "l2_relationships.onetomany");
-        runRealAnalysis(allNodes, "2-3-manytomany-real.json", "l2_relationships.manytomany");
-        runRealAnalysis(allNodes, "2-4-element-collection-real.json", "l2_relationships.element");
-        runRealAnalysis(allNodes, "2-5-embedded-real.json", "l2_relationships.embedded");
-        runRealAnalysis(allNodes, "2-5-mapped-superclass.json", "l2_relationships.mapped_superclass");
+        runRealAnalysis(allNodes, nativeDdl, "2-1-onetoone-real.json", "l2_relationships.onetoone");
+        runRealAnalysis(allNodes, nativeDdl, "2-2-onetomany-real.json", "l2_relationships.onetomany");
+        runRealAnalysis(allNodes, nativeDdl, "2-3-manytomany-real.json", "l2_relationships.manytomany");
+        runRealAnalysis(allNodes, nativeDdl, "2-4-element-collection-real.json", "l2_relationships.element");
+        runRealAnalysis(allNodes, nativeDdl, "2-5-embedded-real.json", "l2_relationships.embedded");
+        runRealAnalysis(allNodes, nativeDdl, "2-5-mapped-superclass.json", "l2_relationships.mapped_superclass");
 
         // Level 3: Converters
-        runRealAnalysis(allNodes, "3-1-basic-converter-real.json", "l3_converters.basic");
-        runRealAnalysis(allNodes, "3-2-object-type-real.json", "l3_converters.objecttype");
-        runRealAnalysis(allNodes, "3-3-serialized-object-real.json", "l3_converters.serialized");
+        runRealAnalysis(allNodes, nativeDdl, "3-1-basic-converter-real.json", "l3_converters.basic");
+        runRealAnalysis(allNodes, nativeDdl, "3-2-object-type-real.json", "l3_converters.objecttype");
+        runRealAnalysis(allNodes, nativeDdl, "3-3-serialized-object-real.json", "l3_converters.serialized");
 
         // Level 4: EclipseLink Specific
-        runRealAnalysis(allNodes, "4-1-batch-fetch-real.json", "l4_specific.batch");
-        runRealAnalysis(allNodes, "4-2-cache-config-real.json", "l4_specific.cache");
-        runRealAnalysis(allNodes, "4-3-indirection-real.json", "l4_specific.indirection");
-        runRealAnalysis(allNodes, "4-4-private-owned-real.json", "l4_specific.privateowned");
+        runRealAnalysis(allNodes, nativeDdl, "4-1-batch-fetch-real.json", "l4_specific.batch");
+        runRealAnalysis(allNodes, nativeDdl, "4-2-cache-config-real.json", "l4_specific.cache");
+        runRealAnalysis(allNodes, nativeDdl, "4-3-indirection-real.json", "l4_specific.indirection");
+        runRealAnalysis(allNodes, nativeDdl, "4-4-private-owned-real.json", "l4_specific.privateowned");
 
         // Level 5: Advanced Mappings
-        runRealAnalysis(allNodes, "5-1-transformation-real.json", "l5.transform");
-        runRealAnalysis(allNodes, "5-2-variable-onetoone-real.json", "l5.variable");
-        runRealAnalysis(allNodes, "5-3-direct-collection-real.json", "l5.direct");
-        runRealAnalysis(allNodes, "5-4-aggregate-collection-real.json", "l5.aggregate");
-        runRealAnalysis(allNodes, "5-5-array-real.json", "l5.array");
+        runRealAnalysis(allNodes, nativeDdl, "5-1-transformation-real.json", "l5.transform");
+        runRealAnalysis(allNodes, nativeDdl, "5-2-variable-onetoone-real.json", "l5.variable");
+        runRealAnalysis(allNodes, nativeDdl, "5-3-direct-collection-real.json", "l5.direct");
+        runRealAnalysis(allNodes, nativeDdl, "5-4-aggregate-collection-real.json", "l5.aggregate");
+        runRealAnalysis(allNodes, nativeDdl, "5-5-array-real.json", "l5.array");
 
         // Level 6: Anti-Patterns
-        runRealAnalysis(allNodes, "6-1-circular-refs-real.json", "l6_antipatterns.circular");
+        runRealAnalysis(allNodes, nativeDdl, "6-1-circular-refs-real.json", "l6_antipatterns.circular");
         // For Cartesian, include circular package as it refers to CyclicA/B
-        runRealAnalysis(allNodes, "6-2-cartesian-product-real.json", "l6_antipatterns.cartesian",
+        runRealAnalysis(allNodes, nativeDdl, "6-2-cartesian-product-real.json", "l6_antipatterns.cartesian",
                 "l6_antipatterns.circular");
         // For Optimization, include circular package as it refers to CyclicA/B
-        runRealAnalysis(allNodes, "6-3-missing-optimizations-real.json", "l6_antipatterns.opt",
+        runRealAnalysis(allNodes, nativeDdl, "6-3-missing-optimizations-real.json", "l6_antipatterns.opt",
                 "l6_antipatterns.circular");
 
         em.close();
         emf.close();
     }
 
-    private static void runRealAnalysis(List<EntityNode> allNodes, String outputFile, String... packageFilters)
+    private static void runRealAnalysis(List<EntityNode> allNodes, String nativeDdl, String outputFile,
+            String... packageFilters)
             throws Exception {
         List<EntityNode> filtered = new ArrayList<>();
         for (EntityNode n : allNodes) {
@@ -234,7 +224,10 @@ public class Main {
                 new EagerFetchRule(),
                 new RelationshipOwnerRule());
 
+        List<GlobalMappingRule> globalRules = Arrays.asList(
+                new GraphAnalysisRule());
+
         AnalysisRunner runner = new AnalysisRunner();
-        runner.runAnalysis(filtered, schema, rules, "reports/catalog/" + outputFile);
+        runner.runAnalysis(filtered, schema, rules, globalRules, nativeDdl, "reports/catalog/" + outputFile);
     }
 }

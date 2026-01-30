@@ -17,11 +17,17 @@ public class AnalysisRunner {
 
     public void runAnalysis(List<EntityNode> nodes, Map<String, DDLInspector.TableMetadata> schema,
             List<MappingRule> rules, String outputPath) throws Exception {
-        runAnalysis(nodes, schema, rules, new ArrayList<>(), outputPath);
+        runAnalysis(nodes, schema, rules, new ArrayList<>(), null, outputPath);
     }
 
     public void runAnalysis(List<EntityNode> nodes, Map<String, DDLInspector.TableMetadata> schema,
-            List<MappingRule> rules, List<GlobalMappingRule> globalRules, String outputPath) throws Exception {
+            List<MappingRule> rules, String nativeDdl, String outputPath) throws Exception {
+        runAnalysis(nodes, schema, rules, new ArrayList<>(), nativeDdl, outputPath);
+    }
+
+    public void runAnalysis(List<EntityNode> nodes, Map<String, DDLInspector.TableMetadata> schema,
+            List<MappingRule> rules, List<GlobalMappingRule> globalRules, String nativeDdl, String outputPath)
+            throws Exception {
         ComparisonEngine engine = new ComparisonEngine();
         List<ComparisonEngine.Anomaly> anomalies = engine.compare(nodes, schema);
 
@@ -47,6 +53,9 @@ public class AnalysisRunner {
         result.put("nodes", nodes);
         result.put("anomalies", anomalies);
         result.put("violations", violations);
+        if (nativeDdl != null) {
+            result.put("nativeDdl", nativeDdl);
+        }
 
         mapper.writeValue(new File(outputPath), result);
         System.out.println("[AnalyzerAgent] Analysis report generated at: " + new File(outputPath).getAbsolutePath());

@@ -1,0 +1,55 @@
+{
+  "nodes" : [ {
+    "name" : "Employee",
+    "packageName" : "eclipselink.example.jpa.employee.model",
+    "type" : "ENTITY",
+    "attributes" : {
+      "firstName" : "String",
+      "lastName" : "String",
+      "id" : "long",
+      "salary" : "double"
+    },
+    "relationships" : [ {
+      "attributeName" : "address",
+      "targetEntity" : "Address",
+      "mappingType" : "OneToOne",
+      "mappedBy" : null,
+      "lazy" : false,
+      "cascadePersist" : false,
+      "owningSide" : true
+    }, {
+      "attributeName" : "phones",
+      "targetEntity" : "Phone",
+      "mappingType" : "OneToMany",
+      "mappedBy" : "owner",
+      "lazy" : false,
+      "cascadePersist" : false,
+      "owningSide" : false
+    } ]
+  }, {
+    "name" : "Address",
+    "packageName" : "eclipselink.example.jpa.employee.model",
+    "type" : "ENTITY",
+    "attributes" : {
+      "city" : "String",
+      "street" : "String",
+      "id" : "long"
+    },
+    "relationships" : null
+  } ],
+  "violations" : [ {
+    "ruleId" : "REL_EAGER_FETCH",
+    "severity" : "WARNING",
+    "message" : "Relationship 'address' in Employee uses EAGER fetch. Use LAZY for better performance."
+  }, {
+    "ruleId" : "REL_EAGER_FETCH",
+    "severity" : "WARNING",
+    "message" : "Relationship 'phones' in Employee uses EAGER fetch. Use LAZY for better performance."
+  } ],
+  "anomalies" : [ {
+    "entityName" : "Employee",
+    "propertyName" : "salary",
+    "severity" : "ERROR",
+    "message" : "Column SALARY not found in table EMPLOYEE"
+  } ]
+}

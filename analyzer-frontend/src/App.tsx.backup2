@@ -18,9 +18,6 @@ import * as d3Force from 'd3-force';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import EntityNode from './components/EntityNode';
 import GroupNode from './components/GroupNode';
-import { JPAView } from './components/JPAView';
-import { TableView } from './components/TableView';
-import { DDLView } from './components/DDLView';
 import { jsPDF } from 'jspdf';
 import { getAggregateForNode, heuristics, type HeuristicType } from './utils/aggregateHeuristics';
 // @ts-ignore
@@ -118,7 +115,6 @@ interface AnalysisReport {
   nodes: EntityNodeData[];
   anomalies: Anomaly[];
   violations: Violation[];
-  nativeDdl?: string;
 }
 
 const nodeTypes = {
@@ -380,9 +376,7 @@ function AnalyzerApp() {
   const [violationFilters, setViolationFilters] = useState<Record<string, boolean>>({ ERROR: true, WARNING: true, INFO: true });
   const [groupingMode, setGroupingMode] = useState(false);
   const [activeLayer, setActiveLayer] = useState<'aggregates' | 'cycles' | 'cuts' | 'perf' | 'vo' | 'anomalies'>('aggregates');
-  const [viewMode, setViewMode] = useState<'graph' | 'table' | 'ddl' | 'jpa'>('graph');
   const [selectedHeuristic, setSelectedHeuristic] = useState<HeuristicType>('shared');
-  const [nativeDdl, setNativeDdl] = useState<string | null>(null);
 
   // Advanced Analysis State
   const [analysisConfig, setAnalysisConfig] = useState<AnalysisConfig>({
@@ -583,7 +577,6 @@ function AnalyzerApp() {
     const nodesList = data.nodes || [];
     const anomalies = data.anomalies || [];
     const violations = data.violations || [];
-    setNativeDdl(data.nativeDdl || null);
 
     // Pre-compute analysis data for badges
     // Detect nodes with EAGER relationships (performance risk)
@@ -1665,249 +1658,172 @@ function AnalyzerApp() {
           style={{ backgroundImage: `linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px)`, backgroundSize: '40px 40px' }}></div>
 
         {/* Top Floating Control Bar */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 px-4 py-2 bg-panel shadow-xl border border-subtle rounded-full"
-          style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)', backdropFilter: 'blur(12px)' }}>
-
-          <div className="flex bg-body/50 p-1 rounded-full border border-subtle" style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)' }}>
-            <button
-              onClick={() => setViewMode('graph')}
-              className={`px-4 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 ${viewMode === 'graph' ? 'bg-primary text-white shadow-lg' : 'text-secondary hover:text-main hover:bg-panel-hover'}`}
-              style={{ backgroundColor: viewMode === 'graph' ? 'var(--primary)' : 'transparent', color: viewMode === 'graph' ? 'white' : 'var(--text-secondary)' }}
-            >
-              <GitGraph size={14} /> Graph
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-4 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 ${viewMode === 'table' ? 'bg-primary text-white shadow-lg' : 'text-secondary hover:text-main hover:bg-panel-hover'}`}
-              style={{ backgroundColor: viewMode === 'table' ? 'var(--primary)' : 'transparent', color: viewMode === 'table' ? 'white' : 'var(--text-secondary)' }}
-            >
-              <LayoutDashboard size={14} /> Table
-            </button>
-            <button
-              onClick={() => setViewMode('jpa')}
-              className={`px-4 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 ${viewMode === 'jpa' ? 'bg-primary text-white shadow-lg' : 'text-secondary hover:text-main hover:bg-panel-hover'}`}
-              style={{ backgroundColor: viewMode === 'jpa' ? 'var(--primary)' : 'transparent', color: viewMode === 'jpa' ? 'white' : 'var(--text-secondary)' }}
-            >
-              <Database size={14} /> JPA
-            </button>
-            <button
-              onClick={() => setViewMode('ddl')}
-              className={`px-4 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 ${viewMode === 'ddl' ? 'bg-primary text-white shadow-lg' : 'text-secondary hover:text-main hover:bg-panel-hover'}`}
-              style={{ backgroundColor: viewMode === 'ddl' ? 'var(--primary)' : 'transparent', color: viewMode === 'ddl' ? 'white' : 'var(--text-secondary)' }}
-            >
-              <FileDown size={14} /> DDL
-            </button>
-          </div>
-
-          <div className="w-px h-5 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold text-muted" style={{ color: 'var(--text-muted)' }}>Report:</span>
-            <select
-              value={selectedReport}
-              onChange={(e) => setSelectedReport(e.target.value)}
-              className="bg-transparent text-[13px] font-bold text-primary border-none focus:ring-0 cursor-pointer pr-8 appearance-none hover:opacity-80 transition-all"
-              style={{ color: 'var(--primary)' }}
-            >
-              {reports.map(r => (
-                <option key={r.id} value={r.id} className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>{r.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="w-px h-5 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold text-muted" style={{ color: 'var(--text-muted)' }}>Layout:</span>
-            <select
-              onChange={(e) => onLayout(e.target.value)}
-              className="bg-transparent text-[13px] font-bold text-primary border-none focus:ring-0 cursor-pointer pr-8 appearance-none hover:opacity-80 transition-all"
-              style={{ color: 'var(--primary)' }}
-            >
-              <option value="TB" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Hierarchical</option>
-              <option value="LR" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Horizontal</option>
-              <option value="ORGANIC" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Organic</option>
-              <option value="RADIAL" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Radial</option>
-              <option value="GRID" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Grid</option>
-              <option value="CLUSTER" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Aggregate Cluster</option>
-            </select>
-          </div>
-
-          <div className="w-px h-5 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
-
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 px-4 py-2 bg-glass backdrop-blur-md border border-subtle rounded-full shadow-lg"
+          style={{ backgroundColor: 'var(--bg-glass)', borderColor: 'var(--border-subtle)' }}>
+          <select
+            value={selectedReport}
+            onChange={(e) => setSelectedReport(e.target.value)}
+            className="bg-transparent text-[13px] font-medium text-main border-none focus:ring-0 cursor-pointer pr-8 appearance-none"
+            style={{ color: 'var(--text-main)' }}
+          >
+            {reports.map(r => (
+              <option key={r.id} value={r.id} className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>{r.name}</option>
+            ))}
+          </select>
+          <div className="w-px h-4 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
+          <button onClick={() => onLayout('TB')} className="p-1.5 text-muted hover:text-primary transition-colors" title="Hierarchical Layout" style={{ color: 'var(--text-muted)' }}>
+            <Layout size={16} />
+          </button>
+          <button onClick={() => onLayout('LR')} className="p-1.5 text-muted hover:text-primary transition-colors" title="Horizontal Layout" style={{ color: 'var(--text-muted)' }}>
+            <GitGraph size={16} />
+          </button>
+          <button onClick={() => onLayout('ORGANIC')} className="p-1.5 text-muted hover:text-primary transition-colors" title="Organic Layout" style={{ color: 'var(--text-muted)' }}>
+            <RefreshCw size={16} />
+          </button>
+          <button onClick={() => onLayout('RADIAL')} className="p-1.5 text-muted hover:text-primary transition-colors" title="Radial Stress Layout" style={{ color: 'var(--text-muted)' }}>
+            <Activity size={16} />
+          </button>
+          <button onClick={() => onLayout('GRID')} className="p-1.5 text-muted hover:text-primary transition-colors" title="Grid Layout" style={{ color: 'var(--text-muted)' }}>
+            <Layout size={16} />
+          </button>
+          <button onClick={() => onLayout('CLUSTER')} className="p-1.5 text-muted hover:text-accent-purple transition-colors" title="Cluster by Aggregate - Groups entities by DDD aggregate" style={{ color: 'var(--text-muted)' }}>
+            <Layers size={16} />
+          </button>
+          <div className="w-px h-4 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
+          <button onClick={toggleAttributes} className="p-1.5 text-muted hover:text-primary transition-colors" title="Toggle Attributes" style={{ color: 'var(--text-muted)' }}>
+            {showAttributes ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
           <button
             onClick={generatePDFReport}
-            className="p-2 text-secondary hover:text-primary hover:bg-panel-hover rounded-full transition-all"
+            className="p-1.5 text-muted hover:text-primary transition-colors"
             title="Download PDF Report"
-            style={{ color: 'var(--text-secondary)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
-            <FileDown size={18} />
+            <FileDown size={16} />
           </button>
-
-          <button
-            onClick={toggleAttributes}
-            className="p-2 text-secondary hover:text-primary hover:bg-panel-hover rounded-full transition-all"
-            title="Toggle Attributes"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            {showAttributes ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
+          <div className="w-px h-4 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
+          <div className="flex items-center gap-3 px-2 text-[11px] font-bold">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-score-low" style={{ backgroundColor: 'var(--score-low)' }}></div>
+              <span className="text-score-low" style={{ color: 'var(--score-low)' }}>{stats.errorCount}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-score-med" style={{ backgroundColor: 'var(--score-med)' }}></div>
+              <span className="text-score-med" style={{ color: 'var(--score-med)' }}>{stats.warningCount}</span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex-1 relative flex flex-col overflow-hidden">
-          {viewMode === 'graph' && (
-            <ReactFlow
-              nodes={filteredNodes}
-              edges={filteredEdges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={onNodeClick}
-              onEdgeClick={onEdgeClick}
-              nodeTypes={nodeTypes}
-              defaultEdgeOptions={{
-                type: 'smoothstep',
-                style: { strokeDasharray: '5,5' },
-              }}
-              fitView
-              fitViewOptions={{ padding: 0.5 }}
-              minZoom={0.1}
-            >
-              {/* Custom SVG markers for UML conventions */}
-              <svg style={{ position: 'absolute', width: 0, height: 0 }}>
-                <defs>
-                  {/* Inheritance: Hollow triangle (white fill, colored border) */}
-                  <marker
-                    id="marker-inheritance"
-                    viewBox="0 0 10 10"
-                    refX="10"
-                    refY="5"
-                    markerWidth="8"
-                    markerHeight="8"
-                    orient="auto"
-                  >
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="currentColor" strokeWidth="1.5" />
-                  </marker>
+        <div className="flex-1 relative">
+          <ReactFlow
+            nodes={filteredNodes}
+            edges={filteredEdges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
+            nodeTypes={nodeTypes}
+            defaultEdgeOptions={{
+              type: 'smoothstep',
+              style: { strokeDasharray: '5,5' },
+            }}
+            fitView
+            fitViewOptions={{ padding: 0.5 }}
+            minZoom={0.1}
+          >
+            {/* Custom SVG markers for UML conventions */}
+            <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+              <defs>
+                {/* Inheritance: Hollow triangle (white fill, colored border) */}
+                <marker
+                  id="marker-inheritance"
+                  viewBox="0 0 10 10"
+                  refX="10"
+                  refY="5"
+                  markerWidth="8"
+                  markerHeight="8"
+                  orient="auto"
+                >
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="currentColor" strokeWidth="1.5" />
+                </marker>
 
-                  {/* Composition: Filled diamond for strong ownership (cascade) */}
-                  <marker
-                    id="marker-composition"
-                    viewBox="0 0 10 10"
-                    refX="0"
-                    refY="5"
-                    markerWidth="8"
-                    markerHeight="8"
-                    orient="auto"
-                  >
-                    <path d="M 0 5 L 10 0 L 20 5 L 10 10 z" fill="currentColor" />
-                  </marker>
+                {/* Composition: Filled diamond for strong ownership (cascade) */}
+                <marker
+                  id="marker-composition"
+                  viewBox="0 0 10 10"
+                  refX="0"
+                  refY="5"
+                  markerWidth="8"
+                  markerHeight="8"
+                  orient="auto"
+                >
+                  <path d="M 0 5 L 10 0 L 20 5 L 10 10 z" fill="currentColor" />
+                </marker>
 
-                  {/* Crow's foot for OneToMany cardinality (target side) */}
-                  <marker
-                    id="marker-crows-foot"
-                    viewBox="0 0 10 10"
-                    refX="10"
-                    refY="5"
-                    markerWidth="12"
-                    markerHeight="12"
-                    orient="auto"
-                  >
-                    <path d="M 0 0 L 10 5 L 0 10 M 10 5 L 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                  </marker>
+                {/* Crow's foot for OneToMany cardinality (target side) */}
+                <marker
+                  id="marker-crows-foot"
+                  viewBox="0 0 10 10"
+                  refX="10"
+                  refY="5"
+                  markerWidth="12"
+                  markerHeight="12"
+                  orient="auto"
+                >
+                  <path d="M 0 0 L 10 5 L 0 10 M 10 5 L 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                </marker>
 
-                  {/* Crow's foot for source side (ManyToOne cardinality) */}
-                  <marker
-                    id="marker-crows-foot-start"
-                    viewBox="0 0 10 10"
-                    refX="0"
-                    refY="5"
-                    markerWidth="12"
-                    markerHeight="12"
-                    orient="auto"
-                  >
-                    <path d="M 0 0 L 10 5 L 0 10 M 10 5 L 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                  </marker>
+                {/* Crow's foot for source side (ManyToOne cardinality) */}
+                <marker
+                  id="marker-crows-foot-start"
+                  viewBox="0 0 10 10"
+                  refX="0"
+                  refY="5"
+                  markerWidth="12"
+                  markerHeight="12"
+                  orient="auto"
+                >
+                  <path d="M 0 0 L 10 5 L 0 10 M 10 5 L 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                </marker>
 
-                  {/* JPA Ownership: Small bar at source for owning side */}
-                  <marker
-                    id="marker-ownership-bar"
-                    viewBox="0 0 10 10"
-                    refX="0"
-                    refY="5"
-                    markerWidth="6"
-                    markerHeight="6"
-                    orient="auto"
-                  >
-                    <path d="M 0 2 L 0 8 L 4 8 L 4 2 z" fill="currentColor" />
-                  </marker>
+                {/* JPA Ownership: Small bar at source for owning side */}
+                <marker
+                  id="marker-ownership-bar"
+                  viewBox="0 0 10 10"
+                  refX="0"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto"
+                >
+                  <path d="M 0 2 L 0 8 L 4 8 L 4 2 z" fill="currentColor" />
+                </marker>
 
-                  {/* Standard arrow for OneToOne relationships */}
-                  <marker
-                    id="marker-standard-arrow"
-                    viewBox="0 0 10 10"
-                    refX="10"
-                    refY="5"
-                    markerWidth="8"
-                    markerHeight="8"
-                    orient="auto"
-                  >
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
-                  </marker>
-                </defs>
-              </svg>
+                {/* Standard arrow for OneToOne relationships */}
+                <marker
+                  id="marker-standard-arrow"
+                  viewBox="0 0 10 10"
+                  refX="10"
+                  refY="5"
+                  markerWidth="8"
+                  markerHeight="8"
+                  orient="auto"
+                >
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+                </marker>
+              </defs>
+            </svg>
 
-              <Background color="var(--border-active)" gap={20} className="opacity-0" />
-              <Controls className="!bg-panel !border-subtle !shadow-none [&_button]:!border-subtle [&_path]:!fill-muted" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }} />
-              <MiniMap
-                className="!bg-glass !border-subtle !backdrop-blur-md"
-                style={{ backgroundColor: 'var(--bg-glass)', borderColor: 'var(--border-subtle)' }}
-                nodeColor={() => 'var(--primary)'}
-                maskColor="var(--accent-glow)"
-              />
-            </ReactFlow>
-          )}
-
-          {viewMode === 'table' && (
-            <TableView
-              relationships={edges.map(edge => ({
-                sourceEntity: edge.source,
-                targetEntity: edge.target,
-                attributeName: edge.data?.attributeName || 'unknown',
-                mappingType: edge.data?.mappingType || 'unknown',
-                lazy: edge.data?.lazy !== false,
-                cascadePersist: !!edge.data?.cascadePersist,
-                cascadeRemove: !!edge.data?.cascadeRemove,
-                cascadeAll: !!edge.data?.cascadeAll,
-                owningSide: !!edge.data?.owningSide,
-                mappedBy: edge.data?.mappedBy,
-                optional: !!edge.data?.optional,
-                batchFetchType: edge.data?.batchFetchType,
-              }))}
-              onRowClick={(row) => {
-                const node = nodes.find(n => n.id === row.sourceEntity);
-                if (node) setSelectedNodeId(node.id);
-                setViewMode('graph');
-              }}
+            <Background color="var(--border-active)" gap={20} className="opacity-0" />
+            <Controls className="!bg-panel !border-subtle !shadow-none [&_button]:!border-subtle [&_path]:!fill-muted" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }} />
+            <MiniMap
+              className="!bg-glass !border-subtle !backdrop-blur-md"
+              style={{ backgroundColor: 'var(--bg-glass)', borderColor: 'var(--border-subtle)' }}
+              nodeColor={() => 'var(--primary)'}
+              maskColor="var(--accent-glow)"
             />
-          )}
-
-          {viewMode === 'jpa' && (
-            <JPAView
-              entities={nodes.map(n => n.data)}
-              onRowClick={(row) => {
-                const node = nodes.find(n => n.id === row.sourceEntity);
-                if (node) setSelectedNodeId(node.id);
-                setViewMode('graph');
-              }}
-            />
-          )}
-
-          {viewMode === 'ddl' && (
-            <DDLView
-              entities={nodes.map(n => n.data)}
-              nativeDdl={nativeDdl}
-            />
-          )}
+          </ReactFlow>
         </div>
       </main>
 
@@ -1977,7 +1893,7 @@ function AnalyzerApp() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
-                  {activeTab === 'mapping' && (
+                  {activeTab === 'mapping' ? (
                     <div className="p-0">
                       <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-[#7000FF]">DDD Retro-Analysis</div>
                       <div className={`mx-5 p-4 bg-white/3 border border-[#222] rounded-md border-l-2 mb-4`} style={{ borderLeftColor: getAggregateColor(selectedNode?.data.aggregateName) }}>
@@ -2151,9 +2067,7 @@ function AnalyzerApp() {
                         ));
                       })()}
                     </div>
-                  )}
-
-                  {activeTab === 'anomalies' && (
+                  ) : (
                     <div className="p-0 space-y-0 text-[12px]">
                       {selectedNode && (
                         <>
