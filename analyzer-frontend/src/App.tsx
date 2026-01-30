@@ -27,7 +27,7 @@ import { getAggregateForNode, heuristics } from './utils/aggregateHeuristics';
 // @ts-ignore
 import DDDRules from './analysis/shared-rules';
 import { runAnalysis, type AnalysisReport as DDDReport } from './analysis/engine';
-import { AlertCircle, Loader2, Eye, GitGraph, Upload, CheckCircle2, ShieldAlert, Database, ChevronLeft, ChevronRight, FileDown, ChevronDown, Sun, Moon, Scissors, Layers, Cpu, Info, Languages } from 'lucide-react';
+import { Box, AlertCircle, Loader2, Eye, GitGraph, Upload, CheckCircle2, ShieldAlert, Database, ChevronLeft, ChevronRight, FileDown, ChevronDown, Sun, Moon, Scissors, Layers, Cpu, Info, Languages } from 'lucide-react';
 import { translations, type Language } from './translations';
 
 interface AttributeMetadata {
@@ -368,6 +368,9 @@ function AnalyzerApp() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [inspectorJpaTab, setInspectorJpaTab] = useState<'general' | 'cache'>('general');
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [isSystemOpen, setIsSystemOpen] = useState(true);
+  const [isEntityOpen, setIsEntityOpen] = useState(false);
+  const [isTuningOpen, setIsTuningOpen] = useState(false);
   const [expandedAlgo, setExpandedAlgo] = useState<'weak' | 'stability' | null>(null);
   const [stats, setStats] = useState({ nodes: 0, anomalies: 0, violations: 0, eager: 0, errorCount: 0, warningCount: 0, infoCount: 0 });
   const [showAttributes, setShowAttributes] = useState(false);
@@ -806,7 +809,11 @@ function AnalyzerApp() {
   }, [stats]);
 
   const onConnect = useCallback((params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
-  const onNodeClick = (_: unknown, node: Node) => { setSelectedNodeId(node.id); setSelectedEdgeId(null); };
+  const onNodeClick = (_: unknown, node: Node) => {
+    setSelectedNodeId(node.id);
+    setSelectedEdgeId(null);
+    setIsEntityOpen(true);
+  };
   const onEdgeClick = useCallback((_: unknown, edge: Edge) => { setSelectedEdgeId(edge.id); setSelectedNodeId(null); }, []);
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
@@ -881,90 +888,216 @@ function AnalyzerApp() {
             </div>
           </div>
 
-          {/* DDD Architecture Explorer Section */}
-          <div className="px-3 space-y-4 pb-4 border-t border-subtle pt-4">
-            <h3 className="px-2 mb-2 text-[10px] uppercase font-black tracking-widest text-muted flex items-center gap-2">
-              <Cpu size={11} className="text-score-high" /> {t('domainArchitecture')}
-            </h3>
 
-            <div className="mx-2 mb-4">
-              <label className="text-[8px] uppercase tracking-widest text-muted font-black block mb-1.5 opacity-70">{t('aggregateExplorer')}</label>
-              <div className="relative group">
-                <select
-                  value={focusedAggregate || ''}
-                  onChange={(e) => centerOnAggregate(e.target.value || null)}
-                  className="w-full bg-input border border-subtle rounded-[2px] px-2.5 py-1.5 text-[10px] appearance-none focus:outline-none focus:border-primary transition-all cursor-pointer font-bold pr-8"
-                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-subtle)', color: 'var(--text-main)' }}
-                >
-                  <option value="">{t('allAggregates')}</option>
-                  {dddReport?.aggregates.map((agg: any) => (
-                    <option key={agg.root} value={agg.root}>{agg.root}</option>
-                  ))}
-                </select>
-                <ChevronDown size={10} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted opacity-50" />
-              </div>
+          <div>
+            {/* 1. SYSTEM SECTION */}
+            <div className="border-b border-subtle">
+              <button
+                onClick={() => setIsSystemOpen(!isSystemOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 bg-black/5 hover:bg-black/10 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Database size={11} className="text-muted" />
+                  <span className="text-[10px] uppercase font-black tracking-widest text-muted">{t('tabSystem')}</span>
+                </div>
+                <ChevronDown size={10} className={`text-muted transition-transform duration-200 ${isSystemOpen ? '' : '-rotate-90'}`} />
+              </button>
+
+              {isSystemOpen && (
+                <div className="px-3 py-3 space-y-4 bg-panel/50">
+                  {/* Stats Grid */}
+                  <div className="p-2 bg-input border border-subtle rounded-[2px] grid grid-cols-3 text-center">
+                    <div><div className="text-[10px] font-bold text-score-low">{stats.errorCount}</div><div className="text-[8px] text-muted">ERR</div></div>
+                    <div className="border-x border-subtle"><div className="text-[10px] font-bold text-score-med">{stats.warningCount}</div><div className="text-[8px] text-muted">WARN</div></div>
+                    <div><div className="text-[10px] font-bold text-primary">{stats.infoCount}</div><div className="text-[8px] text-muted">INFO</div></div>
+                  </div>
+
+                  {/* Algorithm Tuning Section */}
+                  <div className="border-t border-subtle/50 pt-3 mt-3">
+                    <button
+                      onClick={() => setIsTuningOpen(!isTuningOpen)}
+                      className="w-full flex items-center justify-between mb-3 text-[9px] uppercase font-black tracking-widest text-primary hover:text-main transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Layers size={10} /> {t('algorithmTuning')}
+                      </div>
+                      <ChevronDown size={10} className={`transition-transform duration-200 ${isTuningOpen ? '' : '-rotate-90'}`} />
+                    </button>
+
+                    {isTuningOpen && (
+                      <div className="space-y-5 px-1 animate-in slide-in-from-top-2 duration-200">
+                        {/* VO Threshold */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center" title={t('voConfidenceTooltip')}>
+                            <span className="text-[9px] font-bold text-main">{t('voConfidenceThreshold')}</span>
+                            <span className="text-[9px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{analysisConfig.voConfidenceThreshold.toFixed(2)}</span>
+                          </div>
+                          <input
+                            type="range" min="0" max="1" step="0.05"
+                            value={analysisConfig.voConfidenceThreshold}
+                            onChange={(e) => setAnalysisConfig(prev => ({ ...prev, voConfidenceThreshold: parseFloat(e.target.value) }))}
+                            className="w-full accent-primary h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Weak Link Threshold */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center" title={t('weakLinkTooltip')}>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] font-bold text-main">{t('weakLinkSensitivity')}</span>
+                              <button
+                                onClick={() => setExpandedAlgo(expandedAlgo === 'weak' ? null : 'weak')}
+                                className="text-primary hover:text-white transition-colors"
+                              >
+                                <Info size={9} />
+                              </button>
+                            </div>
+                            <span className="text-[9px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{analysisConfig.weakLinkThreshold.toFixed(2)}</span>
+                          </div>
+
+                          {expandedAlgo === 'weak' && (
+                            <div className="p-2 mb-2 bg-blue-500/10 border-l-2 border-blue-500 rounded-r text-[9px] text-muted leading-relaxed">
+                              <h4 className="font-bold text-blue-400 mb-1 uppercase tracking-wider">Heuristic: Point Cuts</h4>
+                              {t('weakLinkAlgoDetail')}
+                            </div>
+                          )}
+
+                          <input
+                            type="range" min="0" max="1" step="0.05"
+                            value={analysisConfig.weakLinkThreshold}
+                            onChange={(e) => setAnalysisConfig(prev => ({ ...prev, weakLinkThreshold: parseFloat(e.target.value) }))}
+                            className="w-full accent-primary h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Stability Thresholds */}
+                        <div className="space-y-3 pt-2 border-t border-subtle/30">
+                          <div className="flex items-center justify-between">
+                            <div className="text-[8px] font-black text-muted uppercase tracking-tight flex items-center gap-2">
+                              {t('stabilityBoundaries')}
+                              <button
+                                onClick={() => setExpandedAlgo(expandedAlgo === 'stability' ? null : 'stability')}
+                                className="text-muted hover:text-white transition-colors"
+                              >
+                                <Info size={9} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {expandedAlgo === 'stability' && (
+                            <div className="p-2 mb-2 bg-purple-500/10 border-l-2 border-purple-500 rounded-r text-[9px] text-muted leading-relaxed">
+                              <h4 className="font-bold text-purple-400 mb-1 uppercase tracking-wider">Metric: Robert C. Martin's Instability</h4>
+                              {t('stabilityAlgoDetail')}
+                            </div>
+                          )}
+
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-center" title={t('stableZoneTooltip')}>
+                              <span className="text-[9px] font-bold text-main italic">{t('stableZone')}</span>
+                              <span className="text-[9px] font-mono text-score-high bg-score-high/10 px-1.5 py-0.5 rounded">{analysisConfig.instabilityStableThreshold.toFixed(2)}</span>
+                            </div>
+                            <input
+                              type="range" min="0" max="0.5" step="0.05"
+                              value={analysisConfig.instabilityStableThreshold}
+                              onChange={(e) => setAnalysisConfig(prev => ({ ...prev, instabilityStableThreshold: parseFloat(e.target.value) }))}
+                              className="w-full accent-score-high h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-center" title={t('unstableZoneTooltip')}>
+                              <span className="text-[9px] font-bold text-main italic">{t('unstableZone')}</span>
+                              <span className="text-[9px] font-mono text-score-low bg-score-low/10 px-1.5 py-0.5 rounded">{analysisConfig.instabilityUnstableThreshold.toFixed(2)}</span>
+                            </div>
+                            <input
+                              type="range" min="0.5" max="1" step="0.05"
+                              value={analysisConfig.instabilityUnstableThreshold}
+                              onChange={(e) => setAnalysisConfig(prev => ({ ...prev, instabilityUnstableThreshold: parseFloat(e.target.value) }))}
+                              className="w-full accent-score-low h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Aggregate Explorer */}
+                  <div>
+                    <h3 className="mb-2 text-[9px] uppercase font-black tracking-widest text-muted flex items-center gap-2 opacity-70">
+                      <Cpu size={10} /> {t('domainArchitecture')}
+                    </h3>
+                    <div className="relative group">
+                      <select
+                        value={focusedAggregate || ''}
+                        onChange={(e) => centerOnAggregate(e.target.value || null)}
+                        className="w-full bg-input border border-subtle rounded-[2px] px-2.5 py-1.5 text-[10px] appearance-none focus:outline-none focus:border-primary transition-all cursor-pointer font-bold pr-8"
+                        style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-subtle)', color: 'var(--text-main)' }}
+                      >
+                        <option value="">{t('allAggregates')}</option>
+                        {dddReport?.aggregates.map((agg: any) => (
+                          <option key={agg.root} value={agg.root}>{agg.root}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={10} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted opacity-50" />
+                    </div>
+                  </div>
+
+                  {/* Quick Health Summary */}
+                  {!dddReport && <div className="py-2 text-center text-[9px] text-muted italic border border-dashed border-subtle rounded">{t('systemHealthy')}</div>}
+                  {dddReport && dddReport.cuts.length > 0 && (
+                    <div className="p-2 bg-accent-rose/5 border border-accent-rose/20 rounded-[2px] flex items-center justify-between">
+                      <span className="text-[9px] font-black text-accent-rose uppercase tracking-widest flex items-center gap-1.5">
+                        <Scissors size={9} /> {t('anomalies')}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded-[1px] bg-accent-rose text-white text-[9px] font-bold">{dddReport.cuts.length}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="mx-2 space-y-4">
-              {selectedNode ? (
-                /* Entity Specific DDD Profile */
-                <div className="space-y-3">
-                  <div className="bg-input border border-subtle rounded-[2px] p-3 space-y-2.5">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-tight">Role</span>
-                      <span className={`px-1.5 py-0.5 rounded-[1px] text-[9px] font-black ${selectedNode.data.dddRole === 'AGGREGATE_ROOT' ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-subtle text-muted'}`}>
-                        {selectedNode.data.dddRole || 'ENTITY'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center border-t border-subtle/30 pt-2">
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-tight">Cluster</span>
-                      <span className="text-[10px] font-mono text-main truncate max-w-[120px]">{selectedNode.data.aggregateName || 'General'}</span>
-                    </div>
-                  </div>
-                  <div className="p-2.5 bg-primary/5 border border-primary/10 rounded-[2px]">
-                    <div className="text-[8px] font-black text-primary uppercase mb-1.5 opacity-70">Architecture Guidance</div>
-                    <p className="text-[10px] text-secondary leading-tight">
-                      {selectedNode.data.dddRole === 'AGGREGATE_ROOT'
-                        ? `Transactional consistency boundary. Reference by ID only from other aggregates.`
-                        : `Child entity. Must be accessed through its Aggregate Root to maintain invariants.`}
-                    </p>
-                  </div>
+            {/* 2. ENTITY SECTION */}
+            <div className="border-b border-subtle">
+              <button
+                onClick={() => setIsEntityOpen(!isEntityOpen)}
+                className={`w-full flex items-center justify-between px-3 py-2 transition-colors ${selectedNode ? 'bg-primary/5 hover:bg-primary/10' : 'bg-transparent hover:bg-black/5'}`}
+              >
+                <div className="flex items-center gap-2">
+                  <Box size={11} className={selectedNode ? 'text-primary' : 'text-muted'} />
+                  <span className={`text-[10px] uppercase font-black tracking-widest ${selectedNode ? 'text-primary' : 'text-muted opacity-70'}`}>{t('tabEntity')}</span>
                 </div>
-              ) : (
-                /* Global Analysis Dashboard */
-                <div className="space-y-5">
-                  {dddReport && (
-                    <>
-                      {dddReport.aggregates.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-[8px] font-black text-muted uppercase tracking-widest flex justify-between">
-                            <span>Aggregate Roots</span>
-                            <span className="text-primary">{dddReport.aggregates.length}</span>
-                          </div>
-                          <div className="space-y-1">
-                            {dddReport.aggregates.slice(0, 3).map((agg: any, idx: number) => (
-                              <div key={idx} className="p-1.5 bg-input border border-subtle rounded-[2px] flex justify-between items-center group">
-                                <span className="text-[10px] font-bold text-main truncate">{agg.root}</span>
-                                <Layers size={10} className="text-muted opacity-30 group-hover:opacity-100" />
-                              </div>
-                            ))}
-                            {dddReport.aggregates.length > 3 && <div className="text-center text-[8px] text-muted italic">+{dddReport.aggregates.length - 3} more...</div>}
-                          </div>
-                        </div>
-                      )}
+                <ChevronDown size={10} className={`transition-transform duration-200 ${isEntityOpen ? '' : '-rotate-90'} ${selectedNode ? 'text-primary' : 'text-muted'}`} />
+              </button>
 
-                      {dddReport.cuts.length > 0 && (
-                        <div className="p-2.5 bg-accent-rose/5 border border-accent-rose/20 rounded-[2px]">
-                          <div className="text-[8px] font-black text-accent-rose uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                            <Scissors size={10} /> {t('anomalies')} ({dddReport.cuts.length})
-                          </div>
-                          <div className="text-[9px] text-secondary leading-tight mb-2">Architectural coupling detected across boundaries.</div>
-                          <div className="text-[8px] text-accent-rose font-bold uppercase tracking-widest bg-accent-rose/10 px-1.5 py-0.5 inline-block rounded-[1px]">Review Boundaries</div>
+              {isEntityOpen && (
+                <div className="px-3 py-3">
+                  {selectedNode ? (
+                    <div className="space-y-3">
+                      <div className="bg-input border border-subtle rounded-[2px] p-3 space-y-2.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[9px] text-muted font-bold uppercase tracking-tight">Role</span>
+                          <span className={`px-1.5 py-0.5 rounded-[1px] text-[9px] font-black ${selectedNode.data.dddRole === 'AGGREGATE_ROOT' ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-subtle text-muted'}`}>
+                            {selectedNode.data.dddRole || 'ENTITY'}
+                          </span>
                         </div>
-                      )}
-                    </>
+                        <div className="flex justify-between items-center border-t border-subtle/30 pt-2">
+                          <span className="text-[9px] text-muted font-bold uppercase tracking-tight">Cluster</span>
+                          <span className="text-[10px] font-mono text-main truncate max-w-[120px]">{selectedNode.data.aggregateName || 'General'}</span>
+                        </div>
+                      </div>
+                      <div className="p-2.5 bg-primary/5 border border-primary/10 rounded-[2px]">
+                        <div className="text-[8px] font-black text-primary uppercase mb-1.5 opacity-70">Architecture Guidance</div>
+                        <p className="text-[10px] text-secondary leading-tight">
+                          {selectedNode.data.dddRole === 'AGGREGATE_ROOT'
+                            ? `Transactional consistency boundary. Reference by ID only from other aggregates.`
+                            : `Child entity. Must be accessed through its Aggregate Root to maintain invariants.`}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-[9px] text-muted italic opacity-50 border border-dashed border-subtle rounded-[2px]">
+                      Select an entity to view details
+                    </div>
                   )}
-                  {!dddReport && <div className="py-4 text-center text-[10px] text-muted italic border border-dashed border-subtle rounded">{t('systemHealthy')}</div>}
                 </div>
               )}
             </div>
@@ -1198,7 +1331,7 @@ function AnalyzerApp() {
                   <h2 className="text-[12px] font-black text-main uppercase tracking-widest">{t('globalInsights')}</h2>
                 </div>
                 <div className="flex border-b border-subtle bg-black/5">
-                  {(['overview', 'tuning'] as const).map((tab) => (
+                  {(['overview'] as const).map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab as any)}
@@ -1254,124 +1387,7 @@ function AnalyzerApp() {
                     </div>
                   )}
 
-                  {activeTab === 'tuning' && (
-                    <div className="p-4 space-y-6">
-                      <div>
-                        <div className="text-[9px] font-black text-primary uppercase tracking-widest mb-4">{t('algorithmTuning')}</div>
-                        <div className="space-y-6">
-                          {/* VO Threshold */}
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center" title={t('voConfidenceTooltip')}>
-                              <span className="text-[10px] font-bold text-main">{t('voConfidenceThreshold')}</span>
-                              <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{analysisConfig.voConfidenceThreshold.toFixed(2)}</span>
-                            </div>
-                            <input
-                              type="range" min="0" max="1" step="0.05"
-                              value={analysisConfig.voConfidenceThreshold}
-                              onChange={(e) => setAnalysisConfig(prev => ({ ...prev, voConfidenceThreshold: parseFloat(e.target.value) }))}
-                              className="w-full accent-primary h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
-                              title={t('voConfidenceTooltip')}
-                            />
-                            <p className="text-[8px] text-muted italic">{t('voSensitivityDesc')}</p>
-                          </div>
-
-                          {/* Weak Link Threshold */}
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center" title={t('weakLinkTooltip')}>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-main">{t('weakLinkSensitivity')}</span>
-                                <button
-                                  onClick={() => setExpandedAlgo(expandedAlgo === 'weak' ? null : 'weak')}
-                                  className="text-primary hover:text-white transition-colors"
-                                  title="Explain Algorithm"
-                                >
-                                  <Info size={10} />
-                                </button>
-                              </div>
-                              <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{analysisConfig.weakLinkThreshold.toFixed(2)}</span>
-                            </div>
-
-                            {expandedAlgo === 'weak' && (
-                              <div className="p-2 mb-2 bg-blue-500/10 border-l-2 border-blue-500 rounded-r text-[9px] text-muted leading-relaxed">
-                                <h4 className="font-bold text-blue-400 mb-1 uppercase tracking-wider">Heuristic: Point Cuts</h4>
-                                {t('weakLinkAlgoDetail')}
-                              </div>
-                            )}
-
-                            <input
-                              type="range" min="0" max="1" step="0.05"
-                              value={analysisConfig.weakLinkThreshold}
-                              onChange={(e) => setAnalysisConfig(prev => ({ ...prev, weakLinkThreshold: parseFloat(e.target.value) }))}
-                              className="w-full accent-primary h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
-                              title={t('weakLinkTooltip')}
-                            />
-                            <p className="text-[8px] text-muted italic">{t('weakLinkDesc')}</p>
-                          </div>
-
-                          {/* Stability Thresholds */}
-                          <div className="space-y-4 pt-2 border-t border-subtle/50">
-                            <div className="flex items-center justify-between">
-                              <div className="text-[8px] font-black text-muted uppercase tracking-tight flex items-center gap-2">
-                                {t('stabilityBoundaries')}
-                                <button
-                                  onClick={() => setExpandedAlgo(expandedAlgo === 'stability' ? null : 'stability')}
-                                  className="text-muted hover:text-white transition-colors"
-                                  title="Explain Metric"
-                                >
-                                  <Info size={9} />
-                                </button>
-                              </div>
-                            </div>
-
-                            {expandedAlgo === 'stability' && (
-                              <div className="p-2 mb-2 bg-purple-500/10 border-l-2 border-purple-500 rounded-r text-[9px] text-muted leading-relaxed">
-                                <h4 className="font-bold text-purple-400 mb-1 uppercase tracking-wider">Metric: Robert C. Martin's Instability</h4>
-                                {t('stabilityAlgoDetail')}
-                              </div>
-                            )}
-
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center" title={t('stableZoneTooltip')}>
-                                <span className="text-[10px] font-bold text-main italic">{t('stableZone')}</span>
-                                <span className="text-[10px] font-mono text-score-high bg-score-high/10 px-1.5 py-0.5 rounded">{analysisConfig.instabilityStableThreshold.toFixed(2)}</span>
-                              </div>
-                              <input
-                                type="range" min="0" max="0.5" step="0.05"
-                                value={analysisConfig.instabilityStableThreshold}
-                                onChange={(e) => setAnalysisConfig(prev => ({ ...prev, instabilityStableThreshold: parseFloat(e.target.value) }))}
-                                className="w-full accent-score-high h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
-                                title={t('stableZoneTooltip')}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center" title={t('unstableZoneTooltip')}>
-                                <span className="text-[10px] font-bold text-main italic">{t('unstableZone')}</span>
-                                <span className="text-[10px] font-mono text-score-low bg-score-low/10 px-1.5 py-0.5 rounded">{analysisConfig.instabilityUnstableThreshold.toFixed(2)}</span>
-                              </div>
-                              <input
-                                type="range" min="0.5" max="1" step="0.05"
-                                value={analysisConfig.instabilityUnstableThreshold}
-                                onChange={(e) => setAnalysisConfig(prev => ({ ...prev, instabilityUnstableThreshold: parseFloat(e.target.value) }))}
-                                className="w-full accent-score-low h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
-                                title={t('unstableZoneTooltip')}
-                              />
-                            </div>
-                          </div>
-                          <div className="p-3 bg-panel border border-subtle border-dashed rounded-[2px] mt-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Info size={12} className="text-primary" />
-                              <span className="text-[9px] font-bold text-secondary uppercase tracking-tighter">{t('archImpact')}</span>
-                            </div>
-                            <p className="text-[9px] text-muted leading-tight mb-2 italic text-[8px]">{t('adjustZonesDesc')}</p>
-                            <ul className="text-[8px] text-muted space-y-1 list-disc pl-3">
-                              <li><b>{t('lowerStableNote')}</b></li>
-                              <li><b>{t('higherUnstableNote')}</b></li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {activeTab === 'tuning' && null}
                 </div>
               </div>
             )}
@@ -1382,7 +1398,7 @@ function AnalyzerApp() {
           </div>
         )}
       </aside>
-    </div>
+    </div >
   );
 }
 
