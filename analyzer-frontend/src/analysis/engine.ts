@@ -74,7 +74,7 @@ export const runAnalysis = (
             ? analyzeSemantics(node.data.name, config.semanticProfile)
             : { concept: 'Disabled', stereotype: Stereotype.UNKNOWN, confidence: 0, ontologySource: undefined };
 
-        let reasons: string[] = [];
+        const reasons: string[] = [];
         let confidence = 0;
 
         // Topology Check: Leaf node (Ce=0) or only points to other VOs (simplified here to Ce=0 for now)

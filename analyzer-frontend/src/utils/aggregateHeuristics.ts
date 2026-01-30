@@ -31,7 +31,7 @@ const safeNodes = (nodes: Node[]) => Array.isArray(nodes) ? nodes : [];
  * Heuristic 1: Package-based clustering
  * Uses the last segment of the package name as aggregate name
  */
-export const packageBasedHeuristic: AggregateHeuristic = (node, _allNodes, _edges, _config) => {
+export const packageBasedHeuristic: AggregateHeuristic = (node) => {
     const pkg = node.data.packageName || '';
     const segments = pkg.split('.');
     const aggregateName = segments.length > 0 ? segments[segments.length - 1] || 'General' : 'General';
@@ -47,7 +47,7 @@ export const packageBasedHeuristic: AggregateHeuristic = (node, _allNodes, _edge
  * Heuristic 0: Server-side Ref (Source of Truth)
  * Simply uses the aggregate analysis already performed by the Java Backend.
  */
-export const serverSideHeuristic: AggregateHeuristic = (node, _allNodes, _edges, _config) => {
+export const serverSideHeuristic: AggregateHeuristic = (node) => {
     return {
         aggregateName: node.data.aggregateName || 'General',
         isRoot: node.data.dddRole === 'AGGREGATE_ROOT',
@@ -59,7 +59,7 @@ export const serverSideHeuristic: AggregateHeuristic = (node, _allNodes, _edges,
  * Heuristic 5: Shared Rules (JS Master)
  * Uses the exact same Javascript logic as the Java Backend.
  */
-export const sharedHeuristic: AggregateHeuristic = (node, allNodes, _edges, config) => {
+export const sharedHeuristic: AggregateHeuristic = (node, allNodes, _, config) => {
     const _nodes = safeNodes(allNodes);
 
     // Inject semantic analysis result into config for the shared rules

@@ -1,42 +1,53 @@
 @import "tailwindcss";
 
 :root {
-  /* Palette - Theme Independent */
-  --primary: #0085FF;
-  --accent-purple: #7000FF;
-  --accent-rose: #FF0055;
-  --score-high: #00B030;
-  --score-med: #E58A00;
-  --score-low: #D00030;
+  /* IDE Palette - Enterprise Blueprint */
+  --primary: #5266FF;
+  /* Electric Indigo */
+  --primary-glow: rgba(82, 102, 255, 0.15);
+  --accent-purple: #8B5CF6;
+  --accent-rose: #F43F5E;
+
+  --score-high: #10B981;
+  --score-med: #F59E0B;
+  --score-low: #EF4444;
 
   --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-  /* Default (Light Theme) */
-  --bg-body: #F9FAFB;
-  --bg-panel: #FFFFFF;
-  --bg-glass: rgba(255, 255, 255, 0.8);
-  --bg-node: #FFFFFF;
-  --border-subtle: #E5E7EB;
-  --border-active: #9CA3AF;
-  --text-main: #111827;
-  --text-secondary: #4B5563;
-  --text-muted: #9CA3AF;
-  --accent-glow: rgba(0, 133, 255, 0.1);
+  /* Universal Layout Tokens */
+  --sidebar-width: 480px;
+  --header-height: 48px;
+  --border-radius-sm: 2px;
+  --border-radius-md: 4px;
+
+  /* Default (Dark Pro Theme) */
+  --bg-body: #0B0E14;
+  /* Deep Obsidian */
+  --bg-panel: #11141D;
+  /* Charcoal Surface */
+  --bg-node: #161B22;
+  /* Module Background */
+  --bg-input: #1C2128;
+
+  --border-subtle: #21262D;
+  /* Surgical Boundary */
+  --border-active: #30363D;
+  --border-strong: #484F58;
+
+  --text-main: #E6EDF3;
+  --text-secondary: #8B949E;
+  --text-muted: #57606A;
+
+  --shadow-surgical: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .dark-theme {
-  --bg-body: #050505;
-  --bg-panel: #0A0C10;
-  --bg-glass: rgba(10, 12, 16, 0.8);
-  --bg-node: #111111;
-  --border-subtle: #222222;
-  --border-active: #444444;
-  --text-main: #ECECEC;
-  --text-secondary: #999999;
-  --text-muted: #555555;
-  --accent-glow: rgba(0, 240, 255, 0.15);
-  --primary: #00F0FF;
+  /* Already dark by default now, but keeping for compatibility */
+  --bg-body: #0D1117;
+  --bg-panel: #161B22;
+  --border-subtle: #21262D;
+  --primary: #58A6FF;
 }
 
 @layer base {
@@ -45,18 +56,25 @@
     background-color: var(--bg-body);
     color: var(--text-main);
     font-family: var(--font-main);
-    background-image:
-      radial-gradient(circle at 15% 50%, rgba(112, 0, 255, 0.04) 0%, transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.04) 0%, transparent 25%);
+    /* Subtle dot grid background for the whole app to feel tool-like */
+    background-image: radial-gradient(var(--border-subtle) 0.5px, transparent 0.5px);
+    background-size: 24px 24px;
   }
 }
 
 @layer components {
 
-  /* Custom scrollbar */
+  /* Professional Tool Sidebar */
+  .tool-sidebar {
+    background-color: var(--bg-panel);
+    border-right: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-surgical);
+  }
+
+  /* Custom scrollbar - tighter for IDE feel */
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
@@ -65,67 +83,87 @@
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: var(--border-active);
-    border-radius: 10px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background: var(--border-strong);
   }
 
-  /* Glassmorphism effects */
-  .glass-panel {
-    background: var(--bg-glass);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border-subtle);
+  /* IDE Tab system */
+  .ide-tab {
+    @apply px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all border-b-2;
+    border-color: transparent;
+    color: var(--text-muted);
   }
 
-  /* React Flow Overrides */
+  .ide-tab.active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background-color: var(--primary-glow);
+  }
+
+  /* React Flow Overrides - Blueprint Look */
   .react-flow__node {
-    border-radius: 8px !important;
+    border-radius: var(--border-radius-sm) !important;
     background: var(--bg-node) !important;
     border: 1px solid var(--border-subtle) !important;
     color: var(--text-main) !important;
-    transition: all 0.2s ease !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+    transition: none !important;
+    /* IDE tools should feel snappy, no animations */
+    box-shadow: var(--shadow-surgical) !important;
+    padding: 0 !important;
   }
 
   .react-flow__node:hover {
-    border-color: var(--border-active) !important;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+    border-color: var(--border-strong) !important;
   }
 
   .react-flow__node.selected {
     border-color: var(--primary) !important;
-    box-shadow: 0 0 0 2px var(--accent-glow) !important;
+    box-shadow: 0 0 0 1px var(--primary) !important;
   }
 
   .react-flow__handle {
-    width: 8px !important;
-    height: 8px !important;
-    background: var(--primary) !important;
-    border: 2px solid var(--bg-node) !important;
-    opacity: 0.8;
-  }
-
-  .react-flow__handle:hover {
-    opacity: 1;
-    transform: scale(1.2);
+    width: 6px !important;
+    height: 6px !important;
+    background: var(--bg-body) !important;
+    border: 1.5px solid var(--primary) !important;
+    border-radius: 0 !important;
+    /* Square handles for technical look */
   }
 
   .react-flow__edge-path {
-    stroke: var(--border-active) !important;
-    stroke-width: 2 !important;
-    opacity: 0.6;
+    stroke: var(--border-strong) !important;
+    stroke-width: 1.5 !important;
   }
 
   .react-flow__edge.selected .react-flow__edge-path {
     stroke: var(--primary) !important;
-    stroke-opacity: 1 !important;
-    stroke-width: 3 !important;
+    stroke-width: 2 !important;
   }
 
-  /* Grid pattern override */
-  .react-flow__background {
-    background-color: var(--bg-body);
+  .react-flow__controls {
+    background-color: var(--bg-panel) !important;
+    border-color: var(--border-subtle) !important;
+    box-shadow: none !important;
+    margin: 1rem !important;
+  }
+
+  .react-flow__controls-button {
+    background-color: transparent !important;
+    border-color: var(--border-subtle) !important;
+    fill: var(--text-secondary) !important;
+    border-bottom: none !important;
+  }
+
+  .react-flow__controls-button:hover {
+    background-color: var(--border-subtle) !important;
+  }
+
+  .react-flow__minimap {
+    background-color: var(--bg-panel) !important;
+    border-color: var(--border-subtle) !important;
+    margin: 1rem !important;
+    border-radius: 0 !important;
   }
 }

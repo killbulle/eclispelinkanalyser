@@ -40,6 +40,8 @@ export interface SemanticMatch {
  * Basic semantic analyzer using keywords
  */
 export const analyzeSemantics = (name: string, _profile: SemanticProfileType = "GENERIC"): SemanticMatch => {
+    // profile is reserved for future ontology-specific rules
+    const _p = _profile; // Use it to satisfy lint if it's configured strictly
     const n = name.toLowerCase();
 
     // Value Object Keywords
@@ -62,6 +64,7 @@ export const analyzeSemantics = (name: string, _profile: SemanticProfileType = "
 };
 
 export const getAggregateForNode = (_name: string) => {
+    const _n = _name;
     // Simple mock logic for node matching
     return "Default";
 };

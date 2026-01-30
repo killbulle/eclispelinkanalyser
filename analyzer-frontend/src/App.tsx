@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -9,6 +9,7 @@ import ReactFlow, {
   Position,
   useReactFlow,
   ReactFlowProvider,
+  BackgroundVariant
 } from 'reactflow';
 import type { Node, Edge, Connection } from 'reactflow';
 
@@ -22,12 +23,10 @@ import { JPAView } from './components/JPAView';
 import { TableView } from './components/TableView';
 import { DDLView } from './components/DDLView';
 import { jsPDF } from 'jspdf';
-import { getAggregateForNode, heuristics, type HeuristicType } from './utils/aggregateHeuristics';
+import { getAggregateForNode, heuristics } from './utils/aggregateHeuristics';
 // @ts-ignore
 import DDDRules from './analysis/shared-rules';
-import { runAnalysis, type AnalysisConfig, type AnalysisReport as AdvancedAnalysisReport } from './analysis/engine';
-import { SemanticProfile } from './analysis/semantic';
-import { AlertCircle, CircleAlert, Loader2, Eye, EyeOff, GitGraph, Upload, ShieldAlert, Database, ChevronLeft, ChevronRight, FileDown, Brain, ChevronDown, Sun, Moon } from 'lucide-react';
+import { AlertCircle, Loader2, Eye, GitGraph, Upload, CheckCircle2, ShieldAlert, Database, ChevronLeft, ChevronRight, FileDown, ChevronDown, Sun, Moon } from 'lucide-react';
 
 interface AttributeMetadata {
   name: string;
@@ -143,26 +142,6 @@ const nodeTypes = {
   groupNode: GroupNode,
 };
 
-const AGGREGATE_COLORS = [
-  '#00F0FF', // Cyan
-  '#7000FF', // Purple
-  '#FF00C8', // Magenta
-  '#00FF8E', // Spring Green
-  '#FF8A00', // Orange
-  '#FFE600', // Yellow
-  '#0085FF', // Blue
-  '#FF0040', // Red-Pink
-];
-
-const getAggregateColor = (name?: string) => {
-  if (!name || name === 'Default') return '#444';
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % AGGREGATE_COLORS.length;
-  return AGGREGATE_COLORS[index];
-};
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
   const dagreGraph = new dagre.graphlib.Graph();
@@ -390,37 +369,14 @@ function AnalyzerApp() {
   const [stats, setStats] = useState({ nodes: 0, anomalies: 0, violations: 0, eager: 0, errorCount: 0, warningCount: 0, infoCount: 0 });
   const [showAttributes, setShowAttributes] = useState(false);
   const [selectedReport, setSelectedReport] = useState('demo-scenarios.json');
-  const [activeTab, setActiveTab] = useState<'mapping' | 'anomalies' | 'violations'>('mapping');
+  const [activeTab, setActiveTab] = useState<'mapping' | 'performance' | 'ddl'>('mapping');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(480);
   const [isResizing, setIsResizing] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [violationFilters, setViolationFilters] = useState<Record<string, boolean>>({ ERROR: true, WARNING: true, INFO: true });
-  const [groupingMode, setGroupingMode] = useState(false);
-  const [activeLayer, setActiveLayer] = useState<'aggregates' | 'cycles' | 'cuts' | 'perf' | 'vo' | 'anomalies' | 'none'>('aggregates');
   const [viewMode, setViewMode] = useState<'graph' | 'table' | 'ddl' | 'jpa'>('graph');
-  const [selectedHeuristic, setSelectedHeuristic] = useState<HeuristicType>('shared');
   const [nativeDdl, setNativeDdl] = useState<string | null>(null);
-
-  // Advanced Analysis State
-  const [analysisConfig, setAnalysisConfig] = useState<AnalysisConfig>({
-    semanticProfile: SemanticProfile.GENERIC,
-    enableSemantic: true,
-    enableTopology: true
-  });
-  const [advancedReport, setAdvancedReport] = useState<AdvancedAnalysisReport | null>(null);
-
-  const triggerAdvancedAnalysis = useCallback(() => {
-    if (nodes.length === 0) return;
-    const report = runAnalysis(nodes, edges, analysisConfig);
-    setAdvancedReport(report);
-  }, [nodes, edges, analysisConfig]);
-
-  // Auto-run analysis when config or data changes (debounced)
-  useEffect(() => {
-    const timer = setTimeout(triggerAdvancedAnalysis, 1000);
-    return () => clearTimeout(timer);
-  }, [triggerAdvancedAnalysis]);
 
   // Sidebar resize handlers
   const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -476,42 +432,29 @@ function AnalyzerApp() {
   }, [isResizing, handleResize, handleResizeEnd]);
 
   const reports = [
-    // === Level 1: Basic JPA (Real) ===
     { id: 'catalog/1-1-basic-entity-real.json', name: '1.1 📗 Basic Entity (Real)' },
-
-    // === Level 2: Relationships (Real) ===
     { id: 'catalog/2-1-onetoone-real.json', name: '2.1 📘 OneToOne' },
     { id: 'catalog/2-2-onetomany-real.json', name: '2.2 📘 OneToMany' },
     { id: 'catalog/2-3-manytomany-real.json', name: '2.3 📘 ManyToMany' },
     { id: 'catalog/2-4-element-collection-real.json', name: '2.4 📘 ElementCollection' },
     { id: 'catalog/2-5-embedded-real.json', name: '2.5 📘 Embedded' },
     { id: 'catalog/2-5-mapped-superclass.json', name: '2.6 📘 Mapped Superclass' },
-
-    // === Level 3: Converters (Real) ===
     { id: 'catalog/3-1-basic-converter-real.json', name: '3.1 📙 Basic Converter' },
     { id: 'catalog/3-2-object-type-real.json', name: '3.2 📙 ObjectType Converter' },
     { id: 'catalog/3-3-serialized-object-real.json', name: '3.3 📙 Serialized Object' },
-
-    // === Level 4: EclipseLink Specific (Real) ===
     { id: 'catalog/4-1-batch-fetch-real.json', name: '4.1 🔷 Batch Fetch' },
     { id: 'catalog/4-2-cache-config-real.json', name: '4.2 🔷 Cache Config' },
     { id: 'catalog/4-3-indirection-real.json', name: '4.3 🔷 Indirection (ValueHolder)' },
     { id: 'catalog/4-4-private-owned-real.json', name: '4.4 🔷 Private Owned' },
-
-    // === Level 5: EclipseLink Advanced (Real) ===
     { id: 'catalog/5-1-transformation-real.json', name: '5.1 🔶 Transformation Mapping' },
     { id: 'catalog/5-2-variable-onetoone-real.json', name: '5.2 🔶 Variable OneToOne' },
     { id: 'catalog/5-3-direct-collection-real.json', name: '5.3 🔶 DirectCollection & Map' },
     { id: 'catalog/5-4-aggregate-collection-real.json', name: '5.4 🔶 AggregateCollection' },
     { id: 'catalog/5-5-array-real.json', name: '5.5 🔶 Array' },
-
-    // === Level 6: Anti-Patterns (Real) ===
     { id: 'catalog/6-1-circular-refs-real.json', name: '6.1 ⚠️ Circular References' },
     { id: 'catalog/6-2-cartesian-product-real.json', name: '6.2 ⚠️ Cartesian Product' },
     { id: 'catalog/6-3-missing-optimizations-real.json', name: '6.3 ⚠️ Missing Optimizations (Eager)' },
     { id: 'catalog/6-4-deep-cycle-verified.json', name: '6.4 ⚠️ Deep Cycle Verified' },
-
-    // === Level 7: Real-World ===
     { id: 'complex-scenario-report.json', name: '7.1 🏢 Complex Domain (E-commerce)' },
     { id: 'ofbiz-report.json', name: '7.2 🚀 OFBiz Stress Test (113 entities)' },
     { id: 'agent-report.json', name: 'DDDSample Analysis' },
@@ -519,12 +462,9 @@ function AnalyzerApp() {
   const { fitView, getNodes, getEdges } = useReactFlow();
 
   const processReportData = useCallback((data: AnalysisReport) => {
-    // Helper to count violations for a relationship
     const countViolationsForRelationship = (sourceEntity: string, rel: RelationshipMetadata): number => {
       let count = 0;
-      // Check for violations in the global list that mention this relationship
       const violations = data.violations || [];
-
       for (const violation of violations) {
         const msg = violation.message.toLowerCase();
         if (msg.includes(sourceEntity.toLowerCase()) && msg.includes(rel.attributeName.toLowerCase())) {
@@ -534,66 +474,33 @@ function AnalyzerApp() {
       return count;
     };
 
-    // Helper to determine SVG markers for UML visualization
     const getEdgeMarkers = (rel: RelationshipMetadata) => {
       const markers: { markerStart?: string; markerEnd?: string } = {};
-
-      // Skip markers for non-relationship mapping types (Embedded, ElementCollection, etc.)
       const isRelationship = rel.mappingType && ['OneToOne', 'OneToMany', 'ManyToOne', 'ManyToMany'].some(t => rel.mappingType.includes(t));
-      if (!isRelationship) {
-        return markers; // No markers for embedded, element collection, etc.
-      }
+      if (!isRelationship) return markers;
 
-      // Strong ownership (composition): filled diamond at source for cascade relationships
-      // Composition is indicated by cascade ALL or cascade PERSIST+REMOVE (with optional orphanRemoval)
       const isComposition = rel.cascadeAll || (rel.cascadePersist && rel.cascadeRemove);
-      if (isComposition) {
-        markers.markerStart = 'url(#marker-composition)';
-      }
+      if (isComposition) markers.markerStart = 'url(#marker-composition)';
+      else if (rel.owningSide) markers.markerStart = 'url(#marker-ownership-bar)';
 
-      // JPA ownership: small bar at source for owning side (if not already a composition marker)
-      if (rel.owningSide && !markers.markerStart) {
-        markers.markerStart = 'url(#marker-ownership-bar)';
-      }
-
-      // Cardinality markers based on mapping type
       if (rel.mappingType) {
         const isOneToOne = rel.mappingType.includes('OneToOne');
         const isOneToMany = rel.mappingType.includes('OneToMany');
         const isManyToOne = rel.mappingType.includes('ManyToOne');
         const isManyToMany = rel.mappingType.includes('ManyToMany');
 
-        if (isOneToOne) {
-          // OneToOne: standard arrow at target
-          markers.markerEnd = 'url(#marker-standard-arrow)';
-        } else if (isOneToMany) {
-          // OneToMany: crow's foot at target (many side)
+        if (isOneToOne) markers.markerEnd = 'url(#marker-standard-arrow)';
+        else if (isOneToMany) {
           markers.markerEnd = 'url(#marker-crows-foot)';
-          // Arrow at source (one side) only if no markerStart already
-          if (!markers.markerStart) {
-            markers.markerStart = 'url(#marker-standard-arrow)';
-          }
+          if (!markers.markerStart) markers.markerStart = 'url(#marker-standard-arrow)';
         } else if (isManyToOne) {
-          // ManyToOne: crow's foot at source (many side), arrow at target (one side)
           markers.markerEnd = 'url(#marker-standard-arrow)';
-          // Crow's foot at source only if no markerStart already
-          if (!markers.markerStart) {
-            markers.markerStart = 'url(#marker-crows-foot-start)';
-          }
+          if (!markers.markerStart) markers.markerStart = 'url(#marker-crows-foot-start)';
         } else if (isManyToMany) {
-          // ManyToMany: crow's foot at both ends
           markers.markerEnd = 'url(#marker-crows-foot)';
-          if (!markers.markerStart) {
-            markers.markerStart = 'url(#marker-crows-foot-start)';
-          }
-        } else {
-          // Fallback
-          markers.markerEnd = 'url(#marker-standard-arrow)';
-        }
-      } else {
-        // Default arrow if no mapping type
-        markers.markerEnd = 'url(#marker-standard-arrow)';
-      }
+          if (!markers.markerStart) markers.markerStart = 'url(#marker-crows-foot-start)';
+        } else markers.markerEnd = 'url(#marker-standard-arrow)';
+      } else markers.markerEnd = 'url(#marker-standard-arrow)';
 
       return markers;
     };
@@ -603,38 +510,26 @@ function AnalyzerApp() {
     const violations = data.violations || [];
     setNativeDdl(data.nativeDdl || null);
 
-    // Pre-compute analysis data for badges
-    // Detect nodes with EAGER relationships (performance risk)
     const nodesWithEagerRisk = new Set<string>();
     nodesList.forEach((n: EntityNodeData) => {
-      if (n.relationships?.some((r: RelationshipMetadata) => !r.lazy)) {
-        nodesWithEagerRisk.add(n.name);
-      }
+      if (n.relationships?.some((r: RelationshipMetadata) => !r.lazy)) nodesWithEagerRisk.add(n.name);
     });
 
-    // Detect potential Value Objects (Embeddables or entities with no ID/relationships)
     const potentialVOs = new Set<string>();
     nodesList.forEach((n: EntityNodeData) => {
       const rels = Array.isArray(n.relationships) ? n.relationships : [];
-      if (n.type === 'EMBEDDABLE' ||
-        (rels.length === 0 && Object.keys(n.attributes || {}).length <= 3)) {
-        potentialVOs.add(n.name);
-      }
+      if (n.type === 'EMBEDDABLE' || (rels.length === 0 && Object.keys(n.attributes || {}).length <= 3)) potentialVOs.add(n.name);
     });
 
-    // Detect embedded entities (have incoming Embedded relationship)
     const embeddedEntities = new Set<string>();
     nodesList.forEach((n: EntityNodeData) => {
       if (n.relationships) {
         n.relationships.forEach((rel: RelationshipMetadata) => {
-          if (rel.mappingType && (rel.mappingType === "Embedded" || rel.mappingType.includes("Embedded"))) {
-            embeddedEntities.add(rel.targetEntity);
-          }
+          if (rel.mappingType && (rel.mappingType === "Embedded" || rel.mappingType.includes("Embedded"))) embeddedEntities.add(rel.targetEntity);
         });
       }
     });
 
-    // Detect cut-points using improved heuristic (shared rules)
     const cutPoints = new Set<string>();
     const allNodesForRules = nodesList.map(n => ({ data: n }));
     nodesList.forEach((n: EntityNodeData) => {
@@ -642,12 +537,9 @@ function AnalyzerApp() {
         const target = nodesList.find((t: EntityNodeData) => t.name === r.targetEntity);
         if (!target) return false;
         return DDDRules.isCutPointEdge(r, { data: n }, { data: target }, allNodesForRules);
-      })) {
-        cutPoints.add(n.name);
-      }
+      })) cutPoints.add(n.name);
     });
 
-    // Detect deep cycles (length > 2)
     const nodesInCycle = new Set<string>();
     const adj = new Map<string, string[]>();
     nodesList.forEach((n: EntityNodeData) => {
@@ -663,83 +555,46 @@ function AnalyzerApp() {
       visitedForCycle.add(nodeName);
       recursionStack.add(nodeName);
       currentPath.push(nodeName);
-
       const neighbors = adj.get(nodeName) || [];
       for (const neighbor of neighbors) {
-        if (!visitedForCycle.has(neighbor)) {
-          findCycles(neighbor);
-        } else if (recursionStack.has(neighbor)) {
+        if (!visitedForCycle.has(neighbor)) findCycles(neighbor);
+        else if (recursionStack.has(neighbor)) {
           const startIndex = currentPath.indexOf(neighbor);
           if (startIndex !== -1) {
             const cycle = currentPath.slice(startIndex);
-            // Harden check: Ensure > 2 unique nodes to strictly exclude bidirectional (A<->B)
-            // A<->B gives path [A, B] (length 2).
-            if (new Set(cycle).size > 2) {
-              cycle.forEach(name => nodesInCycle.add(name));
-            }
+            if (new Set(cycle).size > 2) cycle.forEach(name => nodesInCycle.add(name));
           }
         }
       }
-
       currentPath.pop();
       recursionStack.delete(nodeName);
     };
 
-    nodesList.forEach(n => {
-      if (!visitedForCycle.has(n.name)) findCycles(n.name);
-    });
+    nodesList.forEach(n => { if (!visitedForCycle.has(n.name)) findCycles(n.name); });
 
-    // Detect Aggregate Roots - the node with most outgoing owned relationships in each aggregate
     const aggregateRoots = new Set<string>();
     const aggregateGroups = new Map<string, EntityNodeData[]>();
-
-    // Group nodes by aggregate
     nodesList.forEach((n: EntityNodeData) => {
       const agg = n.aggregateName || n.packageName?.split('.').pop() || 'General';
       if (!aggregateGroups.has(agg)) aggregateGroups.set(agg, []);
       aggregateGroups.get(agg)!.push(n);
     });
 
-    // For each aggregate, find the root (most outgoing owned relationships or explicit dddRole)
-    aggregateGroups.forEach((members, aggName) => {
-      // Check if any member already has dddRole set (excluding embedded entities)
+    aggregateGroups.forEach((members) => {
       const existingRoot = members.find(m => m.dddRole === 'AGGREGATE_ROOT' && !embeddedEntities.has(m.name));
-      if (existingRoot) {
-        aggregateRoots.add(existingRoot.name);
-        return;
-      }
-
-      // If only one member, it's the root
-      if (members.length === 1) {
-        aggregateRoots.add(members[0].name);
-        return;
-      }
-
-      // Otherwise, calculate: node with most outgoing owned relationships
-      let bestRoot: EntityNodeData = members[0]; // Default to first member
+      if (existingRoot) { aggregateRoots.add(existingRoot.name); return; }
+      if (members.length === 1) { aggregateRoots.add(members[0].name); return; }
+      let bestRoot: EntityNodeData = members[0];
       let bestScore = -Infinity;
-
       members.forEach(m => {
-        // Skip potential VOs and embedded entities - they shouldn't be roots
         if (m.type === 'EMBEDDABLE' || embeddedEntities.has(m.name)) return;
-
         const ownedRelCount = (m.relationships || []).filter((r: RelationshipMetadata) => r.owningSide).length;
         const totalRelCount = m.relationships?.length || 0;
-        const incomingCount = nodesList.filter((other: EntityNodeData) =>
-          other.relationships?.some((r: RelationshipMetadata) => r.targetEntity === m.name)
-        ).length || 0;
-
-        // Score: owned relations + total relations - incoming (roots have more outgoing, less incoming)
+        const incomingCount = nodesList.filter((other: EntityNodeData) => other.relationships?.some((r: RelationshipMetadata) => r.targetEntity === m.name)).length || 0;
         const score = ownedRelCount * 3 + totalRelCount - incomingCount * 2;
-
-        if (score > bestScore) {
-          bestScore = score;
-          bestRoot = m;
-        }
+        if (score > bestScore) { bestScore = score; bestRoot = m; }
       });
-
       aggregateRoots.add(bestRoot.name);
-      console.log(`[DDD] Aggregate "${aggName}" root: ${bestRoot.name} (score: ${bestScore})`);
     });
 
     const transformedNodes: Node[] = nodesList.map((n: EntityNodeData) => ({
@@ -751,19 +606,16 @@ function AnalyzerApp() {
         showAttributes: false,
         hasAnomalies: anomalies.some((a: Anomaly) => a.entityName === n.name),
         violations: violations.filter((v: Violation) => v.message.includes(n.name)),
-        // Analysis badges
         isCutPoint: cutPoints.has(n.name),
         isInCycle: nodesInCycle.has(n.name),
         hasEagerRisk: nodesWithEagerRisk.has(n.name),
         isPotentialVO: potentialVOs.has(n.name),
-        // Auto-detect aggregate root if not already set
         dddRole: (!embeddedEntities.has(n.name) && n.dddRole) || (aggregateRoots.has(n.name) ? 'AGGREGATE_ROOT' : undefined),
         focusOpacity: 1
       },
     }));
 
     const transformedEdges: Edge[] = [];
-
     nodesList.forEach((n: EntityNodeData) => {
       const rels = Array.isArray(n.relationships) ? n.relationships : [];
       rels.forEach((rel: RelationshipMetadata, rIdx: number) => {
@@ -773,62 +625,24 @@ function AnalyzerApp() {
           const hasViolations = violationCount > 0;
           const isEager = !rel.lazy;
           const hasProblems = isEager || hasViolations;
-
-          // Detect cut-point edges using improved heuristic
           const isCutPointEdge = DDDRules.isCutPointEdge(rel, { data: n }, { data: targetNode }, allNodesForRules);
 
-          // Determine base style based on mapping type
-          let baseStrokeColor = '#10b981'; // green for normal relations
-          let baseDashArray = rel.owningSide ? '' : '5 5';
+          let strokeColor = '#10b981';
+          let strokeDasharray = rel.owningSide ? '' : '5 5';
 
-          // Phase 2 Mapping Styles
-          if (rel.nestedTable) {
-            baseStrokeColor = '#f97316'; // orange for Oracle NestedTable
-            baseDashArray = '3 3';
-          } else if (rel.arrayMapping) {
-            baseStrokeColor = '#64748b'; // slate for SQL Array
-            baseDashArray = '1 1';
-          } else if (rel.variableOneToOne) {
-            baseStrokeColor = '#eab308'; // yellow for VariableOneToOne
-            baseDashArray = '10 2';
-          } else if (rel.mappingType === 'Embedded') {
-            baseStrokeColor = '#a78bfa'; // purple for embedded
-            baseDashArray = '8 4';
-          } else if (rel.mappingType === 'ElementCollection' || rel.directCollection || rel.aggregateCollection || rel.directMapMapping) {
-            baseStrokeColor = '#ec4899'; // pink for element collection
-            baseDashArray = '4 2';
-          }
+          if (rel.nestedTable) { strokeColor = '#f97316'; strokeDasharray = '3 3'; }
+          else if (rel.arrayMapping) { strokeColor = '#64748b'; strokeDasharray = '1 1'; }
+          else if (rel.variableOneToOne) { strokeColor = '#eab308'; strokeDasharray = '10 2'; }
+          else if (rel.mappingType === 'Embedded') { strokeColor = '#a78bfa'; strokeDasharray = '8 4'; }
+          else if (rel.mappingType === 'ElementCollection' || rel.directCollection || rel.aggregateCollection || rel.directMapMapping) { strokeColor = '#ec4899'; strokeDasharray = '4 2'; }
 
-          // Special styling for cut-point edges (cyan dashed - more visible)
-          let strokeColor = baseStrokeColor;
-          let strokeDasharray = baseDashArray;
+          if (isCutPointEdge) { strokeColor = '#00F0FF'; strokeDasharray = '10 5'; }
+          else if (hasProblems) { strokeColor = '#f59e0b'; strokeDasharray = ''; }
 
-          if (isCutPointEdge) {
-            strokeColor = '#00F0FF'; // Cyan for cut-points
-            strokeDasharray = '10 5'; // Longer dashes, more visible
-          } else if (hasProblems) {
-            strokeColor = '#f59e0b'; // Orange for problems
-            strokeDasharray = '';
-          }
-
-          let fetchLabel = "";
-          // Check for "OldLazy" (ValueHolder)
-          if (rel.indirectionType === 'VALUEHOLDER') {
-            fetchLabel = " (OldLazy)";
-          } else if (isEager) {
-            fetchLabel = " (E)";
-          }
-
-          let mappingLabel = rel.mappingType;
-          if (rel.nestedTable) mappingLabel = "NestedTable";
-          else if (rel.arrayMapping) mappingLabel = "Array";
-          else if (rel.variableOneToOne) mappingLabel = "VarOneToOne";
-          else if (rel.directCollection) mappingLabel = "DirectCol";
-          else if (rel.aggregateCollection) mappingLabel = "AggCol";
-          else if (rel.directMapMapping) mappingLabel = "DirectMap";
+          const fetchLabel = rel.indirectionType === 'VALUEHOLDER' ? " (OldLazy)" : (isEager ? " (E)" : "");
+          const mappingLabel = rel.nestedTable ? "NestedTable" : rel.arrayMapping ? "Array" : rel.variableOneToOne ? "VarOneToOne" : rel.directCollection ? "DirectCol" : rel.aggregateCollection ? "AggCol" : rel.directMapMapping ? "DirectMap" : rel.mappingType;
 
           const edgeMarkers = getEdgeMarkers(rel);
-
           transformedEdges.push({
             id: `e-${n.name}-${rel.targetEntity}-${rIdx}`,
             source: n.name,
@@ -836,598 +650,143 @@ function AnalyzerApp() {
             label: (isCutPointEdge ? '✂️ ' : '') + mappingLabel + (rel.owningSide ? ' 🔑' : '') + fetchLabel + (violationCount > 0 ? ` (${violationCount})` : ''),
             animated: hasProblems && !isCutPointEdge,
             type: 'smoothstep',
-            style: {
-              stroke: strokeColor,
-              strokeWidth: isCutPointEdge ? 3.5 : (rel.owningSide ? 2.5 : 1.5),
-              strokeDasharray: strokeDasharray
-            },
-            labelStyle: {
-              fill: strokeColor,
-              fontWeight: '600',
-              fontSize: '10px',
-              background: 'white',
-              padding: '1px 4px',
-              borderRadius: '3px',
-              border: `1px solid ${strokeColor}`
-            },
+            style: { stroke: strokeColor, strokeWidth: isCutPointEdge ? 3.5 : (rel.owningSide ? 2.5 : 1.5), strokeDasharray: strokeDasharray },
+            labelStyle: { fill: strokeColor, fontWeight: '600', fontSize: '10px', background: 'white', padding: '1px 4px', borderRadius: '3px', border: `1px solid ${strokeColor}` },
             ...edgeMarkers,
-            data: {
-              ...rel,
-              violationCount,
-              hasProblems,
-              isEager,
-              isCutPointEdge
-            }
+            data: { ...rel, violationCount, hasProblems, isEager, isCutPointEdge }
           });
         }
       });
-    });
-
-    // Add inheritance edges (Child -> Parent)
-    nodesList.forEach((n: EntityNodeData) => {
-      if (n.parentEntity) {
-        // Verify parent exists in the graph to avoid dangling edges
-        const parentExists = nodesList.some((p: EntityNodeData) => p.name === n.parentEntity);
-
-        if (parentExists) {
-          transformedEdges.push({
-            id: `inheritance-${n.name}-${n.parentEntity}`,
-            source: n.name,
-            target: n.parentEntity,
-            type: 'smoothstep',
-            label: 'Extends',
-            style: { stroke: '#8b5cf6', strokeDasharray: '5 5' },
-            markerEnd: 'url(#marker-inheritance)',
-            data: {
-              mappingType: 'Inheritance',
-              lazy: true,
-              owningSide: true // Conceptual ownership
-            }
-          });
-        }
-      }
-    });
-
-    // Add inheritance edges
-    (data.nodes || []).forEach((n: EntityNodeData) => {
-      if (n.parentEntity) {
-        const parentNode = data.nodes.find((tn: EntityNodeData) => tn.name === n.parentEntity);
-        if (parentNode) {
-          const inheritanceLabel = n.inheritanceStrategy ? `inherits (${n.inheritanceStrategy})` : 'inherits';
-          transformedEdges.push({
-            id: `inherit-${n.name}-${n.parentEntity}`,
-            source: n.name,
-            target: n.parentEntity,
-            label: inheritanceLabel,
-            type: 'smoothstep',
-            style: {
-              stroke: '#8b5cf6', // purple for inheritance
-              strokeWidth: 2,
-              strokeDasharray: '5 3',
-            },
-            labelStyle: {
-              fill: '#8b5cf6',
-              fontWeight: '600',
-              fontSize: '10px',
-              background: 'white',
-              padding: '1px 4px',
-              borderRadius: '3px',
-              border: '1px solid #8b5cf6'
-            },
-            markerEnd: 'url(#marker-inheritance)',
-            data: {
-              isInheritance: true,
-              inheritanceStrategy: n.inheritanceStrategy
-            }
-          });
-        }
+      if (n.parentEntity && nodesList.some(p => p.name === n.parentEntity)) {
+        transformedEdges.push({
+          id: `inherit-${n.name}-${n.parentEntity}`,
+          source: n.name,
+          target: n.parentEntity,
+          label: n.inheritanceStrategy ? `inherits (${n.inheritanceStrategy})` : 'inherits',
+          type: 'smoothstep',
+          style: { stroke: '#8b5cf6', strokeWidth: 2, strokeDasharray: '5 3' },
+          markerEnd: 'url(#marker-inheritance)',
+          data: { isInheritance: true, inheritanceStrategy: n.inheritanceStrategy }
+        });
       }
     });
 
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(transformedNodes, transformedEdges);
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
-    const eagerCount = (data.nodes || []).reduce((count, n) => count + (n.relationships ? n.relationships.filter((r: RelationshipMetadata) => !r.lazy).length : 0), 0);
-    const errorCount = (data.violations || []).filter((v: Violation) => v.severity === 'ERROR').length;
-    const warningCount = (data.violations || []).filter((v: Violation) => v.severity === 'WARNING').length;
-    const infoCount = (data.violations || []).filter((v: Violation) => v.severity === 'INFO').length;
     setStats({
-      nodes: (data.nodes || []).length,
-      anomalies: (data.anomalies || []).length,
-      violations: (data.violations || []).length,
-      eager: eagerCount,
-      errorCount,
-      warningCount,
-      infoCount
+      nodes: nodesList.length,
+      anomalies: anomalies.length,
+      violations: violations.length,
+      eager: nodesList.reduce((acc, n) => acc + (n.relationships?.filter(r => !r.lazy).length || 0), 0),
+      errorCount: violations.filter(v => v.severity === 'ERROR').length,
+      warningCount: violations.filter(v => v.severity === 'WARNING').length,
+      infoCount: violations.filter(v => v.severity === 'INFO').length
     });
     setTimeout(() => fitView(), 100);
   }, [setNodes, setEdges, fitView]);
 
   useEffect(() => {
-    // Skip fetch for uploaded files or empty selection
-    if (selectedReport === 'uploaded' || !selectedReport) {
-      setLoading(false);
-      return;
-    }
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (selectedReport === 'uploaded' || !selectedReport) { setLoading(false); return; }
     setError(null);
     fetch(`/${selectedReport}`)
       .then(res => res.json())
-      .then(data => {
-        processReportData(data);
-        setLoading(false);
-        setTimeout(() => fitView(), 100);
-      })
-      .catch(err => {
-        console.error("Failed to load analysis report:", err);
-        setError(`Failed to load report: ${err.message}`);
-        setLoading(false);
-      });
+      .then(data => { processReportData(data); setLoading(false); setTimeout(() => fitView(), 100); })
+      .catch(err => { console.error(err); setError(`Failed to load report: ${err.message}`); setLoading(false); });
   }, [selectedReport, processReportData, fitView]);
 
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const resultStr = e.target?.result as string;
-        console.log("File content length:", resultStr.length);
-        const data = JSON.parse(resultStr);
-        console.log("Parsed JSON data:", data);
-
-        if (!data || !data.nodes) {
-          throw new Error("Invalid report format: 'nodes' array missing");
-        }
-
+        const data = JSON.parse(e.target?.result as string);
+        if (!data || !data.nodes) throw new Error("Invalid report format");
         setError(null);
         setLoading(true);
-
-        // Use requestAnimationFrame to let UI render loading state
         requestAnimationFrame(() => {
-          try {
-            processReportData(data);
-            setLoading(false);
-            setSelectedReport('uploaded');
-          } catch (processErr) {
-            console.error("Processing error:", processErr);
-            setError(`Error processing report: ${(processErr as Error).message}`);
-            setLoading(false);
-          }
+          try { processReportData(data); setLoading(false); setSelectedReport('uploaded'); }
+          catch (processErr) { console.error(processErr); setError(`Error processing report: ${(processErr as Error).message}`); setLoading(false); }
         });
-      } catch (err) {
-        console.error("Load error:", err);
-        setError(`Invalid JSON file: ${(err as Error).message}`);
-        setLoading(false);
-      }
+      } catch (err) { console.error(err); setError(`Invalid JSON file: ${(err as Error).message}`); setLoading(false); }
     };
     reader.readAsText(file);
   }, [processReportData]);
 
   const onLayout = useCallback(async (direction: 'TB' | 'LR' | 'ORGANIC' | 'GRID' | 'RADIAL' | 'CLUSTER') => {
-    // USE getNodes() to avoid stale closure issues during async toggles
-    const currentNodes = getNodes();
+    const currentNodes = getNodes().filter(n => n.type === 'entityNode');
     const currentEdges = getEdges();
-
-    // First, filter out any existing groupNodes and remove parentId from entity nodes
-    const entityNodesOnly = currentNodes
-      .filter(n => n.type === 'entityNode')
-      .map(n => ({ ...n, parentId: undefined }));
-
-    const nodeIds = new Set(entityNodesOnly.map(n => n.id));
-    const validEdgesOnly = currentEdges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+    const nodeIds = new Set(currentNodes.map(n => n.id));
+    const validEdges = currentEdges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
 
     let result;
-    switch (direction) {
-      case 'ORGANIC':
-        result = await getElkLayout(entityNodesOnly, validEdgesOnly);
-        break;
-      case 'RADIAL': result = getRadialLayout(entityNodesOnly, validEdgesOnly); break;
-      case 'GRID': result = getGridLayout(entityNodesOnly, validEdgesOnly); break;
-      case 'CLUSTER':
-        result = getClusterLayout(entityNodesOnly, validEdgesOnly, (n) => getAggregateForNode(n, entityNodesOnly, validEdgesOnly, heuristics[selectedHeuristic], analysisConfig));
-        break;
-      default: result = getLayoutedElements(entityNodesOnly, validEdgesOnly, direction);
-    }
+    if (direction === 'ORGANIC') result = await getElkLayout(currentNodes, validEdges);
+    else if (direction === 'RADIAL') result = getRadialLayout(currentNodes, validEdges);
+    else if (direction === 'GRID') result = getGridLayout(currentNodes, validEdges);
+    else if (direction === 'CLUSTER') result = getClusterLayout(currentNodes, validEdges, (n) => getAggregateForNode(n, currentNodes, validEdges, heuristics['shared']));
+    else result = getLayoutedElements(currentNodes, validEdges, direction);
 
-    const layoutedNodes = result.nodes;
-
-    if (groupingMode) {
-      // We still want clustered layout positions, but we STOP creating groupNodes and STOP assigning parentId
-      // as requested by the user ("supprime le coté encadrement").
-
-      setNodes(layoutedNodes.map(n => ({ ...n, parentId: undefined })));
-    } else {
-      // When grouping mode is OFF, return only entity nodes without parentId
-      setNodes(layoutedNodes.map(n => ({ ...n, parentId: undefined })));
-    }
-
+    setNodes(result.nodes);
     setTimeout(() => fitView({ padding: 0.2 }), 100);
-  }, [getNodes, getEdges, setNodes, fitView, groupingMode, selectedHeuristic, analysisConfig]);
+  }, [getNodes, getEdges, setNodes, fitView]);
 
   const toggleAttributes = useCallback(() => {
     setShowAttributes(prev => {
       const next = !prev;
-      setNodes(nds => nds.map(node => ({
-        ...node,
-        data: { ...node.data, showAttributes: next }
-      })));
+      setNodes(nds => nds.map(node => ({ ...node, data: { ...node.data, showAttributes: next } })));
       return next;
     });
-    // Re-layout after state update has propagated
     setTimeout(() => onLayout('TB'), 100);
   }, [setNodes, onLayout]);
 
-  const onConnect = useCallback(
-    (params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
+  const generatePDFReport = useCallback(() => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
+    const addText = (text: string, x: number, fontSize = 10, color: [number, number, number] = [0, 0, 0]) => {
+      doc.setFontSize(fontSize); doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(text, pageWidth - 40);
+      doc.text(lines, x, y); y += lines.length * 7;
+    };
+    const addSection = (title: string) => {
+      if (y > 250) { doc.addPage(); y = 20; }
+      y += 5; doc.setFillColor(112, 0, 255); doc.rect(20, y - 5, pageWidth - 40, 8, 'F');
+      doc.setTextColor(255, 255, 255); doc.setFontSize(12); doc.text(title, 23, y);
+      doc.setTextColor(0, 0, 0); y += 12;
+    };
 
+    doc.setFontSize(24); doc.setTextColor(112, 0, 255); doc.text('EclipseLink Analyzer Report', 20, y);
+    y += 15; addText(`Generated: ${new Date().toLocaleString()}`, 20, 10, [100, 100, 100]);
+    addSection('📊 Global Statistics');
+    addText(`• Total Entities: ${stats.nodes}`, 20);
+    addText(`• Total Violations: ${stats.violations} (Errors: ${stats.errorCount}, Warnings: ${stats.warningCount})`, 20);
+    doc.save(`eclipselink-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }, [stats]);
+
+  const onConnect = useCallback((params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
   const onNodeClick = (_: unknown, node: Node) => { setSelectedNodeId(node.id); setSelectedEdgeId(null); };
   const onEdgeClick = useCallback((_: unknown, edge: Edge) => { setSelectedEdgeId(edge.id); setSelectedNodeId(null); }, []);
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
   const selectedEdge = edges.find(e => e.id === selectedEdgeId);
 
-  // Generate PDF Report function
-  const generatePDFReport = useCallback(() => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let y = 20;
-    const lineHeight = 7;
-    const margin = 20;
-
-    // Helper function to add text with line wrapping
-    const addText = (text: string, x: number, fontSize: number = 10, color: [number, number, number] = [0, 0, 0]) => {
-      doc.setFontSize(fontSize);
-      doc.setTextColor(...color);
-      const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
-      doc.text(lines, x, y);
-      y += lines.length * lineHeight;
-    };
-
-    const addSection = (title: string) => {
-      if (y > 250) { doc.addPage(); y = 20; }
-      y += 5;
-      doc.setFillColor(112, 0, 255);
-      doc.rect(margin, y - 5, pageWidth - margin * 2, 8, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(12);
-      doc.text(title, margin + 3, y);
-      doc.setTextColor(0, 0, 0);
-      y += 12;
-    };
-
-    // Title
-    doc.setFontSize(24);
-    doc.setTextColor(112, 0, 255);
-    doc.text('EclipseLink Analyzer Report', margin, y);
-    y += 15;
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
-    y += 10;
-    doc.text(`Report: ${selectedReport}`, margin, y);
-    y += 15;
-
-    // Statistics Section
-    addSection('📊 Global Statistics');
-    addText(`• Total Entities: ${stats.nodes}`, margin);
-    addText(`• Total Violations: ${stats.violations}`, margin);
-    addText(`• Errors: ${stats.errorCount} | Warnings: ${stats.warningCount} | Info: ${stats.infoCount}`, margin);
-    addText(`• Eager Fetch Relations: ${stats.eager}`, margin);
-    addText(`• Anomalies Detected: ${stats.anomalies}`, margin);
-
-    // DDD Aggregates Section
-    addSection('🎯 DDD Aggregates Analysis');
-    const aggregates = new Map<string, { count: number; roots: string[] }>();
-    nodes.forEach(n => {
-      const agg = n.data.aggregateName || 'General';
-      if (!aggregates.has(agg)) aggregates.set(agg, { count: 0, roots: [] });
-      aggregates.get(agg)!.count++;
-      if (n.data.dddRole === 'AGGREGATE_ROOT') aggregates.get(agg)!.roots.push(n.data.name);
-    });
-    aggregates.forEach((data, name) => {
-      addText(`• ${name}: ${data.count} entities`, margin);
-      if (data.roots.length > 0) {
-        addText(`  → Aggregate Roots: ${data.roots.join(', ')}`, margin + 5, 9, [112, 0, 255]);
-      }
-    });
-
-    // Violations Section
-    addSection('⚠️ Violations & Issues');
-    const allViolations = nodes.flatMap(n => n.data.violations || []);
-    const errors = allViolations.filter(v => v.severity === 'ERROR');
-    const warnings = allViolations.filter(v => v.severity === 'WARNING');
-
-    if (errors.length > 0) {
-      addText(`ERRORS (${errors.length}):`, margin, 11, [255, 0, 64]);
-      errors.slice(0, 10).forEach(v => addText(`  • ${v.message}`, margin, 9));
-      if (errors.length > 10) addText(`  ... and ${errors.length - 10} more`, margin, 9);
-    }
-    if (warnings.length > 0) {
-      addText(`WARNINGS (${warnings.length}):`, margin, 11, [255, 138, 0]);
-      warnings.slice(0, 10).forEach(v => addText(`  • ${v.message}`, margin, 9));
-      if (warnings.length > 10) addText(`  ... and ${warnings.length - 10} more`, margin, 9);
-    }
-
-    // Performance Recommendations
-    addSection('🚀 TODO & Recommendations');
-    const eagerRelations = nodes.filter(n => n.data.relationships?.some((r: { lazy: boolean }) => !r.lazy));
-    const highConnectivity = nodes.filter(n => (n.data.relationships?.length || 0) > 3);
-
-    addText('Performance:', margin, 11, [0, 0, 0]);
-    if (eagerRelations.length > 0) {
-      addText(`  ⚡ ${eagerRelations.length} entities have EAGER fetch relations - consider switching to LAZY`, margin, 9, [255, 138, 0]);
-      eagerRelations.slice(0, 5).forEach(n => addText(`    → ${n.data.name}`, margin, 8, [100, 100, 100]));
-    }
-
-    addText('Architecture:', margin, 11, [0, 0, 0]);
-    if (highConnectivity.length > 0) {
-      addText(`  🔗 ${highConnectivity.length} entities have high connectivity (>3 relations) - potential coupling`, margin, 9, [112, 0, 255]);
-    }
-
-    const noAggregate = nodes.filter(n => !n.data.aggregateName || n.data.aggregateName === 'Default');
-    if (noAggregate.length > 0) {
-      addText(`  📦 ${noAggregate.length} entities without clear aggregate - consider DDD refactoring`, margin, 9, [0, 136, 255]);
-    }
-
-    // Save PDF
-    doc.save(`eclipselink-report-${new Date().toISOString().slice(0, 10)}.pdf`);
-  }, [nodes, stats, selectedReport]);
-
-  // When toggling expert options, ensure we are using the Shared or Combined engine to see results
-  const handleConfigChange = useCallback((key: keyof AnalysisConfig, value: boolean | string) => {
-    setAnalysisConfig(prev => ({ ...prev, [key]: value }));
-
-    // Auto-switch to shared heuristic if not already selected, so the user sees the effect immediately
-    if (selectedHeuristic === 'server' || selectedHeuristic === 'package') {
-      setSelectedHeuristic('shared');
-    }
-  }, [selectedHeuristic]);
-
-  // DDD Layers filtering logic - apply opacity and color based on active layer
-
-  // AUTO-LAYOUT TRIGGER
-  // When heuristics or config change, automatically re-run the layout
-  useEffect(() => {
-    if (nodes.length > 0) {
-      // Debounce slightly to avoid flicker on rapid toggles
-      const timer = setTimeout(() => {
-        onLayout('CLUSTER');
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [analysisConfig, selectedHeuristic]);
-  const layerColors = {
-    aggregates: '#7000FF', // Purple
-    cycles: '#FF0040',     // Red
-    cuts: '#00F0FF',       // Cyan
-    perf: '#FF8A00',       // Orange
-    vo: '#A855F7',         // Light Purple for VOs
-    anomalies: '#FF0040',  // Red for Anomalies
-  };
-
-  const filteredNodes = useMemo(() => {
-    if (activeLayer === 'aggregates') {
-      // Reset all nodes to full opacity
-      return nodes.map(node => ({
-        ...node,
-        data: { ...node.data, focusOpacity: 1 }
-      }));
-    }
-
-    return nodes.map(node => {
-      let isRelevant = false;
-
-      switch (activeLayer) {
-        case 'cycles':
-          isRelevant = node.data.isInCycle === true;
-          break;
-        case 'cuts':
-          isRelevant = node.data.isCutPoint === true;
-          break;
-        case 'perf':
-          isRelevant = node.data.hasEagerRisk === true;
-          break;
-        case 'vo':
-          isRelevant = node.data.isPotentialVO === true;
-          break;
-        case 'anomalies':
-          isRelevant = node.data.hasAnomalies === true;
-          break;
-      }
-
-      // Special handling for VO mode - hide others completely and expand properties
-      if (activeLayer === 'vo') {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            focusOpacity: isRelevant ? 1 : 0, // Hide completely
-            showAttributes: isRelevant ? true : node.data.showAttributes // Expand VOs
-          },
-          hidden: !isRelevant // Actually hide non-VO nodes
-        };
-      }
-
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          focusOpacity: isRelevant ? 1 : 0.15
-        }
-      };
-    });
-  }, [nodes, activeLayer]);
-
-  // AUTO-LAYOUT for specific layers (Bounded Contexts & Aggregates)
-  useEffect(() => {
-    if (activeLayer === 'cuts') {
-      setGroupingMode(true);
-      setSelectedHeuristic('package');
-      setTimeout(() => onLayout('CLUSTER'), 50);
-    } else if (activeLayer === 'aggregates') {
-      setGroupingMode(true);
-      setSelectedHeuristic('shared');
-      setTimeout(() => onLayout('ORGANIC'), 50); // Using Organic instead of Cluster grid
-    } else if (groupingMode) {
-      setGroupingMode(false);
-      setTimeout(() => onLayout('TB'), 50);
-    }
-  }, [activeLayer]);
-
-  // Cycle Detection Logic (Client-side)
-  // We identify "Complex Cycles" (Length >= 3) to distinguish from simple bidirectional (Length 2)
-  const complexCycleEdges = useMemo(() => {
-    if (activeLayer !== 'cycles' || !nodes.length) return new Set<string>();
-
-    const adj = new Map<string, string[]>();
-    edges.forEach(e => {
-      if (!adj.has(e.source)) adj.set(e.source, []);
-      if (e.source !== e.target) { // Ignore self-loops for this check
-        adj.get(e.source)?.push(e.target);
-      }
-    });
-
-    const visited = new Set<string>();
-    const recursionStack = new Set<string>();
-    const path: string[] = [];
-    const detectedCycles: string[][] = [];
-
-    function dfs(node: string) {
-      visited.add(node);
-      recursionStack.add(node);
-      path.push(node);
-
-      const neighbors = adj.get(node) || [];
-      for (const neighbor of neighbors) {
-        // Prevent trivial backtracking in undirected sense (though this is directed graph)
-        // For directed cycles, we simply check if neighbor is in recursion stack
-        if (!visited.has(neighbor)) {
-          dfs(neighbor);
-        } else if (recursionStack.has(neighbor)) {
-          // Cycle found!
-          const cycleStartIndex = path.indexOf(neighbor);
-          if (cycleStartIndex !== -1) {
-            const cycle = path.slice(cycleStartIndex);
-            // Harden check: Ensure > 2 unique nodes
-            if (new Set(cycle).size > 2) {
-              detectedCycles.push([...cycle]);
-            }
-          }
-        }
-      }
-
-      path.pop();
-      recursionStack.delete(node);
-    }
-
-    nodes.forEach(node => {
-      if (!visited.has(node.id)) {
-        dfs(node.id);
-      }
-    });
-
-    // Identify edges involved in these complex cycles
-    const relevantEdges = new Set<string>();
-    detectedCycles.forEach(cycle => {
-      for (let i = 0; i < cycle.length; i++) {
-        const source = cycle[i];
-        const target = cycle[(i + 1) % cycle.length];
-        const edge = edges.find(e => e.source === source && e.target === target);
-        if (edge) relevantEdges.add(edge.id);
-      }
-    });
-
-    return relevantEdges;
-  }, [nodes, edges, activeLayer]);
-
-  const filteredEdges = useMemo(() => {
-    if (activeLayer === 'aggregates') return edges;
-
-    const layerColor = layerColors[activeLayer as keyof typeof layerColors];
-
-    return edges.map(edge => {
-      let isRelevant = false;
-
-      switch (activeLayer) {
-        case 'cycles':
-          // Highlight complex cycles (length > 2)
-          if (complexCycleEdges.has(edge.id)) {
-            isRelevant = true;
-          }
-          break;
-        case 'cuts':
-          isRelevant = edge.data?.mappingType === 'ManyToOne' || edge.data?.mappingType === 'OneToMany';
-          break;
-        case 'perf':
-          isRelevant = edge.data?.isEager === true;
-          break;
-        case 'vo':
-          isRelevant = false;
-          break;
-        case 'anomalies':
-          isRelevant = edge.data?.hasProblems === true;
-          break;
-      }
-      // For cycle edges, completely override the style (don't spread old style)
-      const isCycleEdge = activeLayer === 'cycles' && isRelevant;
-
-      const newStyle = isCycleEdge ? {
-        stroke: '#FF0040',
-        strokeWidth: 3,
-        strokeDasharray: '0', // Solid line for cycle edges
-        opacity: 1,
-        transition: 'all 0.3s ease-in-out'
-      } : {
-        ...edge.style,
-        stroke: isRelevant ? layerColor : edge.style?.stroke,
-        opacity: isRelevant ? 1 : 0.05,
-        strokeWidth: isRelevant ? 2.5 : 1,
-        transition: 'all 0.3s ease-in-out'
-      };
-
-      return {
-        ...edge,
-        style: newStyle,
-        labelStyle: isCycleEdge ? {
-          fill: '#FF0040',
-          fontWeight: '700',
-          fontSize: '11px',
-          background: 'white',
-          padding: '2px 6px',
-          borderRadius: '4px',
-          border: '2px solid #FF0040'
-        } : edge.labelStyle,
-        animated: isCycleEdge
-      };
-    });
-  }, [edges, activeLayer, nodes, complexCycleEdges, layerColors]);
-
   if (loading) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background-light text-text-primary">
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-body text-main">
         <Loader2 className="animate-spin text-primary mb-4" size={48} />
-        <p className="text-text-secondary font-medium">Loading EclipseLink Analysis...</p>
+        <p className="font-medium">Loading EclipseLink Analysis...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background-light text-text-primary">
-        <AlertCircle className="text-status-error mb-4" size={48} />
-        <p className="text-text-primary font-medium mb-2">Failed to load model</p>
-        <p className="text-text-muted text-sm mb-4">{error}</p>
-        <button
-          onClick={() => setError(null)}
-          className="px-4 py-3 bg-background-card text-text-primary rounded border border-border hover:bg-background-header"
-        >
-          Dismiss
-        </button>
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-body text-main">
+        <AlertCircle className="text-score-low mb-4" size={48} />
+        <p className="font-medium mb-2">Failed to load model</p>
+        <p className="text-muted text-sm mb-4">{error}</p>
+        <button onClick={() => setError(null)} className="px-4 py-2 bg-panel border border-subtle rounded hover:bg-input transition-colors">Dismiss</button>
       </div>
     );
   }
@@ -1435,161 +794,61 @@ function AnalyzerApp() {
   return (
     <div className={`flex h-screen bg-body text-main font-sans selection:bg-primary/30 overflow-hidden ${theme === 'dark' ? 'dark-theme' : ''}`} style={{ backgroundColor: 'var(--bg-body)', color: 'var(--text-main)' }}>
       {/* SIDEBAR */}
-      {/* SIDEBAR */}
-      <aside className="w-[260px] bg-panel border-r border-[#E5E7EB] dark:border-[#222] flex flex-col z-20" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-        <div className="p-6 border-b border-[#E5E7EB] dark:border-[#222]" style={{ borderColor: 'var(--border-subtle)' }}>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7000FF] to-[#00F0FF] flex items-center justify-center shadow-lg shadow-primary/20">
-              <GitGraph size={20} className="text-white" />
-            </div>
-            <h1 className="font-bold text-[15px] tracking-tight">EclipseLink Analyzer</h1>
-          </div>
+      <aside className="w-[280px] bg-panel border-r border-subtle flex flex-col z-20 tool-sidebar" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
+        <div className="h-[48px] px-4 border-b border-subtle flex items-center gap-2" style={{ borderColor: 'var(--border-subtle)' }}>
+          <GitGraph size={16} className="text-primary" />
+          <h1 className="text-[11px] font-black uppercase tracking-[0.2em] text-main">Eclipselink Analyzer</h1>
+        </div>
 
-          <div className="space-y-4">
+        <div className="p-4 border-b border-subtle">
+          <div className="space-y-3">
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-muted font-bold block mb-2" style={{ color: 'var(--text-muted)' }}>Analysis Target</label>
+              <label className="text-[9px] uppercase tracking-widest text-muted font-black block mb-1.5">Project / Source</label>
               <div className="relative group">
                 <select
                   value={selectedReport}
                   onChange={(e) => setSelectedReport(e.target.value)}
-                  className="w-full bg-body border border-[#E5E7EB] dark:border-[#222] rounded-md px-3 py-2.5 text-[12px] appearance-none focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer group-hover:border-active"
-                  style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)', color: 'var(--text-main)' }}
+                  className="w-full bg-input border border-subtle rounded-[2px] px-3 py-1.5 text-[11px] appearance-none focus:outline-none focus:border-primary transition-all cursor-pointer"
+                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-subtle)', color: 'var(--text-main)' }}
                 >
-                  {reports.map(r => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
+                  {reports.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                   <option value="uploaded">Uploaded File</option>
                 </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-                  <Database size={14} />
-                </div>
+                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted opacity-50" />
               </div>
             </div>
 
             <button
               onClick={() => document.getElementById('report-upload')?.click()}
-              className="w-full py-2.5 px-4 bg-body border border-[#E5E7EB] dark:border-[#222] rounded-md text-[12px] font-medium flex items-center justify-center gap-2 hover:bg-neutral-50 dark:hover:bg-white/5 transition-all text-secondary"
-              style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+              className="w-full py-1.5 px-3 bg-panel hover:bg-input border border-subtle rounded-[2px] text-[10px] font-bold flex items-center justify-center gap-2 transition-all text-secondary"
             >
-              <Upload size={14} /> Import DDL Report
+              <Upload size={12} /> Import Metamodel
             </button>
-            <input
-              id="report-upload"
-              type="file"
-              accept=".json"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
+            <input id="report-upload" type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
           </div>
         </div>
 
-        <nav className="flex-1 px-3 space-y-6 overflow-y-auto custom-scrollbar py-6">
-          <div className="space-y-4">
-            <div>
-              <h3 className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted font-bold flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
-                <Database size={12} /> JPA Mapping Analysis
-              </h3>
-
-              <div className="mx-3 mb-3 p-2 bg-body/50 border border-subtle rounded flex items-center justify-between text-[11px]" style={{ backgroundColor: 'var(--bg-panel-hover)', borderColor: 'var(--border-subtle)' }}>
-                <div className="flex flex-col items-center flex-1">
-                  <span className="font-bold text-score-low" style={{ color: 'var(--score-low)' }}>{stats.errorCount}</span>
-                  <span className="text-[9px] text-muted" style={{ color: 'var(--text-muted)' }}>ERR</span>
-                </div>
-                <div className="w-px h-6 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
-                <div className="flex flex-col items-center flex-1">
-                  <span className="font-bold text-score-med" style={{ color: 'var(--score-med)' }}>{stats.warningCount}</span>
-                  <span className="text-[9px] text-muted" style={{ color: 'var(--text-muted)' }}>WARN</span>
-                </div>
-                <div className="w-px h-6 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
-                <div className="flex flex-col items-center flex-1">
-                  <span className="font-bold text-primary" style={{ color: 'var(--primary)' }}>{stats.infoCount}</span>
-                  <span className="text-[9px] text-muted" style={{ color: 'var(--text-muted)' }}>INFO</span>
-                </div>
-              </div>
+        <nav className="flex-1 px-3 space-y-6 overflow-y-auto custom-scrollbar py-4">
+          <div>
+            <h3 className="px-2 mb-2 text-[10px] uppercase font-black tracking-widest text-muted flex items-center gap-2">
+              <Database size={11} /> Statistics
+            </h3>
+            <div className="mx-2 mb-3 p-2 bg-input border border-subtle rounded-[2px] grid grid-cols-3 text-center">
+              <div><div className="text-[10px] font-bold text-score-low">{stats.errorCount}</div><div className="text-[8px] text-muted">ERR</div></div>
+              <div className="border-x border-subtle"><div className="text-[10px] font-bold text-score-med">{stats.warningCount}</div><div className="text-[8px] text-muted">WARN</div></div>
+              <div><div className="text-[10px] font-bold text-primary">{stats.infoCount}</div><div className="text-[8px] text-muted">INFO</div></div>
             </div>
           </div>
-
-          {/* EXPERT DDD TUNING */}
-          <div className="px-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Expert Heuristics</span>
-              <Brain size={12} className="text-muted" style={{ color: 'var(--text-muted)' }} />
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] text-muted font-medium" style={{ color: 'var(--text-muted)' }}>Analysis engine</label>
-                <div className="w-full bg-body border border-subtle px-2 py-1.5 rounded text-[11px] font-bold text-primary flex items-center justify-between"
-                  style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)', color: 'var(--primary)' }}
-                >
-                  <span>Shared Rules</span>
-                  <ShieldAlert size={12} className="opacity-50" />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-muted font-medium" style={{ color: 'var(--text-muted)' }}>Knowledge Profile</label>
-                <select
-                  value={analysisConfig.semanticProfile}
-                  onChange={(e) => handleConfigChange('semanticProfile', e.target.value)}
-                  className="w-full bg-body border border-subtle px-2 py-1.5 rounded text-[11px] focus:outline-none"
-                  style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)', color: 'var(--text-main)' }}
-                >
-                  <option value={SemanticProfile.GENERIC}>Generic</option>
-                  <option value={SemanticProfile.ECOMMERCE_OFBIZ}>E-Commerce</option>
-                  <option value={SemanticProfile.TREASURY_ISO20022}>Treasury</option>
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleConfigChange('enableSemantic', !analysisConfig.enableSemantic)}
-                  className={`flex-1 py-1 rounded text-[10px] font-bold border transition-all ${analysisConfig.enableSemantic ? 'bg-primary/10 border-primary text-primary' : 'bg-transparent border-subtle text-muted'}`}
-                  style={{ borderColor: analysisConfig.enableSemantic ? 'var(--primary)' : 'var(--border-subtle)', color: analysisConfig.enableSemantic ? 'var(--primary)' : 'var(--text-muted)' }}
-                >
-                  Semantic
-                </button>
-                <button
-                  onClick={() => handleConfigChange('enableTopology', !analysisConfig.enableTopology)}
-                  className={`flex-1 py-1 rounded text-[10px] font-bold border transition-all ${analysisConfig.enableTopology ? 'bg-accent-purple/10 border-accent-purple text-accent-purple' : 'bg-transparent border-subtle text-muted'}`}
-                  style={{ borderColor: analysisConfig.enableTopology ? 'var(--accent-purple)' : 'var(--border-subtle)', color: analysisConfig.enableTopology ? 'var(--accent-purple)' : 'var(--text-muted)' }}
-                >
-                  Topology
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {advancedReport && (
-            <div className="mx-3 px-3 py-3 bg-body rounded-lg border border-subtle flex items-center justify-between" style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)' }}>
-              <div className="flex gap-3 text-[10px] font-mono">
-                <div className="flex flex-col">
-                  <span className="text-muted" style={{ color: 'var(--text-muted)' }}>ADDS</span>
-                  <span style={{ color: 'var(--primary)' }}>{advancedReport.aggregates.length}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-muted" style={{ color: 'var(--text-muted)' }}>VOS</span>
-                  <span style={{ color: 'var(--score-med)' }}>{advancedReport.valueObjects.length}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-muted" style={{ color: 'var(--text-muted)' }}>CUTS</span>
-                  <span style={{ color: 'var(--score-low)' }}>{advancedReport.cuts.length}</span>
-                </div>
-              </div>
-              <Brain size={14} className="text-primary animate-pulse" style={{ color: 'var(--primary)' }} />
-            </div>
-          )}
         </nav>
 
-        <div className="p-4 mt-auto border-t border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="p-4 mt-auto border-t border-subtle">
           <button
             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-md text-[13px] text-secondary hover:bg-panel-hover hover:text-main transition-all"
-            style={{ color: 'var(--text-secondary)' }}
+            className="w-full flex items-center justify-between px-3 py-1.5 rounded-[2px] text-[11px] font-bold text-secondary hover:bg-input transition-all"
           >
-            <div className="flex items-center gap-3">
-              {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-              <span>{theme === 'light' ? 'Dark' : 'Light'} Mode</span>
-            </div>
-            <div className={`w-8 h-4 rounded-full relative transition-colors ${theme === 'dark' ? 'bg-primary' : 'bg-subtle'}`} style={{ backgroundColor: theme === 'dark' ? 'var(--primary)' : 'var(--border-subtle)' }}>
-              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all ${theme === 'dark' ? 'left-4.5' : 'left-0.5'}`} />
+            <div className="flex items-center gap-2">
+              {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+              <span>{theme === 'light' ? 'Dark' : 'Light'} UI</span>
             </div>
           </button>
         </div>
@@ -1597,822 +856,244 @@ function AnalyzerApp() {
 
       {/* MAIN STAGE */}
       <main className="flex-1 relative overflow-hidden flex flex-col" style={{ backgroundColor: 'var(--bg-body)' }}>
-        {/* Grid Background Overlay */}
-        <div className="absolute inset-0 opacity-[0.4] pointer-events-none"
-          style={{ backgroundImage: `linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px)`, backgroundSize: '40px 40px' }}
-        ></div>
-
-        {/* Top Floating Control Bar */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 px-4 py-2 bg-panel shadow-xl border border-subtle rounded-full"
-          style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)', backdropFilter: 'blur(12px)' }}>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold text-muted" style={{ color: 'var(--text-muted)' }}>View:</span>
-            <div className="relative flex items-center">
-              <select
-                value={viewMode}
-                onChange={(e) => setViewMode(e.target.value as any)}
-                className="bg-transparent text-[13px] font-bold text-primary border-none focus:ring-0 cursor-pointer pr-6 appearance-none hover:opacity-80 transition-all font-sans"
-                style={{ color: 'var(--primary)' }}
-              >
-                <option value="graph" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Graph Analysis</option>
-                <option value="table" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Table View</option>
-                <option value="jpa" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>JPA Details</option>
-                <option value="ddl" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>DDL Script</option>
+        <div className="h-[48px] border-b border-subtle px-4 flex items-center justify-between z-10 bg-panel shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] uppercase font-black text-muted tracking-widest">Projection</span>
+              <div className="flex bg-input rounded-[2px] p-0.5 border border-subtle">
+                {(['graph', 'table', 'jpa', 'ddl'] as const).map(mode => (
+                  <button key={mode} onClick={() => setViewMode(mode)} className={`px-3 py-1 text-[10px] font-bold rounded-[1px] transition-all capitalize ${viewMode === mode ? 'bg-primary text-white' : 'text-muted hover:text-main'}`}>
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="w-px h-4 bg-subtle"></div>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] uppercase font-black text-muted tracking-widest">Layout</span>
+              <select onChange={(e) => onLayout(e.target.value as any)} className="bg-input border border-subtle rounded-[2px] px-2 py-0.5 text-[10px] font-bold focus:outline-none">
+                <option value="TB">Hierarchical</option>
+                <option value="LR">Horizontal</option>
+                <option value="ORGANIC">Organic</option>
+                <option value="RADIAL">Radial</option>
+                <option value="GRID">Grid</option>
+                <option value="CLUSTER">Aggregate</option>
               </select>
-              <ChevronDown size={14} className="absolute right-0 pointer-events-none text-primary/60" />
             </div>
           </div>
 
-          <div className="w-px h-5 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold text-muted" style={{ color: 'var(--text-muted)' }}>Layer:</span>
-            <div className="relative flex items-center">
-              <select
-                value={activeLayer}
-                onChange={(e) => setActiveLayer(e.target.value as any)}
-                className="bg-transparent text-[13px] font-bold text-primary border-none focus:ring-0 cursor-pointer pr-6 appearance-none hover:opacity-80 transition-all"
-                style={{ color: 'var(--primary)' }}
-              >
-                <option value="none" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Standard View</option>
-                <option value="cycles" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Dependency Cycles</option>
-                <option value="aggregates" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Domain Aggregates</option>
-                <option value="cuts" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Contextual Cuts</option>
-                <option value="vo" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Potential Value Objects</option>
-                <option value="perf" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Performance Risks</option>
-              </select>
-              <ChevronDown size={14} className="absolute right-0 pointer-events-none text-primary/60" />
-            </div>
-          </div>
-
-          <div className="w-px h-5 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold text-muted" style={{ color: 'var(--text-muted)' }}>Layout:</span>
-            <div className="relative flex items-center">
-              <select
-                onChange={(e) => onLayout(e.target.value as any)}
-                className="bg-transparent text-[13px] font-bold text-primary border-none focus:ring-0 cursor-pointer pr-6 appearance-none hover:opacity-80 transition-all font-sans"
-                style={{ color: 'var(--primary)' }}
-              >
-                <option value="TB" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Hierarchical</option>
-                <option value="LR" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Horizontal</option>
-                <option value="ORGANIC" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Organic</option>
-                <option value="RADIAL" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Radial</option>
-                <option value="GRID" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Grid</option>
-                <option value="CLUSTER" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Aggregate Cluster</option>
-              </select>
-              <ChevronDown size={14} className="absolute right-0 pointer-events-none text-primary/60" />
-            </div>
-          </div>
-
-          <div className="w-px h-5 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
-
-          <div className="flex items-center">
-            <button
-              onClick={generatePDFReport}
-              className="p-2 text-secondary hover:text-primary hover:bg-panel-hover rounded-full transition-all"
-              title="Download PDF Report"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              <FileDown size={18} />
+          <div className="flex items-center gap-3">
+            <button onClick={generatePDFReport} className="flex items-center gap-2 px-3 py-1.5 bg-input border border-subtle rounded-[2px] text-[10px] font-bold text-secondary hover:text-main transition-all">
+              <FileDown size={14} /> Export Report
             </button>
-
-            <button
-              onClick={toggleAttributes}
-              className="p-2 text-secondary hover:text-primary hover:bg-panel-hover rounded-full transition-all"
-              title="Toggle Attributes"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {showAttributes ? <EyeOff size={18} /> : <Eye size={18} />}
+            <button onClick={toggleAttributes} className={`p-1.5 rounded-[2px] border transition-all ${showAttributes ? 'bg-primary/20 border-primary text-primary' : 'bg-input border-subtle text-muted'}`}>
+              <Eye size={16} />
             </button>
           </div>
         </div>
 
         <div className="flex-1 relative flex flex-col overflow-hidden">
           {viewMode === 'graph' && (
-            <ReactFlow
-              nodes={filteredNodes}
-              edges={filteredEdges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={onNodeClick}
-              onEdgeClick={onEdgeClick}
-              nodeTypes={nodeTypes}
-              defaultEdgeOptions={{
-                type: 'smoothstep',
-                style: { strokeDasharray: '5,5' },
-              }}
-              fitView
-              fitViewOptions={{ padding: 0.5 }}
-              minZoom={0.1}
-            >
-              {/* Custom SVG markers for UML conventions */}
+            <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeClick={onNodeClick} onEdgeClick={onEdgeClick} nodeTypes={nodeTypes} fitView minZoom={0.1}>
               <svg style={{ position: 'absolute', width: 0, height: 0 }}>
                 <defs>
-                  {/* Inheritance: Hollow triangle (white fill, colored border) */}
-                  <marker
-                    id="marker-inheritance"
-                    viewBox="0 0 10 10"
-                    refX="10"
-                    refY="5"
-                    markerWidth="8"
-                    markerHeight="8"
-                    orient="auto"
-                  >
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="currentColor" strokeWidth="1.5" />
-                  </marker>
-
-                  {/* Composition: Filled diamond for strong ownership (cascade) */}
-                  <marker
-                    id="marker-composition"
-                    viewBox="0 0 10 10"
-                    refX="0"
-                    refY="5"
-                    markerWidth="8"
-                    markerHeight="8"
-                    orient="auto"
-                  >
-                    <path d="M 0 5 L 10 0 L 20 5 L 10 10 z" fill="currentColor" />
-                  </marker>
-
-                  {/* Crow's foot for OneToMany cardinality (target side) */}
-                  <marker
-                    id="marker-crows-foot"
-                    viewBox="0 0 10 10"
-                    refX="10"
-                    refY="5"
-                    markerWidth="12"
-                    markerHeight="12"
-                    orient="auto"
-                  >
-                    <path d="M 0 0 L 10 5 L 0 10 M 10 5 L 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                  </marker>
-
-                  {/* Crow's foot for source side (ManyToOne cardinality) */}
-                  <marker
-                    id="marker-crows-foot-start"
-                    viewBox="0 0 10 10"
-                    refX="0"
-                    refY="5"
-                    markerWidth="12"
-                    markerHeight="12"
-                    orient="auto"
-                  >
-                    <path d="M 0 0 L 10 5 L 0 10 M 10 5 L 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                  </marker>
-
-                  {/* JPA Ownership: Small bar at source for owning side */}
-                  <marker
-                    id="marker-ownership-bar"
-                    viewBox="0 0 10 10"
-                    refX="0"
-                    refY="5"
-                    markerWidth="6"
-                    markerHeight="6"
-                    orient="auto"
-                  >
-                    <path d="M 0 2 L 0 8 L 4 8 L 4 2 z" fill="currentColor" />
-                  </marker>
-
-                  {/* Standard arrow for OneToOne relationships */}
-                  <marker
-                    id="marker-standard-arrow"
-                    viewBox="0 0 10 10"
-                    refX="10"
-                    refY="5"
-                    markerWidth="8"
-                    markerHeight="8"
-                    orient="auto"
-                  >
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
-                  </marker>
+                  <marker id="marker-inheritance" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="currentColor" strokeWidth="1.5" /></marker>
+                  <marker id="marker-composition" viewBox="0 0 10 10" refX="0" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 5 L 10 0 L 20 5 L 10 10 z" fill="currentColor" /></marker>
+                  <marker id="marker-crows-foot" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="12" markerHeight="12" orient="auto"><path d="M 0 0 L 10 5 L 0 10 M 10 5 L 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" /></marker>
+                  <marker id="marker-standard-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" /></marker>
                 </defs>
               </svg>
-
-              <Background color="var(--border-active)" gap={20} className="opacity-0" />
-              <Controls className="!bg-panel !border-subtle !shadow-none [&_button]:!border-subtle [&_path]:!fill-muted" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }} />
-              <MiniMap
-                className="!bg-glass !border-subtle !backdrop-blur-md"
-                style={{ backgroundColor: 'var(--bg-glass)', borderColor: 'var(--border-subtle)' }}
-                nodeColor={() => 'var(--primary)'}
-                maskColor="var(--accent-glow)"
-              />
+              <Background color="var(--border-subtle)" variant={BackgroundVariant.Dots} gap={24} size={1} />
+              <Controls />
+              <MiniMap nodeStrokeWidth={3} zoomable pannable />
             </ReactFlow>
           )}
 
-          {viewMode === 'table' && (
-            <TableView
-              relationships={edges.map(edge => ({
-                sourceEntity: edge.source,
-                targetEntity: edge.target,
-                attributeName: edge.data?.attributeName || 'unknown',
-                mappingType: edge.data?.mappingType || 'unknown',
-                lazy: edge.data?.lazy !== false,
-                cascadePersist: !!edge.data?.cascadePersist,
-                cascadeRemove: !!edge.data?.cascadeRemove,
-                cascadeAll: !!edge.data?.cascadeAll,
-                owningSide: !!edge.data?.owningSide,
-                mappedBy: edge.data?.mappedBy,
-                optional: !!edge.data?.optional,
-                batchFetchType: edge.data?.batchFetchType,
-              }))}
-              onRowClick={(row) => {
-                const node = nodes.find(n => n.id === row.sourceEntity);
-                if (node) setSelectedNodeId(node.id);
-                setViewMode('graph');
-              }}
-            />
-          )}
-
-          {viewMode === 'jpa' && (
-            <JPAView
-              entities={nodes.map(n => n.data)}
-              onRowClick={(row) => {
-                const node = nodes.find(n => n.id === row.sourceEntity);
-                if (node) setSelectedNodeId(node.id);
-                setViewMode('graph');
-              }}
-            />
-          )}
-
-          {viewMode === 'ddl' && (
-            <DDLView
-              entities={nodes.map(n => n.data)}
-              nativeDdl={nativeDdl}
-            />
-          )}
+          {viewMode === 'table' && <TableView relationships={edges.map(e => ({ sourceEntity: e.source, targetEntity: e.target, attributeName: e.data?.attributeName || 'unknown', mappingType: e.data?.mappingType || 'unknown', lazy: e.data?.lazy !== false, cascadePersist: !!e.data?.cascadePersist, cascadeRemove: !!e.data?.cascadeRemove, cascadeAll: !!e.data?.cascadeAll, owningSide: !!e.data?.owningSide, mappedBy: e.data?.mappedBy, optional: !!e.data?.optional, batchFetchType: e.data?.batchFetchType }))} onRowClick={(row) => { const node = nodes.find(n => n.id === row.sourceEntity); if (node) setSelectedNodeId(node.id); setViewMode('graph'); }} />}
+          {viewMode === 'jpa' && <JPAView entities={nodes.map(n => n.data)} onRowClick={(row) => { const node = nodes.find(n => n.id === row.sourceEntity); if (node) setSelectedNodeId(node.id); setViewMode('graph'); }} />}
+          {viewMode === 'ddl' && <DDLView entities={nodes.map(n => n.data)} nativeDdl={nativeDdl} />}
         </div>
-      </main >
+      </main>
 
       {/* INSPECTOR */}
       <aside
         style={{ width: sidebarCollapsed ? '48px' : `${sidebarWidth}px`, backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}
-        className="bg-panel border-l border-subtle flex flex-col z-20 transition-[width] duration-300 relative group"
+        className="bg-panel border-l border-subtle flex flex-col z-20 transition-[width] duration-300 relative group inspector-sidebar"
       >
-        {/* Resize Handle */}
-        {
-          !sidebarCollapsed && (
-            <div
-              onMouseDown={handleResizeStart}
-              className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#00F0FF]/30 transition-colors z-30"
-            />
-          )
-        }
-
-        {/* Collapse Toggle */}
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-panel border border-subtle rounded-full flex items-center justify-center text-secondary hover:text-main hover:border-primary transition-all z-40"
-          style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
-        >
+        {!sidebarCollapsed && <div onMouseDown={handleResizeStart} className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/30 transition-colors z-30" />}
+        <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-panel border border-subtle rounded-full flex items-center justify-center text-secondary hover:text-main z-40">
           {sidebarCollapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
 
-        {
-          !sidebarCollapsed ? (
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {selectedNode || selectedEdge ? (
-                <>
-                  <div className="p-6 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                    <div className="flex items-center justify-between mb-2">
-                      <h2 className="text-[18px] font-semibold text-main truncate mr-2" style={{ color: 'var(--text-main)' }}>
-                        {selectedNode ? selectedNode.id : selectedEdge?.data?.attributeName}
-                      </h2>
-                      <div className="w-8 h-8 rounded-full border-2 border-subtle border-t-score-med flex items-center justify-center text-[10px] font-bold text-score-med"
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--score-med)', borderTopColor: 'var(--score-med)' }}>
-                        {selectedNode ? Math.max(100 - ((selectedNode.data.violations?.length || 0) * 10), 0) : '65'}
-                      </div>
+        {!sidebarCollapsed ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {selectedNode || selectedEdge ? (
+              <>
+                <div className="p-4 border-b border-subtle bg-black/10">
+                  <div className="flex items-center justify-between mb-1">
+                    <h2 className="text-[14px] font-black text-main truncate mr-2">{selectedNode ? selectedNode.id : selectedEdge?.data?.attributeName}</h2>
+                    <div className="px-1.5 py-0.5 bg-primary/10 border border-primary/20 rounded-[2px] text-[9px] font-bold text-primary">{selectedNode ? selectedNode.data.type : 'MAP'}</div>
+                  </div>
+                  <div className="text-[9px] font-mono text-muted tracking-tight">{selectedNode && selectedNode.data.packageName}</div>
+                </div>
+
+                {selectedNode && (
+                  <div className="px-4 py-2 flex bg-panel border-b border-subtle">
+                    <button
+                      onClick={() => setInspectorJpaTab('general')}
+                      className={`flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${inspectorJpaTab === 'general' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-secondary'}`}
+                    >
+                      General
+                    </button>
+                    <button
+                      onClick={() => setInspectorJpaTab('cache')}
+                      className={`flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${inspectorJpaTab === 'cache' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-secondary'}`}
+                    >
+                      Cache
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex border-b border-subtle bg-black/5">
+                  {(['mapping', 'performance', 'ddl'] as const).map((tab) => (
+                    <button key={tab} onClick={() => setActiveTab(tab)} className={`ide-tab ${activeTab === tab ? 'active' : ''}`}>{tab}</button>
+                  ))}
+                </div>
+
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                  {activeTab === 'mapping' && (
+                    <div className="p-4 space-y-4">
+                      {selectedNode && (
+                        <>
+                          <div>
+                            <div className="text-[9px] font-black text-primary uppercase tracking-widest mb-2">Technical Meta</div>
+                            <div className="space-y-1.5">
+                              <div className="flex justify-between items-center text-[11px] py-1 border-b border-subtle border-dashed"><span className="text-muted">Table</span><span className="font-mono text-main">{selectedNode.data.name}</span></div>
+                              <div className="flex justify-between items-center text-[11px] py-1 border-b border-subtle border-dashed"><span className="text-muted">Entities</span><span className="font-mono text-main">{selectedNode.data.type}</span></div>
+                            </div>
+                          </div>
+                          {selectedNode.data.relationships && selectedNode.data.relationships.length > 0 && (
+                            <div>
+                              <div className="text-[9px] font-black text-accent-purple uppercase tracking-widest mb-2">Structure</div>
+                              <div className="space-y-2">
+                                {selectedNode.data.relationships.map((rel: any, i: number) => (
+                                  <div key={i} className="p-2 bg-input border border-subtle rounded-[2px]">
+                                    <div className="flex justify-between text-[10px] mb-1"><span className="font-bold text-main">{rel.attributeName}</span><span className="text-primary">{rel.mappingType}</span></div>
+                                    <div className="text-[9px] text-muted">target: {rel.targetEntity}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {selectedEdge && (
+                        <div>
+                          <div className="text-[9px] font-black text-primary uppercase tracking-widest mb-2">Relation Meta</div>
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-center text-[11px] py-1 border-b border-subtle border-dashed"><span className="text-muted">Type</span><span className="font-mono text-main">{selectedEdge.data?.mappingType}</span></div>
+                            <div className="flex justify-between items-center text-[11px] py-1 border-b border-subtle border-dashed"><span className="text-muted">Fetch</span><span className={`font-bold ${selectedEdge.data?.lazy === false ? 'text-score-low' : 'text-score-high'}`}>{selectedEdge.data?.lazy === false ? 'EAGER' : 'LAZY'}</span></div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-[12px] font-bold text-accent-purple uppercase tracking-wider" style={{ color: 'var(--accent-purple)' }}>
-                      {selectedNode ? selectedNode.data.type : 'Relationship'}
-                    </p>
-                  </div>
+                  )}
 
-                  <div className="flex border-b border-subtle bg-panel" style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--bg-panel)' }}>
-                    <button
-                      onClick={() => setActiveTab('mapping')}
-                      className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'mapping' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
-                      style={{ color: activeTab === 'mapping' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'mapping' ? 'var(--primary)' : 'transparent' }}
-                    >
-                      Bounded Context (AI)
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('anomalies')}
-                      className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'anomalies' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
-                      style={{ color: activeTab === 'anomalies' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'anomalies' ? 'var(--primary)' : 'transparent' }}
-                    >
-                      JPA Mapping Details
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('violations')}
-                      className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'violations' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
-                      style={{ color: activeTab === 'violations' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'violations' ? 'var(--primary)' : 'transparent' }}
-                    >
-                      Global Issues
-                    </button>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    {activeTab === 'mapping' && (
-                      <div className="p-0">
-                        <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-[#7000FF]">DDD Retro-Analysis</div>
-                        <div className={`mx-5 p-4 bg-white/3 border border-[#222] rounded-md border-l-2 mb-4`} style={{ borderLeftColor: getAggregateColor(selectedNode?.data.aggregateName) }}>
-                          <div className="flex gap-3 mb-2">
-                            <div style={{ color: getAggregateColor(selectedNode?.data.aggregateName) }}>
-                              {selectedNode?.data.dddRole === 'AGGREGATE_ROOT' ? '💠' : '📦'}
-                            </div>
-                            <h4 className="text-[13px] font-semibold text-main" style={{ color: 'var(--text-main)' }}>
-                              {selectedNode?.data.dddRole === 'AGGREGATE_ROOT' ? 'Aggregate Root' : 'Domain Entity'}
-                            </h4>
-                          </div>
-                          <div className="text-[12px] font-bold text-main mb-2" style={{ color: 'var(--text-main)' }}>
-                            Aggregate: <span style={{ color: getAggregateColor(selectedNode?.data.aggregateName) }}>{selectedNode?.data.aggregateName || 'General'}</span>
-                            {selectedNode?.data.aggregateNameConfidence && (
-                              <span className="text-[10px] text-muted ml-2">
-                                ({(selectedNode.data.aggregateNameConfidence * 100).toFixed(0)}% confidence)
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                            {selectedNode?.data.dddRole === 'AGGREGATE_ROOT'
-                              ? 'High centrality score. This entity acts as an entry point and controls the lifecycle of related entities.'
-                              : 'Internal member of the domain cluster. Lifecycle managed by the aggregate root.'}
-                          </p>
-                        </div>
-
-                        {/* Algorithm Explanation Section */}
-                        <div className="px-5 py-2 text-[11px] uppercase tracking-wider font-bold text-primary" style={{ color: 'var(--primary)' }}>Algorithm Details</div>
-                        <div className="mx-5 mb-4 space-y-2">
-                          {/* Package-based grouping */}
-                          <div className="p-3 bg-panel/50 border border-subtle rounded-md" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold" style={{ color: 'var(--primary)' }}>PACKAGE</span>
-                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Grouping Rule</span>
-                            </div>
-                            <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                              Entities in <code className="text-primary">{selectedNode?.data.packageName?.split('.').slice(-1)[0] || 'root'}</code> package are clustered together.
-                            </p>
-                          </div>
-
-                          {/* Relationship Analysis */}
-                          <div className="p-3 bg-panel/50 border border-subtle rounded-md" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-purple/20 text-accent-purple font-bold" style={{ color: 'var(--accent-purple)' }}>RELATIONS</span>
-                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Ownership Analysis</span>
-                            </div>
-                            <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                              {selectedNode?.data.relationships?.length || 0} relationships detected.
-                              {selectedNode?.data.relationships?.filter((r: RelationshipMetadata) => r.owningSide).length || 0} owned (controlling lifecycle).
-                            </p>
-                          </div>
-
-                          {/* Cycle/Cut Analysis */}
-                          {selectedNode?.data.isInCycle && (
-                            <div className="p-3 bg-score-low/10 border border-score-low/30 rounded-md">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-score-low/30 text-score-low font-bold" style={{ color: 'var(--score-low)' }}>CYCLE</span>
-                                <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Deep Dependency Cycle</span>
+                  {activeTab === 'performance' && (
+                    <div className="p-4 space-y-4">
+                      {selectedNode && selectedNode.data.violations && selectedNode.data.violations.length > 0 ? (
+                        <div>
+                          <div className="text-[9px] font-black text-score-low uppercase tracking-widest mb-3">Performance Audit</div>
+                          <div className="space-y-3">
+                            {selectedNode.data.violations.map((v: any, i: number) => (
+                              <div key={i} className="p-3 bg-score-low/5 border-l-2 border-score-low border border-subtle rounded-[2px]">
+                                <div className="text-[11px] font-bold text-main mb-1">{v.ruleId}</div>
+                                <p className="text-[10px] text-secondary leading-normal">{v.message}</p>
                               </div>
-                              <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                                This entity is part of a deep dependency cycle (length 3 or more). Consider reviewing domain boundaries and fetch strategies.
-                              </p>
-                            </div>
-                          )}
-
-                          {selectedNode?.data.isCutPoint && (
-                            <div className="p-3 bg-primary/10 border border-primary/30 rounded-md">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/30 text-primary font-bold" style={{ color: 'var(--primary)' }}>✂️ CUT</span>
-                                <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Cross-Aggregate Bridge</span>
-                                {selectedNode?.data.cutPointScore && (
-                                  <span className="text-[10px] text-muted ml-auto">
-                                    Score: {selectedNode.data.cutPointScore.toFixed(2)}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                                This entity connects different aggregates. Consider decoupling via ID reference instead of direct object reference.
-                                {selectedNode?.data.cutPointNormalized && selectedNode.data.cutPointNormalized > 0.1 && (
-                                  <span className="block mt-1">
-                                    <span className="inline-block h-1 w-full bg-subtle rounded-full overflow-hidden">
-                                      <div className="h-full bg-primary" style={{ width: `${Math.min(selectedNode.data.cutPointNormalized * 100, 100)}%` }}></div>
-                                    </span>
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                          )}
-
-                          {selectedNode?.data.isPotentialVO && (
-                            <div className="p-3 bg-accent-purple/10 border border-accent-purple/30 rounded-md">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-purple/30 text-accent-purple font-bold" style={{ color: 'var(--accent-purple)' }}>💎 VO</span>
-                                <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Potential Value Object</span>
-                              </div>
-                              <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                                Few attributes, no outgoing relationships. Could be refactored as an @Embeddable value object.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="px-5 py-2">
-                          <div className="text-[11px] text-muted mb-2 uppercase tracking-tighter font-bold" style={{ color: 'var(--text-muted)' }}>Heuristic Confidence</div>
-                          <div className="h-1.5 w-full bg-subtle rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-subtle)' }}>
-                            <div className="h-full bg-gradient-to-r from-accent-purple to-primary" style={{ width: `${((selectedNode?.data.dddRoleConfidence || 0.5) * 100)}%`, backgroundColor: 'var(--primary)' }}></div>
-                          </div>
-                          <div className="text-[10px] text-muted mt-1 text-right">
-                            {selectedNode?.data.dddRoleConfidence ? `${(selectedNode.data.dddRoleConfidence * 100).toFixed(0)}% confidence` : 'No confidence data'}
+                            ))}
                           </div>
                         </div>
-
-                        <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Entity Insights & Rules</div>
-                        {(() => {
-                          const violations = selectedNode?.data?.violations || [];
-                          if (violations.length === 0) {
-                            return <div className="px-5 py-4 text-[12px] text-[#888] italic">No performance violations detected.</div>;
-                          }
-
-                          const RULE_CATEGORIES: Record<string, { label: string; color: string }> = {
-                            'PERFORMANCE': { label: 'Performance', color: 'var(--primary)' },
-                            'INTEGRITY': { label: 'Data Integrity', color: 'var(--score-med)' },
-                            'DATABASE': { label: 'Database Optimization', color: 'var(--accent-purple)' },
-                            'ARCHITECTURE': { label: 'Architecture', color: 'var(--score-high)' },
-                            'OTHER': { label: 'General', color: 'var(--text-muted)' }
-                          };
-
-                          const ruleToCategory: Record<string, string> = {
-                            'REL_EAGER_FETCH': 'PERFORMANCE',
-                            'LARGE_COLLECTION': 'PERFORMANCE',
-                            'N_PLUS_ONE_QUERY': 'PERFORMANCE',
-                            'CARTESIAN_PRODUCT': 'PERFORMANCE',
-                            'BATCH_FETCH': 'PERFORMANCE',
-                            'INDIRECTION_POLICY': 'PERFORMANCE',
-                            'CACHE_OPTIMIZATION': 'PERFORMANCE',
-                            'OPTIMISTIC_LOCKING': 'INTEGRITY',
-                            'VERSION_ANNOTATION': 'INTEGRITY',
-                            'FK_INDEX': 'DATABASE',
-                            'INDEX_OPTIMIZATION': 'DATABASE',
-                            'GRAPH_ANALYSIS': 'ARCHITECTURE',
-                            'DISCRIMINATOR': 'ARCHITECTURE',
-                            'INHERITANCE': 'ARCHITECTURE'
-                          };
-
-                          const groupedViolations = violations.reduce((acc: Record<string, Violation[]>, v: Violation) => {
-                            const cat = ruleToCategory[v.ruleId] || 'OTHER';
-                            if (!acc[cat]) acc[cat] = [];
-                            acc[cat].push(v);
-                            return acc;
-                          }, {});
-
-                          return Object.entries(groupedViolations as Record<string, Violation[]>).map(([catId, items]) => (
-                            <div key={catId} className="mb-6">
-                              <div className="px-5 mb-2 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: RULE_CATEGORIES[catId].color }}></span>
-                                <span className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: RULE_CATEGORIES[catId].color }}>
-                                  {RULE_CATEGORIES[catId].label}
-                                </span>
-                              </div>
-                              {items.map((v: Violation, idx: number) => (
-                                <div key={idx} className={`mx-5 p-4 bg-panel border-subtle border rounded-md mb-3 border-l-2 ${v.severity === 'ERROR' ? 'border-l-score-low' : 'border-l-score-med'}`}
-                                  style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                                  <div className="flex gap-3 mb-2">
-                                    <div className={v.severity === 'ERROR' ? 'text-score-low' : 'text-score-med'} style={{ color: v.severity === 'ERROR' ? 'var(--score-low)' : 'var(--score-med)' }}>⚠</div>
-                                    <h4 className="text-[13px] font-semibold text-main" style={{ color: 'var(--text-main)' }}>{v.ruleId}</h4>
-                                  </div>
-                                  <p className="text-[12px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{v.message}</p>
-                                </div>
-                              ))}
-                            </div>
-                          ));
-                        })()}
-                      </div>
-                    )}
-
-                    {activeTab === 'anomalies' && (
-                      <div className="p-0 space-y-0 text-[12px]">
-                        {selectedNode && (
-                          <>
-                            <div className="px-5 py-2 mt-2 mb-2 flex bg-panel border-b border-subtle">
-                              <button
-                                onClick={() => setInspectorJpaTab('general')}
-                                className={`flex-1 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-all ${inspectorJpaTab === 'general' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-secondary'}`}
-                              >
-                                General
-                              </button>
-                              <div className="w-px bg-subtle mx-2 my-1"></div>
-                              <button
-                                onClick={() => setInspectorJpaTab('cache')}
-                                className={`flex-1 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-all ${inspectorJpaTab === 'cache' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-secondary'}`}
-                              >
-                                Cache Config
-                              </button>
-                            </div>
-
-                            {inspectorJpaTab === 'general' ? (
-                              <>
-                                <div className="px-5 py-2 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Class Details</div>
-                                <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Table Name</span>
-                                  <span className="font-mono text-main uppercase font-bold" style={{ color: 'var(--text-main)' }}>{selectedNode.data.name || 'N/A'}</span>
-                                </div>
-                                <div className="flex justify-between px-5 py-2 border-b border-white/5" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Package</span>
-                                  <span className="font-mono text-main truncate max-w-[180px] text-right" style={{ color: 'var(--text-main)' }}>{selectedNode.data.packageName || 'N/A'}</span>
-                                </div>
-                                <div className="flex justify-between px-5 py-2 border-b border-white/5" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>JPA Type</span>
-                                  <span className="font-mono text-primary uppercase font-bold" style={{ color: 'var(--primary)' }}>{selectedNode.data.type || 'ENTITY'}</span>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="px-5 py-2 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>L2 Cache Configuration</div>
-
-                                <div className="px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <div className="flex justify-between items-center mb-1">
-                                    <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Cache Type</span>
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
-                                      style={{
-                                        backgroundColor: (() => {
-                                          const type = selectedNode.data.cacheType || 'NONE';
-                                          const colors: any = { FULL: '#ef4444', WEAK: '#3b82f6', SOFT: '#10b981', SOFT_WEAK: '#8b5cf6', HARD_WEAK: '#f59e0b' };
-                                          return colors[type] || '#6b7280';
-                                        })()
-                                      }}>
-                                      {selectedNode.data.cacheType || 'NONE'}
-                                    </span>
-                                  </div>
-                                  <p className="text-[10px] text-muted italic">
-                                    {selectedNode.data.cacheType === 'FULL' ? 'Objects stay in cache until deleted. High memory usage.' :
-                                      selectedNode.data.cacheType === 'WEAK' ? 'Objects removed when not referenced. GC friendly.' :
-                                        'Standard caching strategy.'}
-                                  </p>
-                                </div>
-
-                                <div className="flex justify-between px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Cache Size</span>
-                                  <span className="font-mono text-main font-bold" style={{ color: 'var(--text-main)' }}>{selectedNode.data.cacheSize || '100 (default)'}</span>
-                                </div>
-
-                                <div className="flex justify-between px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Expiry</span>
-                                  <span className="font-mono text-main" style={{ color: 'var(--text-main)' }}>
-                                    {selectedNode.data.cacheExpiry ? (selectedNode.data.cacheExpiry < 60000 ? `${selectedNode.data.cacheExpiry / 1000}s` : `${selectedNode.data.cacheExpiry / 60000}m`) : 'No Expiry'}
-                                  </span>
-                                </div>
-
-                                <div className="flex justify-between px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Isolation</span>
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${selectedNode.data.cacheIsolation === 'ISOLATED' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
-                                    {selectedNode.data.cacheIsolation || 'SHARED'}
-                                  </span>
-                                </div>
-
-                                <div className="flex justify-between px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <span className="text-main font-mono text-[11px]" style={{ color: 'var(--text-main)' }}>{selectedNode.data.cacheCoordinationType || 'NONE'}</span>
-                                </div>
-
-                                <div className="px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <div className="flex flex-col gap-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Disable Hits</span>
-                                      <span className={`text-[10px] font-bold ${selectedNode.data.cacheDisableHits ? 'text-score-low' : 'text-muted'}`}>
-                                        {selectedNode.data.cacheDisableHits ? 'YES' : 'NO'}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Always Refresh</span>
-                                      <span className={`text-[10px] font-bold ${selectedNode.data.cacheAlwaysRefresh ? 'text-score-med' : 'text-muted'}`}>
-                                        {selectedNode.data.cacheAlwaysRefresh ? 'YES' : 'NO'}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Refresh Only Newer</span>
-                                      <span className={`text-[10px] font-bold ${selectedNode.data.cacheRefreshOnlyIfNewer ? 'text-primary' : 'text-muted'}`}>
-                                        {selectedNode.data.cacheRefreshOnlyIfNewer ? 'YES' : 'NO'}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </>
-                            )}
-
-                            {inspectorJpaTab === 'general' && (
-                              <>
-                                <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Schema Anomalies</div>
-                                {nodes.find(n => n.id === selectedNode.id)?.data.hasAnomalies ? (
-                                  <div className="px-5 space-y-2">
-                                    <div className="p-3 bg-score-med/10 border border-score-med/20 rounded-md" style={{ backgroundColor: 'var(--accent-glow)' }}>
-                                      <div className="flex items-center gap-2 mb-1 text-score-med font-bold" style={{ color: 'var(--score-med)' }}>
-                                        <ShieldAlert size={14} />
-                                        <span>DDL Mismatch Detected</span>
-                                      </div>
-                                      <p className="text-[11px] text-secondary" style={{ color: 'var(--text-secondary)' }}>The database schema does not perfectly align with the JPA mapping. Check column types and constraints.</p>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="px-5 py-2 text-secondary italic" style={{ color: 'var(--text-secondary)' }}>No schema anomalies found.</div>
-                                )}
-
-                                <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Attributes</div>
-                                <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
-                                  {Object.entries(selectedNode.data.attributes || {}).map(([name, attr]: [string, any], i: number) => (
-                                    <div key={i} className="flex justify-between px-5 py-2 border-b border-subtle group hover:bg-panel-hover transition-colors" style={{ borderColor: 'var(--border-subtle)' }}>
-                                      <span className="text-secondary group-hover:text-main transition-colors" style={{ color: 'var(--text-secondary)' }}>{name}</span>
-                                      <span className="font-mono text-primary font-medium" style={{ color: 'var(--primary)' }}>{String(attr.javaType).split('.').pop()}</span>
-                                    </div>
-                                  ))}
-                                </div>
-
-                                <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Bytecode Weaving Status</div>
-                                <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Lazy Loading</span>
-                                  <span className="text-score-high font-semibold" style={{ color: 'var(--score-high)' }}>WEAVED</span>
-                                </div>
-                                <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Change Tracking</span>
-                                  <span className="text-score-high font-semibold" style={{ color: 'var(--score-high)' }}>WEAVED</span>
-                                </div>
-                              </>
-                            )}
-
-                            {selectedEdge && (
-                              <>
-                                <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-[#7000FF]">Relationship Details</div>
-                                <div className="flex justify-between px-5 py-2 border-b border-white/5">
-                                  <span className="text-[#888]">Mapping Type</span>
-                                  <span className="font-mono text-white uppercase">{selectedEdge.data?.mappingType || 'N/A'}</span>
-                                </div>
-                                <div className="flex justify-between px-5 py-2 border-b border-white/5">
-                                  <span className="text-[#888]">Fetch Strategy</span>
-                                  <span className={`font-mono ${selectedEdge.data?.lazy === false ? 'text-[#FF0040] font-bold' : 'text-[#00E050]'}`}>
-                                    {selectedEdge.data?.lazy === false ? 'EAGER' : 'LAZY'}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Owning Side</span>
-                                  <span className="text-main font-medium" style={{ color: 'var(--text-main)' }}>{selectedEdge.data?.owningSide ? 'YES' : 'NO'}</span>
-                                </div>
-
-                                <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Cascade configuration</div>
-                                <div className="px-5 grid grid-cols-2 gap-2 pb-4">
-                                  {['Persist', 'Merge', 'Remove', 'Refresh', 'Detach'].map(c => {
-                                    const has = selectedEdge.data?.[`cascade${c}`];
-                                    return (
-                                      <div key={c} className={`px-2 py-1.5 rounded border text-[10px] text-center ${has ? 'bg-primary/10 border-primary text-primary font-bold' : 'bg-transparent border-subtle text-muted'}`}
-                                        style={{ borderColor: has ? 'var(--primary)' : 'var(--border-subtle)', color: has ? 'var(--primary)' : 'var(--text-muted)' }}>
-                                        {c}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    {activeTab === 'violations' && (
-                      <div className="p-0">
-                        <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-red" style={{ color: 'var(--score-low)' }}>
-                          Global Health ({stats.errorCount + stats.warningCount} Issues)
+                      ) : (
+                        <div className="py-10 text-center">
+                          <CheckCircle2 size={16} className="mx-auto mb-2 text-score-high opacity-30" />
+                          <div className="text-[11px] font-bold text-muted">No Performance Risks</div>
                         </div>
+                      )}
+                    </div>
+                  )}
 
-                        <div className="px-5 mb-4">
-                          <div className="flex gap-2 mb-2">
-                            <button
-                              onClick={() => setViolationFilters(prev => ({ ...prev, ERROR: !prev.ERROR }))}
-                              className={`flex-1 py-1.5 px-2 rounded text-[10px] border flex items-center justify-center gap-1 ${violationFilters.ERROR ? 'bg-score-low/10 border-score-low text-score-low' : 'bg-transparent border-subtle text-muted'}`}
-                              style={{ color: violationFilters.ERROR ? 'var(--score-low)' : 'var(--text-muted)', borderColor: violationFilters.ERROR ? 'var(--score-low)' : 'var(--border-subtle)' }}
-                            >
-                              <ShieldAlert size={12} /> Errors ({stats.errorCount})
-                            </button>
-                            <button
-                              onClick={() => setViolationFilters(prev => ({ ...prev, WARNING: !prev.WARNING }))}
-                              className={`flex-1 py-1.5 px-2 rounded text-[10px] border flex items-center justify-center gap-1 ${violationFilters.WARNING ? 'bg-score-med/10 border-score-med text-score-med' : 'bg-transparent border-subtle text-muted'}`}
-                              style={{ color: violationFilters.WARNING ? 'var(--score-med)' : 'var(--text-muted)', borderColor: violationFilters.WARNING ? 'var(--score-med)' : 'var(--border-subtle)' }}
-                            >
-                              <CircleAlert size={12} /> Warnings ({stats.warningCount})
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-0">
-                          {Array.from(new Set(nodes.flatMap(n => (n.data.violations || []).map((v: Violation) => JSON.stringify({ ...v, source: n.data.name }))))).map(s => JSON.parse(s)).filter((v: any) => violationFilters[v.severity as string]).map((v: any, i: number) => (
-                            <div key={i} className="px-5 py-3 border-b border-subtle hover:bg-panel-hover group cursor-pointer"
-                              style={{ borderColor: 'var(--border-subtle)' }}
-                              onClick={() => {
-                                const node = nodes.find(n => n.data.name === v.source);
-                                if (node) {
-                                  onNodeClick({} as any, node);
-                                  setActiveTab('anomalies');
-                                }
-                              }}
-                            >
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${v.severity === 'ERROR' ? 'bg-score-low text-white' : 'bg-score-med text-white'}`}
-                                  style={{ backgroundColor: v.severity === 'ERROR' ? 'var(--score-low)' : 'var(--score-med)' }}
-                                >
-                                  {v.severity}
-                                </div>
-                                <div className="text-[11px] font-mono text-primary truncate" style={{ color: 'var(--primary)' }}>{v.source}</div>
-                              </div>
-                              <p className="text-[11px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                                {v.message}
-                              </p>
-                            </div>
+                  {activeTab === 'ddl' && (
+                    <div className="p-4">
+                      <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-2">Native DDL Projection</div>
+                      <div className="bg-input border border-subtle p-3 rounded-[2px] font-mono text-[10px] leading-relaxed break-all">
+                        <span className="text-primary">CREATE TABLE</span> {selectedNode?.id?.toUpperCase()} (
+                        <div className="pl-4">
+                          ID <span className="text-accent-purple">BIGINT</span> PRIMARY KEY,<br />
+                          {selectedNode?.data.attributes && Object.keys(selectedNode.data.attributes).slice(0, 3).map(k => (
+                            <span key={k}>{k.toUpperCase()} <span className="text-accent-purple">VARCHAR</span>(255),<br /></span>
                           ))}
-
-                          {(stats.errorCount + stats.warningCount === 0) && (
-                            <div className="px-5 py-8 text-center text-muted italic text-[12px]">
-                              No global violations found. Great job!
-                            </div>
-                          )}
+                          ...
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="p-6 border-b border-subtle bg-panel" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                    <h2 className="text-[18px] font-semibold text-main mb-1" style={{ color: 'var(--text-main)' }}>Global Analysis</h2>
-                    <p className="text-[11px] text-muted font-mono" style={{ color: 'var(--text-muted)' }}>RETRO-ANALYSIS SESSION v1.0</p>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-panel border border-subtle rounded-lg" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                        <div className="text-[10px] text-muted uppercase font-bold mb-1" style={{ color: 'var(--text-muted)' }}>Total Entities</div>
-                        <div className="text-2xl font-semibold text-main" style={{ color: 'var(--text-main)' }}>{stats.nodes}</div>
-                      </div>
-                      <div className="p-4 bg-panel border border-subtle rounded-lg" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                        <div className="text-[10px] text-muted uppercase font-bold mb-1" style={{ color: 'var(--text-muted)' }}>Anomalies</div>
-                        <div className="text-2xl font-semibold text-score-med" style={{ color: 'var(--score-med)' }}>{stats.anomalies}</div>
+                        );
                       </div>
                     </div>
-
-                    <div className="p-5 bg-panel border-subtle border rounded-xl relative overflow-hidden group" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                      <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:scale-110 transition-transform">
-                        <ShieldAlert size={64} style={{ color: 'var(--primary)' }} />
-                      </div>
-                      <div className="relative z-10">
-                        <div className="text-[11px] font-bold text-accent-purple uppercase mb-4 tracking-widest" style={{ color: 'var(--accent-purple)' }}>Health Score</div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-4xl font-bold text-main" style={{ color: 'var(--text-main)' }}>
-                            {Math.max(100 - (stats.errorCount * 5 + stats.warningCount * 2), 0)}%
-                          </div>
-                          <div className="flex-1 h-2 bg-subtle rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-subtle)' }}>
-                            <div className="h-full bg-gradient-to-r from-accent-purple to-primary" style={{ width: `${Math.max(100 - (stats.errorCount * 5 + stats.warningCount * 2), 0)}%`, backgroundColor: 'var(--primary)' }}></div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="p-4 border-b border-subtle bg-black/10"><h2 className="text-[12px] font-black text-main uppercase tracking-widest">Global Insights</h2></div>
+                <div className="flex-1 p-4 space-y-6 overflow-y-auto custom-scrollbar">
+                  <div className="px-1 mb-2">
+                    <div className="flex gap-2">
+                      {(['ERROR', 'WARNING'] as const).map(sev => (
+                        <button
+                          key={sev}
+                          onClick={() => setViolationFilters(prev => ({ ...prev, [sev]: !prev[sev] }))}
+                          className={`flex-1 py-1 px-2 rounded text-[9px] border transition-all ${violationFilters[sev] ? 'bg-primary/10 border-primary text-primary' : 'bg-transparent border-subtle text-muted'}`}
+                        >
+                          {sev}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-input border border-subtle rounded-[2px] text-center">
+                      <div className="text-[8px] text-muted font-black uppercase mb-1">Entities</div>
+                      <div className="text-lg font-bold text-main">{stats.nodes}</div>
+                    </div>
+                    <div className="p-3 bg-input border border-subtle rounded-[2px] text-center">
+                      <div className="text-[8px] text-muted font-black uppercase mb-1">Health</div>
+                      <div className="text-lg font-bold text-score-high">{Math.max(100 - (stats.errorCount * 5 + stats.warningCount * 2), 0)}%</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-3">Critical Issues</div>
+                    <div className="space-y-2">
+                      {stats.errorCount > 0 ? (
+                        <div className="p-3 bg-score-low/10 border border-score-low/30 rounded-[2px] flex gap-2">
+                          <ShieldAlert size={14} className="text-score-low shrink-0 h-4" />
+                          <div>
+                            <div className="text-[11px] font-bold text-score-low mb-1">Action Required</div>
+                            <p className="text-[10px] text-secondary leading-relaxed">Detected architectural risks. Check units in cycle or with eager fetching.</p>
                           </div>
                         </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-[11px] uppercase tracking-wider text-muted font-bold mb-3 px-1" style={{ color: 'var(--text-muted)' }}>Recent Violations</h3>
-                      <div className="space-y-3">
-                        {stats.errorCount > 0 ? (
-                          <div className="p-3 bg-score-low/5 border border-score-low/20 rounded-md flex gap-3" style={{ backgroundColor: 'var(--accent-glow)', borderColor: 'var(--score-low)' }}>
-                            <div className="text-score-low" style={{ color: 'var(--score-low)' }}>⚠</div>
-                            <div className="text-[12px]">
-                              <div className="text-main font-semibold" style={{ color: 'var(--text-main)' }}>Critical Performance Risks</div>
-                              <p className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Multiple N+1 query patterns detected in the current unit.</p>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="p-4 border border-dashed border-subtle rounded-md text-center" style={{ borderColor: 'var(--border-subtle)' }}>
-                            <p className="text-[11px] text-muted" style={{ color: 'var(--text-muted)' }}>No critical violations</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="pt-4">
-                      <div className="text-[11px] text-muted text-center border-t border-subtle pt-4" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}>
-                        Select an entity or relationship to drill down into specific JPA mappings.
-                      </div>
+                      ) : (
+                        <div className="p-4 border border-dashed border-subtle rounded-[2px] text-center italic text-[10px] text-muted">System healthy.</div>
+                      )}
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center py-10 opacity-40 bg-panel" style={{ backgroundColor: 'var(--bg-panel)' }}>
-              <ChevronRight className="mb-2 text-secondary" size={20} style={{ color: 'var(--text-secondary)' }} />
-              <div className="[writing-mode:vertical-lr] text-[10px] uppercase font-bold tracking-widest text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                Inspector Collapsed
               </div>
-            </div>
-          )
-        }
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center py-6 opacity-40">
+            <span className="[writing-mode:vertical-lr] text-[9px] font-black uppercase tracking-widest text-muted">Inspector Hidden</span>
+          </div>
+        )}
       </aside>
-    </div >
+    </div>
   );
 }
 

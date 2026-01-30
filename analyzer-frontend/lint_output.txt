@@ -1,0 +1,55 @@
+
+> analyzer-frontend@0.0.0 lint
+> eslint .
+
+
+/home/marco/dev/eclispelinkanalyser/analyzer-frontend/src/App.tsx
+   27:1   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+   29:69  error  'ShieldAlert' is defined but never used                                                                              @typescript-eslint/no-unused-vars
+  367:10  error  'inspectorJpaTab' is assigned a value but never used                                                                 @typescript-eslint/no-unused-vars
+  367:27  error  'setInspectorJpaTab' is assigned a value but never used                                                              @typescript-eslint/no-unused-vars
+  377:10  error  'violationFilters' is assigned a value but never used                                                                @typescript-eslint/no-unused-vars
+  377:28  error  'setViolationFilters' is assigned a value but never used                                                             @typescript-eslint/no-unused-vars
+  642:15  error  'fetchLabel' is never reassigned. Use 'const' instead                                                                prefer-const
+  643:15  error  'mappingLabel' is never reassigned. Use 'const' instead                                                              prefer-const
+  874:67  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  962:76  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  991:67  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+/home/marco/dev/eclispelinkanalyser/analyzer-frontend/src/analysis/engine.ts
+  77:13  error  'reasons' is never reassigned. Use 'const' instead  prefer-const
+
+/home/marco/dev/eclispelinkanalyser/analyzer-frontend/src/analysis/semantic.ts
+  42:48  error  '_profile' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  64:37  error  '_name' is defined but never used              @typescript-eslint/no-unused-vars
+
+/home/marco/dev/eclispelinkanalyser/analyzer-frontend/src/analysis/topology.ts
+  96:25  error  '_id' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/marco/dev/eclispelinkanalyser/analyzer-frontend/src/components/CacheView.tsx
+  5:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/marco/dev/eclispelinkanalyser/analyzer-frontend/src/components/DDLView.tsx
+   5:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/marco/dev/eclispelinkanalyser/analyzer-frontend/src/components/EntityNode.tsx
+  114:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/marco/dev/eclispelinkanalyser/analyzer-frontend/src/components/JPAView.tsx
+  24:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/marco/dev/eclispelinkanalyser/analyzer-frontend/src/utils/aggregateHeuristics.ts
+  11:1   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  34:65  error  '_allNodes' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+  34:76  error  '_edges' is defined but never used                                                                                   @typescript-eslint/no-unused-vars
+  34:84  error  '_config' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+  50:63  error  '_allNodes' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+  50:74  error  '_edges' is defined but never used                                                                                   @typescript-eslint/no-unused-vars
+  50:82  error  '_config' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+
+✖ 29 problems (29 errors, 0 warnings)
+  3 errors and 0 warnings potentially fixable with the `--fix` option.
+
