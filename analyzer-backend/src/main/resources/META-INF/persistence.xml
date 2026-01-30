@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="2.2" xmlns="http://xmlns.jcp.org/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd">
+  <persistence-unit name="RealAgentTest" transaction-type="RESOURCE_LOCAL">
+    <provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
+    <class>com.eclipselink.analyzer.demo.l1_basic.Person</class>
+    <class>com.eclipselink.analyzer.demo.l2_relationships.onetoone.L2Employee</class>
+    <class>com.eclipselink.analyzer.demo.l2_relationships.onetoone.L2Address</class>
+    <class>com.eclipselink.analyzer.demo.l2_relationships.onetomany.L2Department</class>
+    <class>com.eclipselink.analyzer.demo.l2_relationships.onetomany.L2EmployeeOM</class>
+    <class>com.eclipselink.analyzer.demo.l2_relationships.manytomany.L2Student</class>
+    <class>com.eclipselink.analyzer.demo.l2_relationships.manytomany.L2Course</class>
+    <class>com.eclipselink.analyzer.demo.l2_relationships.element.L2ProjectEC</class>
+    <class>com.eclipselink.analyzer.demo.l2_relationships.embedded.L2Order</class>
+    <class>com.eclipselink.analyzer.demo.l2_relationships.embedded.L2BillingAddress</class>
+    <class>com.eclipselink.analyzer.demo.l3_converters.basic.L3PersonConv</class>
+    <class>com.eclipselink.analyzer.demo.l3_converters.objecttype.L3Status</class>
+    <class>com.eclipselink.analyzer.demo.l3_converters.serialized.L3Config</class>
+    <class>com.eclipselink.analyzer.demo.l4_specific.batch.L4BatchLine</class>
+    <class>com.eclipselink.analyzer.demo.l4_specific.batch.L4Detail</class>
+    <class>com.eclipselink.analyzer.demo.l4_specific.cache.L4CachedProduct</class>
+    <class>com.eclipselink.analyzer.demo.l4_specific.privateowned.L4PrivateParent</class>
+    <class>com.eclipselink.analyzer.demo.l4_specific.privateowned.L4PrivateChild</class>
+    <class>com.eclipselink.analyzer.demo.l5.transform.GeoCoordinate</class>
+    <class>com.eclipselink.analyzer.demo.l5.direct.UserSettings</class>
+    <class>com.eclipselink.analyzer.demo.l5.aggregate.Portfolio</class>
+    <class>com.eclipselink.analyzer.demo.l5.aggregate.Holding</class>
+    <class>com.eclipselink.analyzer.demo.l5.array.ArrayTestEntity</class>
+    <class>com.eclipselink.analyzer.demo.l5.variable.MediaContainer</class>
+    <class>com.eclipselink.analyzer.demo.l5.variable.ImageContent</class>
+    <class>com.eclipselink.analyzer.demo.l5.variable.VideoContent</class>
+    <class>com.eclipselink.analyzer.demo.l6_antipatterns.circular.L6CyclicA</class>
+    <class>com.eclipselink.analyzer.demo.l6_antipatterns.circular.L6CyclicB</class>
+    <class>com.eclipselink.analyzer.demo.l6_antipatterns.cartesian.L6CartesianParent</class>
+    <class>com.eclipselink.analyzer.demo.l6_antipatterns.opt.L6UnoptEntity</class>
+    <!-- New Demo Entities for Fix Verification -->
+    <class>com.eclipselink.analyzer.demo.l4_specific.indirection.L4IndirectionSource</class>
+    <class>com.eclipselink.analyzer.demo.l4_specific.indirection.L4IndirectionTarget</class>
+    <class>com.eclipselink.analyzer.demo.l2_relationships.mapped_superclass.BaseEntity</class>
+    <class>com.eclipselink.analyzer.demo.l2_relationships.mapped_superclass.ChildEntity</class>
+    <properties>
+      <property name="javax.persistence.jdbc.driver" value="org.h2.Driver"/>
+      <property name="javax.persistence.jdbc.url" value="jdbc:h2:mem:realagenttest;DB_CLOSE_DELAY=-1"/>
+      <property name="javax.persistence.jdbc.user" value="sa"/>
+      <property name="javax.persistence.jdbc.password" value=""/>
+      <property name="eclipselink.ddl-generation" value="create-tables"/>
+    </properties>
+  </persistence-unit>
+</persistence>

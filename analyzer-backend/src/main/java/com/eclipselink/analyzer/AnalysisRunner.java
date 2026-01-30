@@ -49,6 +49,7 @@ public class AnalysisRunner {
         result.put("violations", violations);
 
         mapper.writeValue(new File(outputPath), result);
-        System.out.println("Analysis report generated at: " + outputPath);
+        System.out.println("[AnalyzerAgent] Analysis report generated at: " + new File(outputPath).getAbsolutePath());
+        System.out.flush();
     }
 }

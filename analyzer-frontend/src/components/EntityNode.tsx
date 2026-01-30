@@ -67,7 +67,11 @@ interface EntityNodeData {
     attributes: Record<string, AttributeMetadata>;
     relationships?: RelationshipMetadata[];
     dddRole?: string;
+    dddRoleConfidence?: number;
     aggregateName?: string;
+    aggregateNameConfidence?: number;
+    cutPointScore?: number;
+    cutPointNormalized?: number;
     showAttributes: boolean;
     hasAnomalies: boolean;
     violations: Violation[];
@@ -199,8 +203,9 @@ const EntityNode = ({ data, selected }: EntityNodeProps) => {
                 </div>
             )}
 
-            {/* Aggregate Indicator Bar - Thinner */}
-            <div className="h-0.5 w-full" style={{ backgroundColor: aggColor }}></div>
+            {/* Aggregate Indicator - More prominent left border and top bar */}
+            <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: aggColor }}></div>
+            <div className="h-1 w-full" style={{ backgroundColor: aggColor }}></div>
 
             {/* Header Section - Stacked and tight */}
             <div className={`px-1.5 py-1 border-b ${selected ? 'bg-panel/50 border-primary/20' : 'bg-panel/10 border-subtle'}`}

@@ -285,14 +285,14 @@ public class GenPyCalibrationTest {
                                 "|----------------|------------------|-------------------|----------------|-------------|");
 
                 // Map of Python results for comparison
-                Map<String, String> pythonRoots = Map.of(
-                                "CashAccount", "Cluster 0",
-                                "AccountEntry", "Cluster 0 (ROOT)",
-                                "MoneyAmount", "Cluster 2 (ROOT)",
-                                "Currency", "Cluster 2",
-                                "Counterparty", "Cluster 1",
-                                "PostalAddress", "Cluster 1",
-                                "AuditLog", "Cluster 1 (ROOT)");
+                Map<String, String> pythonRoots = new java.util.HashMap<>();
+                pythonRoots.put("CashAccount", "Cluster 0");
+                pythonRoots.put("AccountEntry", "Cluster 0 (ROOT)");
+                pythonRoots.put("MoneyAmount", "Cluster 2 (ROOT)");
+                pythonRoots.put("Currency", "Cluster 2");
+                pythonRoots.put("Counterparty", "Cluster 1");
+                pythonRoots.put("PostalAddress", "Cluster 1");
+                pythonRoots.put("AuditLog", "Cluster 1 (ROOT)");
 
                 for (EntityNode node : treasuryModel) {
                         String pythonInfo = pythonRoots.getOrDefault(node.getName(), "?");

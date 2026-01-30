@@ -1,0 +1,56 @@
+{
+  "nodes" : [ {
+    "name" : "L4CachedProduct",
+    "packageName" : "com.eclipselink.analyzer.demo.l4_specific.cache",
+    "type" : "ENTITY",
+    "parentEntity" : null,
+    "inheritanceStrategy" : null,
+    "discriminatorColumn" : null,
+    "discriminatorValue" : null,
+    "attributes" : {
+      "id" : {
+        "name" : "id",
+        "javaType" : "java.lang.Long",
+        "databaseType" : "java.lang.Long",
+        "columnName" : "ID",
+        "temporalType" : null,
+        "converterName" : null,
+        "generationStrategy" : null,
+        "converterType" : null,
+        "transformationMethodName" : null,
+        "objectTypeDataType" : null,
+        "objectTypeObjectType" : null,
+        "lob" : false,
+        "id" : false,
+        "transformationMapping" : false,
+        "unique" : false,
+        "elementCollection" : false,
+        "basic" : false,
+        "generatedValue" : false,
+        "enumerated" : false,
+        "temporal" : false,
+        "nullable" : false,
+        "convert" : false,
+        "objectTypeConverter" : false,
+        "typeConversionConverter" : false,
+        "serializedObjectConverter" : false,
+        "transient" : false,
+        "version" : false
+      }
+    },
+    "relationships" : [ ],
+    "dddRole" : "ENTITY",
+    "aggregateName" : "Cache",
+    "violations" : [ ],
+    "cacheType" : null,
+    "cacheExpiry" : null,
+    "cacheCoordinationType" : null
+  } ],
+  "violations" : [ ],
+  "anomalies" : [ {
+    "entityName" : "L4CachedProduct",
+    "propertyName" : null,
+    "severity" : "ERROR",
+    "message" : "Table L4CACHEDPRODUCT not found in database"
+  } ]
+}

@@ -20,6 +20,8 @@ import EntityNode from './components/EntityNode';
 import GroupNode from './components/GroupNode';
 import { jsPDF } from 'jspdf';
 import { getAggregateForNode, heuristics, type HeuristicType } from './utils/aggregateHeuristics';
+// @ts-ignore
+import DDDRules from './analysis/shared-rules';
 import { runAnalysis, type AnalysisConfig, type AnalysisReport as AdvancedAnalysisReport } from './analysis/engine';
 import { SemanticProfile } from './analysis/semantic';
 import { Layout, AlertCircle, CircleAlert, Info, Loader2, RefreshCw, Eye, EyeOff, GitGraph, Upload, ShieldAlert, Database, ChevronLeft, ChevronRight, Activity, Layers, FileDown, Brain, Box, GitMerge, ChevronDown, LayoutDashboard } from 'lucide-react';
@@ -99,7 +101,11 @@ interface EntityNodeData {
   attributes: Record<string, AttributeMetadata>;
   relationships?: RelationshipMetadata[];
   dddRole?: string;
+  dddRoleConfidence?: number;
   aggregateName?: string;
+  aggregateNameConfidence?: number;
+  cutPointScore?: number;
+  cutPointNormalized?: number;
   showAttributes: boolean;
   hasAnomalies: boolean;
   violations: Violation[];
@@ -446,43 +452,47 @@ function AnalyzerApp() {
   }, [isResizing, handleResize, handleResizeEnd]);
 
   const reports = [
-    // === Level 1: Basic JPA ===
-    { id: 'catalog/1-1-basic-entity.json', name: '1.1 📗 Basic Entity' },
-    { id: 'catalog/1-2-basic-relationship.json', name: '1.2 📗 Basic Relationship' },
-    { id: 'catalog/1-3-bidirectional.json', name: '1.3 📗 Bidirectional' },
-    { id: 'catalog/1-4-many-to-many.json', name: '1.4 📗 Many-to-Many' },
-    // === Level 2: JPA Intermediate ===
-    { id: 'catalog/2-1-inheritance-single.json', name: '2.1 📘 Inheritance (Single)' },
-    { id: 'catalog/2-2-inheritance-joined.json', name: '2.2 📘 Inheritance (Joined)' },
-    { id: 'catalog/2-3-embedded.json', name: '2.3 📘 Embedded' },
-    { id: 'catalog/2-4-element-collection.json', name: '2.4 📘 ElementCollection' },
-    { id: 'catalog/2-5-mapped-superclass.json', name: '2.5 🏗️ MappedSuperclass' },
-    // === Level 3: JPA Advanced ===
-    { id: 'catalog/3-1-lazy-eager.json', name: '3.1 📙 Lazy vs Eager' },
-    { id: 'catalog/3-2-cascade-operations.json', name: '3.2 📙 Cascade Operations' },
-    { id: 'catalog/3-3-version-temporal.json', name: '3.3 📙 Version & Temporal' },
-    { id: 'catalog/3-4-converters.json', name: '3.4 📙 Converters' },
-    // === Level 4: EclipseLink Specific ===
-    { id: 'catalog/4-1-batch-fetch.json', name: '4.1 🔷 Batch Fetch' },
-    { id: 'catalog/4-2-cache-config.json', name: '4.2 🔷 Cache Config' },
-    { id: 'catalog/4-3-indirection.json', name: '4.3 🔷 Indirection (ValueHolder)' },
-    { id: 'catalog/4-4-private-owned.json', name: '4.4 🔷 Private Owned' },
-    // === Level 5: EclipseLink Advanced ===
-    { id: 'catalog/5-1-transformation.json', name: '5.1 🔶 Transformation Mapping' },
-    { id: 'catalog/5-2-variable-onetoone.json', name: '5.2 🔶 Variable OneToOne' },
-    { id: 'catalog/5-3-direct-collection.json', name: '5.3 🔶 DirectCollection & Map' },
-    { id: 'catalog/5-4-aggregate-collection.json', name: '5.4 🔶 AggregateCollection' },
-    { id: 'catalog/5-5-array-nested.json', name: '5.5 🔶 Array & NestedTable' },
-    // === Level 6: Anti-Patterns ===
-    { id: 'catalog/6-1-circular-refs.json', name: '6.1 ⚠️ Circular References' },
-    { id: 'catalog/6-2-cartesian-product.json', name: '6.2 ⚠️ Cartesian Product' },
-    { id: 'catalog/6-3-missing-optimizations.json', name: '6.3 ⚠️ Missing Optimizations' },
-    { id: 'catalog/6-4-deep-cycle-verified.json', name: '6.4 ✅ Verified Deep Cycle (A-B-C-D)' },
+    // === Level 1: Basic JPA (Real) ===
+    { id: 'catalog/1-1-basic-entity-real.json', name: '1.1 📗 Basic Entity (Real)' },
+
+    // === Level 2: Relationships (Real) ===
+    { id: 'catalog/2-1-onetoone-real.json', name: '2.1 📘 OneToOne' },
+    { id: 'catalog/2-2-onetomany-real.json', name: '2.2 📘 OneToMany' },
+    { id: 'catalog/2-3-manytomany-real.json', name: '2.3 📘 ManyToMany' },
+    { id: 'catalog/2-4-element-collection-real.json', name: '2.4 📘 ElementCollection' },
+    { id: 'catalog/2-5-embedded-real.json', name: '2.5 📘 Embedded' },
+    { id: 'catalog/2-5-mapped-superclass.json', name: '2.6 📘 Mapped Superclass' },
+
+    // === Level 3: Converters (Real) ===
+    { id: 'catalog/3-1-basic-converter-real.json', name: '3.1 📙 Basic Converter' },
+    { id: 'catalog/3-2-object-type-real.json', name: '3.2 📙 ObjectType Converter' },
+    { id: 'catalog/3-3-serialized-object-real.json', name: '3.3 📙 Serialized Object' },
+
+    // === Level 4: EclipseLink Specific (Real) ===
+    { id: 'catalog/4-1-batch-fetch-real.json', name: '4.1 🔷 Batch Fetch' },
+    { id: 'catalog/4-2-cache-config-real.json', name: '4.2 🔷 Cache Config' },
+    { id: 'catalog/4-3-indirection-real.json', name: '4.3 🔷 Indirection (ValueHolder)' },
+    { id: 'catalog/4-4-private-owned-real.json', name: '4.4 🔷 Private Owned' },
+
+    // === Level 5: EclipseLink Advanced (Real) ===
+    { id: 'catalog/5-1-transformation-real.json', name: '5.1 🔶 Transformation Mapping' },
+    { id: 'catalog/5-2-variable-onetoone-real.json', name: '5.2 🔶 Variable OneToOne' },
+    { id: 'catalog/5-3-direct-collection-real.json', name: '5.3 🔶 DirectCollection & Map' },
+    { id: 'catalog/5-4-aggregate-collection-real.json', name: '5.4 🔶 AggregateCollection' },
+    { id: 'catalog/5-5-array-real.json', name: '5.5 🔶 Array' },
+
+    // === Level 6: Anti-Patterns (Real) ===
+    { id: 'catalog/6-1-circular-refs-real.json', name: '6.1 ⚠️ Circular References' },
+    { id: 'catalog/6-2-cartesian-product-real.json', name: '6.2 ⚠️ Cartesian Product' },
+    { id: 'catalog/6-3-missing-optimizations-real.json', name: '6.3 ⚠️ Missing Optimizations (Eager)' },
+    { id: 'catalog/6-4-deep-cycle-verified.json', name: '6.4 ⚠️ Deep Cycle Verified' },
+
     // === Level 7: Real-World ===
     { id: 'complex-scenario-report.json', name: '7.1 🏢 Complex Domain (E-commerce)' },
     { id: 'ofbiz-report.json', name: '7.2 🚀 OFBiz Stress Test (113 entities)' },
+    { id: 'agent-report.json', name: 'DDDSample Analysis' },
   ];
-  const { fitView } = useReactFlow();
+  const { fitView, getNodes, getEdges } = useReactFlow();
 
   const processReportData = useCallback((data: AnalysisReport) => {
     // Helper to count violations for a relationship
@@ -498,6 +508,70 @@ function AnalyzerApp() {
         }
       }
       return count;
+    };
+
+    // Helper to determine SVG markers for UML visualization
+    const getEdgeMarkers = (rel: RelationshipMetadata) => {
+      const markers: { markerStart?: string; markerEnd?: string } = {};
+
+      // Skip markers for non-relationship mapping types (Embedded, ElementCollection, etc.)
+      const isRelationship = rel.mappingType && ['OneToOne', 'OneToMany', 'ManyToOne', 'ManyToMany'].some(t => rel.mappingType.includes(t));
+      if (!isRelationship) {
+        return markers; // No markers for embedded, element collection, etc.
+      }
+
+      // Strong ownership (composition): filled diamond at source for cascade relationships
+      // Composition is indicated by cascade ALL or cascade PERSIST+REMOVE (with optional orphanRemoval)
+      const isComposition = rel.cascadeAll || (rel.cascadePersist && rel.cascadeRemove);
+      if (isComposition) {
+        markers.markerStart = 'url(#marker-composition)';
+      }
+
+      // JPA ownership: small bar at source for owning side (if not already a composition marker)
+      if (rel.owningSide && !markers.markerStart) {
+        markers.markerStart = 'url(#marker-ownership-bar)';
+      }
+
+      // Cardinality markers based on mapping type
+      if (rel.mappingType) {
+        const isOneToOne = rel.mappingType.includes('OneToOne');
+        const isOneToMany = rel.mappingType.includes('OneToMany');
+        const isManyToOne = rel.mappingType.includes('ManyToOne');
+        const isManyToMany = rel.mappingType.includes('ManyToMany');
+
+        if (isOneToOne) {
+          // OneToOne: standard arrow at target
+          markers.markerEnd = 'url(#marker-standard-arrow)';
+        } else if (isOneToMany) {
+          // OneToMany: crow's foot at target (many side)
+          markers.markerEnd = 'url(#marker-crows-foot)';
+          // Arrow at source (one side) only if no markerStart already
+          if (!markers.markerStart) {
+            markers.markerStart = 'url(#marker-standard-arrow)';
+          }
+        } else if (isManyToOne) {
+          // ManyToOne: crow's foot at source (many side), arrow at target (one side)
+          markers.markerEnd = 'url(#marker-standard-arrow)';
+          // Crow's foot at source only if no markerStart already
+          if (!markers.markerStart) {
+            markers.markerStart = 'url(#marker-crows-foot-start)';
+          }
+        } else if (isManyToMany) {
+          // ManyToMany: crow's foot at both ends
+          markers.markerEnd = 'url(#marker-crows-foot)';
+          if (!markers.markerStart) {
+            markers.markerStart = 'url(#marker-crows-foot-start)';
+          }
+        } else {
+          // Fallback
+          markers.markerEnd = 'url(#marker-standard-arrow)';
+        }
+      } else {
+        // Default arrow if no mapping type
+        markers.markerEnd = 'url(#marker-standard-arrow)';
+      }
+
+      return markers;
     };
 
     const nodesList = data.nodes || [];
@@ -523,12 +597,26 @@ function AnalyzerApp() {
       }
     });
 
-    // Detect cut-points (entities that connect different aggregates)
+    // Detect embedded entities (have incoming Embedded relationship)
+    const embeddedEntities = new Set<string>();
+    nodesList.forEach((n: EntityNodeData) => {
+      if (n.relationships) {
+        n.relationships.forEach((rel: RelationshipMetadata) => {
+          if (rel.mappingType && (rel.mappingType === "Embedded" || rel.mappingType.includes("Embedded"))) {
+            embeddedEntities.add(rel.targetEntity);
+          }
+        });
+      }
+    });
+
+    // Detect cut-points using improved heuristic (shared rules)
     const cutPoints = new Set<string>();
+    const allNodesForRules = nodesList.map(n => ({ data: n }));
     nodesList.forEach((n: EntityNodeData) => {
       if (n.relationships?.some((r: RelationshipMetadata) => {
         const target = nodesList.find((t: EntityNodeData) => t.name === r.targetEntity);
-        return target && target.aggregateName !== n.aggregateName && n.aggregateName && target.aggregateName;
+        if (!target) return false;
+        return DDDRules.isCutPointEdge(r, { data: n }, { data: target }, allNodesForRules);
       })) {
         cutPoints.add(n.name);
       }
@@ -559,7 +647,9 @@ function AnalyzerApp() {
           const startIndex = currentPath.indexOf(neighbor);
           if (startIndex !== -1) {
             const cycle = currentPath.slice(startIndex);
-            if (cycle.length > 2) {
+            // Harden check: Ensure > 2 unique nodes to strictly exclude bidirectional (A<->B)
+            // A<->B gives path [A, B] (length 2).
+            if (new Set(cycle).size > 2) {
               cycle.forEach(name => nodesInCycle.add(name));
             }
           }
@@ -587,8 +677,8 @@ function AnalyzerApp() {
 
     // For each aggregate, find the root (most outgoing owned relationships or explicit dddRole)
     aggregateGroups.forEach((members, aggName) => {
-      // Check if any member already has dddRole set
-      const existingRoot = members.find(m => m.dddRole === 'AGGREGATE_ROOT');
+      // Check if any member already has dddRole set (excluding embedded entities)
+      const existingRoot = members.find(m => m.dddRole === 'AGGREGATE_ROOT' && !embeddedEntities.has(m.name));
       if (existingRoot) {
         aggregateRoots.add(existingRoot.name);
         return;
@@ -605,8 +695,8 @@ function AnalyzerApp() {
       let bestScore = -Infinity;
 
       members.forEach(m => {
-        // Skip potential VOs - they shouldn't be roots
-        if (m.type === 'EMBEDDABLE') return;
+        // Skip potential VOs and embedded entities - they shouldn't be roots
+        if (m.type === 'EMBEDDABLE' || embeddedEntities.has(m.name)) return;
 
         const ownedRelCount = (m.relationships || []).filter((r: RelationshipMetadata) => r.owningSide).length;
         const totalRelCount = m.relationships?.length || 0;
@@ -642,7 +732,7 @@ function AnalyzerApp() {
         hasEagerRisk: nodesWithEagerRisk.has(n.name),
         isPotentialVO: potentialVOs.has(n.name),
         // Auto-detect aggregate root if not already set
-        dddRole: n.dddRole || (aggregateRoots.has(n.name) ? 'AGGREGATE_ROOT' : undefined),
+        dddRole: (!embeddedEntities.has(n.name) && n.dddRole) || (aggregateRoots.has(n.name) ? 'AGGREGATE_ROOT' : undefined),
         focusOpacity: 1
       },
     }));
@@ -659,9 +749,8 @@ function AnalyzerApp() {
           const isEager = !rel.lazy;
           const hasProblems = isEager || hasViolations;
 
-          // Detect cut-point edges (cross aggregate boundaries)
-          const isCutPointEdge = n.aggregateName && targetNode.aggregateName &&
-            n.aggregateName !== targetNode.aggregateName;
+          // Detect cut-point edges using improved heuristic
+          const isCutPointEdge = DDDRules.isCutPointEdge(rel, { data: n }, { data: targetNode }, allNodesForRules);
 
           // Determine base style based on mapping type
           let baseStrokeColor = '#10b981'; // green for normal relations
@@ -713,11 +802,13 @@ function AnalyzerApp() {
           else if (rel.aggregateCollection) mappingLabel = "AggCol";
           else if (rel.directMapMapping) mappingLabel = "DirectMap";
 
+          const edgeMarkers = getEdgeMarkers(rel);
+
           transformedEdges.push({
             id: `e-${n.name}-${rel.targetEntity}-${rIdx}`,
             source: n.name,
             target: rel.targetEntity,
-            label: (isCutPointEdge ? '✂️ ' : '') + mappingLabel + (rel.owningSide ? ' (O)' : '') + fetchLabel + (violationCount > 0 ? ` (${violationCount})` : ''),
+            label: (isCutPointEdge ? '✂️ ' : '') + mappingLabel + (rel.owningSide ? ' 🔑' : '') + fetchLabel + (violationCount > 0 ? ` (${violationCount})` : ''),
             animated: hasProblems && !isCutPointEdge,
             type: 'smoothstep',
             style: {
@@ -734,7 +825,7 @@ function AnalyzerApp() {
               borderRadius: '3px',
               border: `1px solid ${strokeColor}`
             },
-            markerEnd: rel.owningSide ? 'arrowclosed' : undefined,
+            ...edgeMarkers,
             data: {
               ...rel,
               violationCount,
@@ -745,6 +836,31 @@ function AnalyzerApp() {
           });
         }
       });
+    });
+
+    // Add inheritance edges (Child -> Parent)
+    nodesList.forEach((n: EntityNodeData) => {
+      if (n.parentEntity) {
+        // Verify parent exists in the graph to avoid dangling edges
+        const parentExists = nodesList.some((p: EntityNodeData) => p.name === n.parentEntity);
+
+        if (parentExists) {
+          transformedEdges.push({
+            id: `inheritance-${n.name}-${n.parentEntity}`,
+            source: n.name,
+            target: n.parentEntity,
+            type: 'smoothstep',
+            label: 'Extends',
+            style: { stroke: '#8b5cf6', strokeDasharray: '5 5' },
+            markerEnd: 'url(#marker-inheritance)',
+            data: {
+              mappingType: 'Inheritance',
+              lazy: true,
+              owningSide: true // Conceptual ownership
+            }
+          });
+        }
+      }
     });
 
     // Add inheritance edges
@@ -773,7 +889,7 @@ function AnalyzerApp() {
               borderRadius: '3px',
               border: '1px solid #8b5cf6'
             },
-            markerEnd: 'arrowclosed',
+            markerEnd: 'url(#marker-inheritance)',
             data: {
               isInheritance: true,
               inheritanceStrategy: n.inheritanceStrategy
@@ -803,6 +919,12 @@ function AnalyzerApp() {
   }, [setNodes, setEdges, fitView]);
 
   useEffect(() => {
+    // Skip fetch for uploaded files or empty selection
+    if (selectedReport === 'uploaded' || !selectedReport) {
+      setLoading(false);
+      return;
+    }
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
     fetch(`/${selectedReport}`)
@@ -860,89 +982,45 @@ function AnalyzerApp() {
   }, [processReportData]);
 
   const onLayout = useCallback(async (direction: 'TB' | 'LR' | 'ORGANIC' | 'GRID' | 'RADIAL' | 'CLUSTER') => {
+    // USE getNodes() to avoid stale closure issues during async toggles
+    const currentNodes = getNodes();
+    const currentEdges = getEdges();
+
     // First, filter out any existing groupNodes and remove parentId from entity nodes
-    const entityNodesOnly = nodes
+    const entityNodesOnly = currentNodes
       .filter(n => n.type === 'entityNode')
       .map(n => ({ ...n, parentId: undefined }));
+
+    const nodeIds = new Set(entityNodesOnly.map(n => n.id));
+    const validEdgesOnly = currentEdges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
 
     let result;
     switch (direction) {
       case 'ORGANIC':
-        result = await getElkLayout(entityNodesOnly, edges);
+        result = await getElkLayout(entityNodesOnly, validEdgesOnly);
         break;
-      case 'RADIAL': result = getRadialLayout(entityNodesOnly, edges); break;
-      case 'GRID': result = getGridLayout(entityNodesOnly, edges); break;
+      case 'RADIAL': result = getRadialLayout(entityNodesOnly, validEdgesOnly); break;
+      case 'GRID': result = getGridLayout(entityNodesOnly, validEdgesOnly); break;
       case 'CLUSTER':
-        result = getClusterLayout(entityNodesOnly, edges, (n) => getAggregateForNode(n, entityNodesOnly, edges, heuristics[selectedHeuristic], analysisConfig));
+        result = getClusterLayout(entityNodesOnly, validEdgesOnly, (n) => getAggregateForNode(n, entityNodesOnly, validEdgesOnly, heuristics[selectedHeuristic], analysisConfig));
         break;
-      default: result = getLayoutedElements(entityNodesOnly, edges, direction);
+      default: result = getLayoutedElements(entityNodesOnly, validEdgesOnly, direction);
     }
 
     const layoutedNodes = result.nodes;
 
     if (groupingMode) {
-      // Use the selected heuristic (default is server-side truth)
-      const heuristicFn = heuristics[selectedHeuristic];
+      // We still want clustered layout positions, but we STOP creating groupNodes and STOP assigning parentId
+      // as requested by the user ("supprime le coté encadrement").
 
-      // Create aggregate groups using the selected heuristic
-      const aggregates = new Map<string, Node[]>();
-      layoutedNodes.filter(n => n.type === 'entityNode').forEach(n => {
-        const agg = getAggregateForNode(n, layoutedNodes, edges, heuristicFn, analysisConfig);
-        if (!aggregates.has(agg)) aggregates.set(agg, []);
-        aggregates.get(agg)?.push(n);
-      });
-
-      const groupNodes: Node[] = [];
-      const updatedEntityNodes = layoutedNodes.filter(n => n.type === 'entityNode').map(n => {
-        const agg = getAggregateForNode(n, layoutedNodes, edges, heuristicFn, analysisConfig);
-        return { ...n, parentId: `group-${agg}` };
-      });
-
-      aggregates.forEach((children, agg) => {
-        // Calculate bounds with significantly more padding to avoid overlap and feel less cramped
-        const padding = 150;
-        const headerSpace = 70;
-        const nodeWidth = 120;
-        const nodeHeight = 70;
-        const minX = Math.min(...children.map(c => c.position.x));
-        const minY = Math.min(...children.map(c => c.position.y));
-        const maxX = Math.max(...children.map(c => c.position.x + nodeWidth));
-        const maxY = Math.max(...children.map(c => c.position.y + (c.data.showAttributes ? 200 : nodeHeight)));
-
-        groupNodes.push({
-          id: `group-${agg}`,
-          type: 'groupNode',
-          position: { x: minX - padding, y: minY - padding - headerSpace },
-          style: {
-            width: maxX - minX + padding * 2,
-            height: maxY - minY + padding * 2 + headerSpace
-          },
-          data: {
-            label: agg,
-            aggregateName: agg,
-            color: getAggregateColor(agg),
-            memberCount: children.length
-          },
-          zIndex: -1,
-        });
-
-        // Adjust children positions to be relative to parent
-        updatedEntityNodes.filter(n => n.parentId === `group-${agg}`).forEach(n => {
-          n.position = {
-            x: n.position.x - (minX - padding),
-            y: n.position.y - (minY - padding - headerSpace)
-          };
-        });
-      });
-
-      setNodes([...groupNodes, ...updatedEntityNodes]);
+      setNodes(layoutedNodes.map(n => ({ ...n, parentId: undefined })));
     } else {
       // When grouping mode is OFF, return only entity nodes without parentId
       setNodes(layoutedNodes.map(n => ({ ...n, parentId: undefined })));
     }
 
     setTimeout(() => fitView({ padding: 0.2 }), 100);
-  }, [nodes, edges, setNodes, fitView, groupingMode, selectedHeuristic, analysisConfig]);
+  }, [getNodes, getEdges, setNodes, fitView, groupingMode, selectedHeuristic, analysisConfig]);
 
   const toggleAttributes = useCallback(() => {
     setShowAttributes(prev => {
@@ -1210,9 +1288,8 @@ function AnalyzerApp() {
           const cycleStartIndex = path.indexOf(neighbor);
           if (cycleStartIndex !== -1) {
             const cycle = path.slice(cycleStartIndex);
-            // Filter out simple bidirectional (length 2)
-            // A->B, B->A is length 2. User focuses on "more than 1 level" (i.e., length > 2)
-            if (cycle.length > 2) {
+            // Harden check: Ensure > 2 unique nodes
+            if (new Set(cycle).size > 2) {
               detectedCycles.push([...cycle]);
             }
           }
@@ -1250,16 +1327,12 @@ function AnalyzerApp() {
 
     return edges.map(edge => {
       let isRelevant = false;
-      let overrideColor = undefined;
-      let overrideOpacity = undefined;
 
       switch (activeLayer) {
         case 'cycles':
           // Highlight complex cycles (length > 2)
           if (complexCycleEdges.has(edge.id)) {
             isRelevant = true;
-            overrideColor = '#FF0040';
-            overrideOpacity = 1;
           }
           break;
         case 'cuts':
@@ -1659,6 +1732,89 @@ function AnalyzerApp() {
             fitViewOptions={{ padding: 0.5 }}
             minZoom={0.1}
           >
+            {/* Custom SVG markers for UML conventions */}
+            <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+              <defs>
+                {/* Inheritance: Hollow triangle (white fill, colored border) */}
+                <marker
+                  id="marker-inheritance"
+                  viewBox="0 0 10 10"
+                  refX="10"
+                  refY="5"
+                  markerWidth="8"
+                  markerHeight="8"
+                  orient="auto"
+                >
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="white" stroke="currentColor" strokeWidth="1.5" />
+                </marker>
+
+                {/* Composition: Filled diamond for strong ownership (cascade) */}
+                <marker
+                  id="marker-composition"
+                  viewBox="0 0 10 10"
+                  refX="0"
+                  refY="5"
+                  markerWidth="8"
+                  markerHeight="8"
+                  orient="auto"
+                >
+                  <path d="M 0 5 L 10 0 L 20 5 L 10 10 z" fill="currentColor" />
+                </marker>
+
+                {/* Crow's foot for OneToMany cardinality (target side) */}
+                <marker
+                  id="marker-crows-foot"
+                  viewBox="0 0 10 10"
+                  refX="10"
+                  refY="5"
+                  markerWidth="12"
+                  markerHeight="12"
+                  orient="auto"
+                >
+                  <path d="M 0 0 L 10 5 L 0 10 M 10 5 L 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                </marker>
+
+                {/* Crow's foot for source side (ManyToOne cardinality) */}
+                <marker
+                  id="marker-crows-foot-start"
+                  viewBox="0 0 10 10"
+                  refX="0"
+                  refY="5"
+                  markerWidth="12"
+                  markerHeight="12"
+                  orient="auto"
+                >
+                  <path d="M 0 0 L 10 5 L 0 10 M 10 5 L 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                </marker>
+
+                {/* JPA Ownership: Small bar at source for owning side */}
+                <marker
+                  id="marker-ownership-bar"
+                  viewBox="0 0 10 10"
+                  refX="0"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto"
+                >
+                  <path d="M 0 2 L 0 8 L 4 8 L 4 2 z" fill="currentColor" />
+                </marker>
+
+                {/* Standard arrow for OneToOne relationships */}
+                <marker
+                  id="marker-standard-arrow"
+                  viewBox="0 0 10 10"
+                  refX="10"
+                  refY="5"
+                  markerWidth="8"
+                  markerHeight="8"
+                  orient="auto"
+                >
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+                </marker>
+              </defs>
+            </svg>
+
             <Background color="var(--border-active)" gap={20} className="opacity-0" />
             <Controls className="!bg-panel !border-subtle !shadow-none [&_button]:!border-subtle [&_path]:!fill-muted" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }} />
             <MiniMap
@@ -1751,6 +1907,11 @@ function AnalyzerApp() {
                         </div>
                         <div className="text-[12px] font-bold text-main mb-2" style={{ color: 'var(--text-main)' }}>
                           Aggregate: <span style={{ color: getAggregateColor(selectedNode?.data.aggregateName) }}>{selectedNode?.data.aggregateName || 'General'}</span>
+                          {selectedNode?.data.aggregateNameConfidence && (
+                            <span className="text-[10px] text-muted ml-2">
+                              ({(selectedNode.data.aggregateNameConfidence * 100).toFixed(0)}% confidence)
+                            </span>
+                          )}
                         </div>
                         <p className="text-[11px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                           {selectedNode?.data.dddRole === 'AGGREGATE_ROOT'
@@ -1803,9 +1964,21 @@ function AnalyzerApp() {
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/30 text-primary font-bold" style={{ color: 'var(--primary)' }}>✂️ CUT</span>
                               <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Cross-Aggregate Bridge</span>
+                              {selectedNode?.data.cutPointScore && (
+                                <span className="text-[10px] text-muted ml-auto">
+                                  Score: {selectedNode.data.cutPointScore.toFixed(2)}
+                                </span>
+                              )}
                             </div>
                             <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
                               This entity connects different aggregates. Consider decoupling via ID reference instead of direct object reference.
+                              {selectedNode?.data.cutPointNormalized && selectedNode.data.cutPointNormalized > 0.1 && (
+                                <span className="block mt-1">
+                                  <span className="inline-block h-1 w-full bg-subtle rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary" style={{ width: `${Math.min(selectedNode.data.cutPointNormalized * 100, 100)}%` }}></div>
+                                  </span>
+                                </span>
+                              )}
                             </p>
                           </div>
                         )}
@@ -1826,28 +1999,73 @@ function AnalyzerApp() {
                       <div className="px-5 py-2">
                         <div className="text-[11px] text-muted mb-2 uppercase tracking-tighter font-bold" style={{ color: 'var(--text-muted)' }}>Heuristic Confidence</div>
                         <div className="h-1.5 w-full bg-subtle rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-subtle)' }}>
-                          <div className="h-full bg-gradient-to-r from-accent-purple to-primary" style={{ width: selectedNode?.data.dddRole === 'AGGREGATE_ROOT' ? '85%' : '60%', backgroundColor: 'var(--primary)' }}></div>
+                          <div className="h-full bg-gradient-to-r from-accent-purple to-primary" style={{ width: `${((selectedNode?.data.dddRoleConfidence || 0.5) * 100)}%`, backgroundColor: 'var(--primary)' }}></div>
+                        </div>
+                        <div className="text-[10px] text-muted mt-1 text-right">
+                          {selectedNode?.data.dddRoleConfidence ? `${(selectedNode.data.dddRoleConfidence * 100).toFixed(0)}% confidence` : 'No confidence data'}
                         </div>
                       </div>
 
-                      <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Performance Rules</div>
-                      {(selectedNode?.data?.violations || []).map((v: Violation, idx: number) => (
-                        <div key={idx} className={`mx-5 p-4 bg-panel border-subtle border rounded-md mb-4 border-l-2 ${v.severity === 'ERROR' ? 'border-l-score-low' : 'border-l-score-med'}`}
-                          style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                          <div className="flex gap-3 mb-2">
-                            <div className={v.severity === 'ERROR' ? 'text-score-low' : 'text-score-med'} style={{ color: v.severity === 'ERROR' ? 'var(--score-low)' : 'var(--score-med)' }}>⚠</div>
-                            <h4 className="text-[13px] font-semibold text-main" style={{ color: 'var(--text-main)' }}>{v.ruleId}</h4>
+                      <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Entity Insights & Rules</div>
+                      {(() => {
+                        const violations = selectedNode?.data?.violations || [];
+                        if (violations.length === 0) {
+                          return <div className="px-5 py-4 text-[12px] text-[#888] italic">No performance violations detected.</div>;
+                        }
+
+                        const RULE_CATEGORIES: Record<string, { label: string; color: string }> = {
+                          'PERFORMANCE': { label: 'Performance', color: 'var(--primary)' },
+                          'INTEGRITY': { label: 'Data Integrity', color: 'var(--score-med)' },
+                          'DATABASE': { label: 'Database Optimization', color: 'var(--accent-purple)' },
+                          'ARCHITECTURE': { label: 'Architecture', color: 'var(--score-high)' },
+                          'OTHER': { label: 'General', color: 'var(--text-muted)' }
+                        };
+
+                        const ruleToCategory: Record<string, string> = {
+                          'REL_EAGER_FETCH': 'PERFORMANCE',
+                          'LARGE_COLLECTION': 'PERFORMANCE',
+                          'N_PLUS_ONE_QUERY': 'PERFORMANCE',
+                          'CARTESIAN_PRODUCT': 'PERFORMANCE',
+                          'BATCH_FETCH': 'PERFORMANCE',
+                          'INDIRECTION_POLICY': 'PERFORMANCE',
+                          'CACHE_OPTIMIZATION': 'PERFORMANCE',
+                          'OPTIMISTIC_LOCKING': 'INTEGRITY',
+                          'VERSION_ANNOTATION': 'INTEGRITY',
+                          'FK_INDEX': 'DATABASE',
+                          'INDEX_OPTIMIZATION': 'DATABASE',
+                          'GRAPH_ANALYSIS': 'ARCHITECTURE',
+                          'DISCRIMINATOR': 'ARCHITECTURE',
+                          'INHERITANCE': 'ARCHITECTURE'
+                        };
+
+                        const groupedViolations = violations.reduce((acc: Record<string, Violation[]>, v: Violation) => {
+                          const cat = ruleToCategory[v.ruleId] || 'OTHER';
+                          if (!acc[cat]) acc[cat] = [];
+                          acc[cat].push(v);
+                          return acc;
+                        }, {});
+
+                        return Object.entries(groupedViolations as Record<string, Violation[]>).map(([catId, items]) => (
+                          <div key={catId} className="mb-6">
+                            <div className="px-5 mb-2 flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: RULE_CATEGORIES[catId].color }}></span>
+                              <span className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: RULE_CATEGORIES[catId].color }}>
+                                {RULE_CATEGORIES[catId].label}
+                              </span>
+                            </div>
+                            {items.map((v: Violation, idx: number) => (
+                              <div key={idx} className={`mx-5 p-4 bg-panel border-subtle border rounded-md mb-3 border-l-2 ${v.severity === 'ERROR' ? 'border-l-score-low' : 'border-l-score-med'}`}
+                                style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
+                                <div className="flex gap-3 mb-2">
+                                  <div className={v.severity === 'ERROR' ? 'text-score-low' : 'text-score-med'} style={{ color: v.severity === 'ERROR' ? 'var(--score-low)' : 'var(--score-med)' }}>⚠</div>
+                                  <h4 className="text-[13px] font-semibold text-main" style={{ color: 'var(--text-main)' }}>{v.ruleId}</h4>
+                                </div>
+                                <p className="text-[12px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{v.message}</p>
+                              </div>
+                            ))}
                           </div>
-                          <p className="text-[12px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{v.message}</p>
-                          <button className="w-full mt-3 py-2 bg-body border border-subtle rounded text-[12px] hover:border-primary hover:text-primary transition-all text-main"
-                            style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)', color: 'var(--text-main)' }}>
-                            Apply Fix
-                          </button>
-                        </div>
-                      ))}
-                      {(!selectedNode?.data.violations || selectedNode.data.violations.length === 0) && (
-                        <div className="px-5 py-4 text-[12px] text-[#888] italic">No performance violations detected.</div>
-                      )}
+                        ));
+                      })()}
                     </div>
                   ) : (
                     <div className="p-0 space-y-0 text-[12px]">

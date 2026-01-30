@@ -26,7 +26,7 @@ public class DDDAnalyzer {
             }
 
             if (Files.exists(rulesPath)) {
-                String script = Files.readString(rulesPath);
+                String script = new String(Files.readAllBytes(rulesPath), java.nio.charset.StandardCharsets.UTF_8);
                 // Strip ESM exports for Java ScriptEngine compatibility
                 if (script.contains("export default")) {
                     script = script.substring(0, script.indexOf("export default"));
@@ -98,6 +98,47 @@ public class DDDAnalyzer {
         if ("ABSTRACT_ENTITY".equals(node.getType()) || "MAPPED_SUPERCLASS".equals(node.getType()))
             return "ENTITY";
 
+        // Calculate incoming and outgoing relations
+        int incomingRelations = 0;
+        int outgoingRelations = node.getRelationships() != null ? node.getRelationships().size() : 0;
+        boolean hasCollections = false;
+        
+        // Check for collection relationships (OneToMany, ManyToMany)
+        if (node.getRelationships() != null) {
+            for (RelationshipMetadata rel : node.getRelationships()) {
+                String mappingType = rel.getMappingType();
+                if (mappingType != null && (mappingType.contains("OneToMany") || mappingType.contains("ManyToMany"))) {
+                    hasCollections = true;
+                    break;
+                }
+            }
+        }
+        
+        // Count incoming relations
+        for (EntityNode other : allNodes) {
+            if (other == node) continue;
+            if (other.getRelationships() != null) {
+                for (RelationshipMetadata rel : other.getRelationships()) {
+                    if (rel.getTargetEntity().equals(node.getName())) {
+                        incomingRelations++;
+                    }
+                }
+            }
+        }
+        
+        int totalRelations = incomingRelations + outgoingRelations;
+        int attributeCount = node.getAttributes() != null ? node.getAttributes().size() : 0;
+        
+        // Reference entity heuristic: highly connected, few attributes, no collections, more incoming than outgoing
+        if (totalRelations > 3 && 
+            incomingRelations > outgoingRelations * 1.5 && 
+            attributeCount < 5 && 
+            !hasCollections &&
+            "ENTITY".equals(node.getType())) {
+            return "REFERENCE_ENTITY";
+        }
+
+        // Strong ownership check
         boolean isStronglyOwned = false;
         for (EntityNode other : allNodes) {
             if (other == node)
@@ -116,7 +157,7 @@ public class DDDAnalyzer {
                 break;
         }
 
-        long outDegree = node.getRelationships() != null ? node.getRelationships().size() : 0;
+        long outDegree = outgoingRelations;
         long cascadeCount = node.getRelationships() != null
                 ? node.getRelationships().stream().filter(r -> r.isCascadePersist()).count()
                 : 0;
