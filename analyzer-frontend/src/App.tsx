@@ -1246,7 +1246,7 @@ function AnalyzerApp() {
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                   {activeTab === 'mapping' && (
                     <div className="p-4 space-y-4">
-                      {selectedNode && (
+                      {selectedNode && inspectorJpaTab === 'general' && (
                         <>
                           <div>
                             <div className="text-[9px] font-black text-primary uppercase tracking-widest mb-2">Technical Meta</div>
@@ -1271,6 +1271,43 @@ function AnalyzerApp() {
                           )}
                         </>
                       )}
+
+                      {selectedNode && inspectorJpaTab === 'cache' && (
+                        <div>
+                          <div className="text-[9px] font-black text-primary uppercase tracking-widest mb-2">L2 Cache Configuration</div>
+                          <div className="p-3 bg-input border border-subtle rounded-[2px] space-y-2">
+                            <div className="flex justify-between items-center text-[10px] border-b border-subtle/50 pb-1.5">
+                              <span className="text-muted font-bold">Type</span>
+                              <span className="font-mono text-main bg-primary/10 px-1.5 py-0.5 rounded text-[9px]">{selectedNode.data.cacheType || 'SOFT (Default)'}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px] border-b border-subtle/50 pb-1.5">
+                              <span className="text-muted font-bold">Size</span>
+                              <span className="font-mono text-main">{selectedNode.data.cacheSize || 100}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px] border-b border-subtle/50 pb-1.5">
+                              <span className="text-muted font-bold">Isolation</span>
+                              <span className="font-mono text-secondary">{selectedNode.data.cacheIsolation || 'SHARED'}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px] pb-0.5">
+                              <span className="text-muted font-bold">Expiry</span>
+                              <span className="font-mono text-secondary">{selectedNode.data.cacheExpiry ? `${selectedNode.data.cacheExpiry}ms` : 'Never'}</span>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 space-y-2">
+                            <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-2">Coordination & Flags</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className={`p-2 border rounded-[2px] text-center ${selectedNode.data.cacheAlwaysRefresh ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-black/5 border-subtle text-muted opacity-50'}`}>
+                                <div className="text-[9px] font-bold">Always Refresh</div>
+                              </div>
+                              <div className={`p-2 border rounded-[2px] text-center ${selectedNode.data.cacheDisableHits ? 'bg-score-low/10 border-score-low/30 text-score-low' : 'bg-black/5 border-subtle text-muted opacity-50'}`}>
+                                <div className="text-[9px] font-bold">Disable Hits</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {selectedEdge && (
                         <div>
                           <div className="text-[9px] font-black text-primary uppercase tracking-widest mb-2">Relation Meta</div>
