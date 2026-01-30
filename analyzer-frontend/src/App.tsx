@@ -27,7 +27,7 @@ import { getAggregateForNode, heuristics, type HeuristicType } from './utils/agg
 import DDDRules from './analysis/shared-rules';
 import { runAnalysis, type AnalysisConfig, type AnalysisReport as AdvancedAnalysisReport } from './analysis/engine';
 import { SemanticProfile } from './analysis/semantic';
-import { Layout, AlertCircle, CircleAlert, Info, Loader2, RefreshCw, Eye, EyeOff, GitGraph, Upload, ShieldAlert, Database, ChevronLeft, ChevronRight, Activity, Layers, FileDown, Brain, Box, GitMerge, ChevronDown, LayoutDashboard } from 'lucide-react';
+import { AlertCircle, CircleAlert, Loader2, Eye, EyeOff, GitGraph, Upload, ShieldAlert, Database, ChevronLeft, ChevronRight, FileDown, Brain, ChevronDown, Sun, Moon } from 'lucide-react';
 
 interface AttributeMetadata {
   name: string;
@@ -49,7 +49,9 @@ interface AttributeMetadata {
   transient?: boolean;
   basic?: boolean;
   elementCollection?: boolean;
+  multitenantPrimaryKey?: boolean;
 }
+
 
 interface RelationshipMetadata {
   attributeName: string;
@@ -78,6 +80,13 @@ interface RelationshipMetadata {
   nestedTable?: boolean;
   aggregateCollection?: boolean;
   directMapMapping?: boolean;
+  structureMapping?: boolean;
+  referenceMapping?: boolean;
+  directToXMLTypeMapping?: boolean;
+  multitenantPrimaryKey?: boolean;
+  unidirectionalOneToMany?: boolean;
+  objectArrayMapping?: boolean;
+  structureName?: string;
 }
 
 interface Anomaly {
@@ -112,6 +121,14 @@ interface EntityNodeData {
   showAttributes: boolean;
   hasAnomalies: boolean;
   violations: Violation[];
+  cacheType?: string;
+  cacheSize?: number;
+  cacheExpiry?: number;
+  cacheCoordinationType?: string;
+  cacheIsolation?: string;
+  cacheAlwaysRefresh?: boolean;
+  cacheRefreshOnlyIfNewer?: boolean;
+  cacheDisableHits?: boolean;
 }
 
 interface AnalysisReport {
@@ -368,6 +385,7 @@ function AnalyzerApp() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [inspectorJpaTab, setInspectorJpaTab] = useState<'general' | 'cache'>('general');
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [stats, setStats] = useState({ nodes: 0, anomalies: 0, violations: 0, eager: 0, errorCount: 0, warningCount: 0, infoCount: 0 });
   const [showAttributes, setShowAttributes] = useState(false);
@@ -379,7 +397,7 @@ function AnalyzerApp() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [violationFilters, setViolationFilters] = useState<Record<string, boolean>>({ ERROR: true, WARNING: true, INFO: true });
   const [groupingMode, setGroupingMode] = useState(false);
-  const [activeLayer, setActiveLayer] = useState<'aggregates' | 'cycles' | 'cuts' | 'perf' | 'vo' | 'anomalies'>('aggregates');
+  const [activeLayer, setActiveLayer] = useState<'aggregates' | 'cycles' | 'cuts' | 'perf' | 'vo' | 'anomalies' | 'none'>('aggregates');
   const [viewMode, setViewMode] = useState<'graph' | 'table' | 'ddl' | 'jpa'>('graph');
   const [selectedHeuristic, setSelectedHeuristic] = useState<HeuristicType>('shared');
   const [nativeDdl, setNativeDdl] = useState<string | null>(null);
@@ -1417,6 +1435,7 @@ function AnalyzerApp() {
   return (
     <div className={`flex h-screen bg-body text-main font-sans selection:bg-primary/30 overflow-hidden ${theme === 'dark' ? 'dark-theme' : ''}`} style={{ backgroundColor: 'var(--bg-body)', color: 'var(--text-main)' }}>
       {/* SIDEBAR */}
+      {/* SIDEBAR */}
       <aside className="w-[260px] bg-panel border-r border-[#E5E7EB] dark:border-[#222] flex flex-col z-20" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
         <div className="p-6 border-b border-[#E5E7EB] dark:border-[#222]" style={{ borderColor: 'var(--border-subtle)' }}>
           <div className="flex items-center gap-3 mb-6">
@@ -1463,12 +1482,8 @@ function AnalyzerApp() {
             />
           </div>
         </div>
-        <nav className="flex-1 px-3 space-y-6">
-          {/* Redundant Overview view option removed as requested */}
 
-
-
-
+        <nav className="flex-1 px-3 space-y-6 overflow-y-auto custom-scrollbar py-6">
           <div className="space-y-4">
             <div>
               <h3 className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted font-bold flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
@@ -1491,164 +1506,86 @@ function AnalyzerApp() {
                   <span className="text-[9px] text-muted" style={{ color: 'var(--text-muted)' }}>INFO</span>
                 </div>
               </div>
-
-              {/* DOMAIN VIEW DROPDOWN */}
-              <div className="relative mb-4">
-                <label className="text-[10px] uppercase font-bold text-muted tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>
-                  Domain View Layer
-                </label>
-                <div className="relative group">
-                  <select
-                    value={activeLayer}
-                    onChange={(e) => setActiveLayer(e.target.value as any)}
-                    className="w-full appearance-none bg-panel border-subtle border rounded-md px-3 py-2.5 text-[13px] font-medium outline-none focus:border-primary transition-all cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-panel)',
-                      borderColor: 'var(--border-subtle)',
-                      color: 'var(--text-main)',
-                      boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
-                    }}
-                  >
-                    <optgroup label="📊 Quality Analysis">
-                      <option value="aggregates">📊 Overview</option>
-                      <option value="anomalies">⚠️ Schema Anomalies ({stats.anomalies})</option>
-                      <option value="perf">⚡ Performance Risks ({stats.eager})</option>
-                      <option value="cycles">🔄 Dependency Cycles</option>
-                    </optgroup>
-                    <optgroup label="🧩 DDD Patterns">
-                      <option value="aggregates">💎 Aggregates Viewer</option>
-                      <option value="cuts">🔲 Bounded Contexts</option>
-                      <option value="vo">📦 Value Objects</option>
-                    </optgroup>
-                  </select>
-                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted" style={{ color: 'var(--text-muted)' }} />
-
-                  {/* Active Layer Indicator / Legend */}
-                  <div className="mt-2 text-[11px] px-2 py-1.5 rounded flex items-center gap-2"
-                    style={{
-                      backgroundColor: activeLayer === 'aggregates' ? 'transparent' : 'var(--bg-panel-hover)',
-                      border: activeLayer === 'aggregates' ? 'none' : '1px solid var(--border-subtle)'
-                    }}>
-                    {activeLayer === 'aggregates' && <LayoutDashboard size={12} className="text-secondary" />}
-                    {activeLayer === 'anomalies' && <ShieldAlert size={12} className="text-score-low" />}
-                    {activeLayer === 'perf' && <Activity size={12} className="text-score-med" />}
-                    {activeLayer === 'cycles' && <GitMerge size={12} className="text-score-low" />}
-                    {activeLayer === 'aggregates' && <Layers size={12} className="text-accent-purple" />}
-                    {activeLayer === 'cuts' && <Box size={12} className="text-primary" />}
-                    {activeLayer === 'vo' && <Info size={12} style={{ color: '#A855F7' }} />}
-
-                    <span className="text-muted" style={{ color: 'var(--text-muted)' }}>
-                      {activeLayer === 'aggregates' && "Showing Aggregate DDD analysis"}
-                      {activeLayer === 'anomalies' && "Filtering consistency issues"}
-                      {activeLayer === 'perf' && "Highlighting EAGER & N+1 risks"}
-                      {activeLayer === 'cycles' && "Red edges indicate cycles"}
-                      {activeLayer === 'aggregates' && "Grouped by Root Entity"}
-                      {activeLayer === 'cuts' && "Context boundaries with frames"}
-                      {activeLayer === 'vo' && "Highlighting Value Objects"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              {/* Expert Heuristics section follows */}
-
-              {/* EXPERT DDD TUNING (Client-side only) */}
-              <div className="mt-4 px-3 py-3 bg-panel/30 border border-dashed border-subtle rounded-lg" style={{ borderColor: 'var(--border-subtle)' }}>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[10px] font-bold text-muted uppercase tracking-tighter" style={{ color: 'var(--text-muted)' }}>Expert Heuristics (Local)</span>
-                  <Brain size={12} className="text-muted" style={{ color: 'var(--text-muted)' }} />
-                </div>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted font-medium" style={{ color: 'var(--text-muted)' }}>Analysis engine</label>
-                    <div className="w-full bg-body/50 border border-subtle px-2 py-1.5 rounded text-[11px] font-bold text-primary flex items-center justify-between"
-                      style={{ backgroundColor: 'var(--bg-panel-hover)', borderColor: 'var(--border-subtle)', color: 'var(--primary)' }}
-                    >
-                      <span>Shared Rules (Official)</span>
-                      <ShieldAlert size={12} className="opacity-50" />
-                    </div>
-                    <p className="text-[9px] text-muted mt-1" style={{ color: 'var(--text-muted)' }}>Using standardized Java/TS hybrid engine</p>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-muted font-medium" style={{ color: 'var(--text-muted)' }}>Semantic Knowledge</label>
-                    <select
-                      value={analysisConfig.semanticProfile}
-                      onChange={(e) => handleConfigChange('semanticProfile', e.target.value)}
-                      className="w-full bg-body border border-subtle px-2 py-1.5 rounded text-[11px] focus:outline-none"
-                      style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)', color: 'var(--text-main)' }}
-                    >
-                      <option value={SemanticProfile.GENERIC}>Generic Domain</option>
-                      <option value={SemanticProfile.ECOMMERCE_OFBIZ}>E-Commerce (OFBiz)</option>
-                      <option value={SemanticProfile.TREASURY_ISO20022}>Treasury (ISO 20022)</option>
-                    </select>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleConfigChange('enableSemantic', !analysisConfig.enableSemantic)}
-                      className={`flex-1 py-1 rounded text-[10px] font-bold border ${analysisConfig.enableSemantic ? 'bg-primary/20 border-primary text-primary' : 'bg-transparent border-subtle text-muted'}`}
-                      style={{ borderColor: analysisConfig.enableSemantic ? 'var(--primary)' : 'var(--border-subtle)', color: analysisConfig.enableSemantic ? 'var(--primary)' : 'var(--text-muted)' }}
-                    >
-                      Name Analysis
-                    </button>
-                    <button
-                      onClick={() => handleConfigChange('enableTopology', !analysisConfig.enableTopology)}
-                      className={`flex-1 py-1 rounded text-[10px] font-bold border ${analysisConfig.enableTopology ? 'bg-accent-purple/20 border-accent-purple text-accent-purple' : 'bg-transparent border-subtle text-muted'}`}
-                      style={{ borderColor: analysisConfig.enableTopology ? 'var(--accent-purple)' : 'var(--border-subtle)', color: analysisConfig.enableTopology ? 'var(--accent-purple)' : 'var(--text-muted)' }}
-                    >
-                      Graph Shape
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {advancedReport && (
-                <div className="mt-3 mx-3 px-3 py-2 bg-panel-hover rounded-lg border border-subtle flex items-center justify-between" style={{ backgroundColor: 'var(--bg-panel-hover)', borderColor: 'var(--border-subtle)' }}>
-                  <div className="flex gap-3 text-[10px] font-mono">
-                    <div className="flex flex-col">
-                      <span className="text-muted" style={{ color: 'var(--text-muted)' }}>ADDS</span>
-                      <span style={{ color: 'var(--primary)' }}>{advancedReport.aggregates.length}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-muted" style={{ color: 'var(--text-muted)' }}>VOS</span>
-                      <span style={{ color: 'var(--score-med)' }}>{advancedReport.valueObjects.length}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-muted" style={{ color: 'var(--text-muted)' }}>CUTS</span>
-                      <span style={{ color: 'var(--score-low)' }}>{advancedReport.cuts.length}</span>
-                    </div>
-                  </div>
-                  <Brain size={14} className="text-primary animate-pulse" style={{ color: 'var(--primary)' }} />
-                </div>
-              )}
             </div>
           </div>
 
-          <div>
-            <h3 className="px-3 mb-2 text-[11px] uppercase tracking-wider text-muted font-medium" style={{ color: 'var(--text-muted)' }}>Domain Aggregates</h3>
-            <div className="space-y-1 max-h-[250px] overflow-y-auto custom-scrollbar px-1">
-              {Array.from(new Set(nodes.map(n => n.data.aggregateName || 'General'))).sort().map(agg => (
-                <div key={agg} className="flex items-center gap-3 px-3 py-1.5 rounded-md text-[12px] text-secondary hover:bg-panel-hover transition-all"
-                  style={{ color: 'var(--text-secondary)', '--hover-bg': 'var(--bg-panel-hover)' } as React.CSSProperties}
+          {/* EXPERT DDD TUNING */}
+          <div className="px-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Expert Heuristics</span>
+              <Brain size={12} className="text-muted" style={{ color: 'var(--text-muted)' }} />
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted font-medium" style={{ color: 'var(--text-muted)' }}>Analysis engine</label>
+                <div className="w-full bg-body border border-subtle px-2 py-1.5 rounded text-[11px] font-bold text-primary flex items-center justify-between"
+                  style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)', color: 'var(--primary)' }}
                 >
-                  <div className="w-2 h-2 rounded-full shadow-sm" style={{ backgroundColor: getAggregateColor(agg) }}></div>
-                  <span className="truncate flex-1">{agg}</span>
-                  <span className="text-[10px] text-muted font-mono" style={{ color: 'var(--text-muted)' }}>{nodes.filter(n => n.data.aggregateName === agg || (!n.data.aggregateName && agg === 'General')).length}</span>
+                  <span>Shared Rules</span>
+                  <ShieldAlert size={12} className="opacity-50" />
                 </div>
-              ))}
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted font-medium" style={{ color: 'var(--text-muted)' }}>Knowledge Profile</label>
+                <select
+                  value={analysisConfig.semanticProfile}
+                  onChange={(e) => handleConfigChange('semanticProfile', e.target.value)}
+                  className="w-full bg-body border border-subtle px-2 py-1.5 rounded text-[11px] focus:outline-none"
+                  style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)', color: 'var(--text-main)' }}
+                >
+                  <option value={SemanticProfile.GENERIC}>Generic</option>
+                  <option value={SemanticProfile.ECOMMERCE_OFBIZ}>E-Commerce</option>
+                  <option value={SemanticProfile.TREASURY_ISO20022}>Treasury</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleConfigChange('enableSemantic', !analysisConfig.enableSemantic)}
+                  className={`flex-1 py-1 rounded text-[10px] font-bold border transition-all ${analysisConfig.enableSemantic ? 'bg-primary/10 border-primary text-primary' : 'bg-transparent border-subtle text-muted'}`}
+                  style={{ borderColor: analysisConfig.enableSemantic ? 'var(--primary)' : 'var(--border-subtle)', color: analysisConfig.enableSemantic ? 'var(--primary)' : 'var(--text-muted)' }}
+                >
+                  Semantic
+                </button>
+                <button
+                  onClick={() => handleConfigChange('enableTopology', !analysisConfig.enableTopology)}
+                  className={`flex-1 py-1 rounded text-[10px] font-bold border transition-all ${analysisConfig.enableTopology ? 'bg-accent-purple/10 border-accent-purple text-accent-purple' : 'bg-transparent border-subtle text-muted'}`}
+                  style={{ borderColor: analysisConfig.enableTopology ? 'var(--accent-purple)' : 'var(--border-subtle)', color: analysisConfig.enableTopology ? 'var(--accent-purple)' : 'var(--text-muted)' }}
+                >
+                  Topology
+                </button>
+              </div>
             </div>
           </div>
+
+          {advancedReport && (
+            <div className="mx-3 px-3 py-3 bg-body rounded-lg border border-subtle flex items-center justify-between" style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)' }}>
+              <div className="flex gap-3 text-[10px] font-mono">
+                <div className="flex flex-col">
+                  <span className="text-muted" style={{ color: 'var(--text-muted)' }}>ADDS</span>
+                  <span style={{ color: 'var(--primary)' }}>{advancedReport.aggregates.length}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-muted" style={{ color: 'var(--text-muted)' }}>VOS</span>
+                  <span style={{ color: 'var(--score-med)' }}>{advancedReport.valueObjects.length}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-muted" style={{ color: 'var(--text-muted)' }}>CUTS</span>
+                  <span style={{ color: 'var(--score-low)' }}>{advancedReport.cuts.length}</span>
+                </div>
+              </div>
+              <Brain size={14} className="text-primary animate-pulse" style={{ color: 'var(--primary)' }} />
+            </div>
+          )}
         </nav>
 
         <div className="p-4 mt-auto border-t border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
           <button
             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
             className="w-full flex items-center justify-between px-3 py-2 rounded-md text-[13px] text-secondary hover:bg-panel-hover hover:text-main transition-all"
-            style={{ color: 'var(--text-secondary)', '--hover-bg': 'var(--bg-panel-hover)' } as React.CSSProperties}
+            style={{ color: 'var(--text-secondary)' }}
           >
             <div className="flex items-center gap-3">
-              <Info size={16} />
+              {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
               <span>{theme === 'light' ? 'Dark' : 'Light'} Mode</span>
             </div>
             <div className={`w-8 h-4 rounded-full relative transition-colors ${theme === 'dark' ? 'bg-primary' : 'bg-subtle'}`} style={{ backgroundColor: theme === 'dark' ? 'var(--primary)' : 'var(--border-subtle)' }}>
@@ -1662,96 +1599,95 @@ function AnalyzerApp() {
       <main className="flex-1 relative overflow-hidden flex flex-col" style={{ backgroundColor: 'var(--bg-body)' }}>
         {/* Grid Background Overlay */}
         <div className="absolute inset-0 opacity-[0.4] pointer-events-none"
-          style={{ backgroundImage: `linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px)`, backgroundSize: '40px 40px' }}></div>
+          style={{ backgroundImage: `linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px)`, backgroundSize: '40px 40px' }}
+        ></div>
 
         {/* Top Floating Control Bar */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 px-4 py-2 bg-panel shadow-xl border border-subtle rounded-full"
           style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)', backdropFilter: 'blur(12px)' }}>
 
-          <div className="flex bg-body/50 p-1 rounded-full border border-subtle" style={{ backgroundColor: 'var(--bg-body)', borderColor: 'var(--border-subtle)' }}>
-            <button
-              onClick={() => setViewMode('graph')}
-              className={`px-4 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 ${viewMode === 'graph' ? 'bg-primary text-white shadow-lg' : 'text-secondary hover:text-main hover:bg-panel-hover'}`}
-              style={{ backgroundColor: viewMode === 'graph' ? 'var(--primary)' : 'transparent', color: viewMode === 'graph' ? 'white' : 'var(--text-secondary)' }}
-            >
-              <GitGraph size={14} /> Graph
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-4 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 ${viewMode === 'table' ? 'bg-primary text-white shadow-lg' : 'text-secondary hover:text-main hover:bg-panel-hover'}`}
-              style={{ backgroundColor: viewMode === 'table' ? 'var(--primary)' : 'transparent', color: viewMode === 'table' ? 'white' : 'var(--text-secondary)' }}
-            >
-              <LayoutDashboard size={14} /> Table
-            </button>
-            <button
-              onClick={() => setViewMode('jpa')}
-              className={`px-4 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 ${viewMode === 'jpa' ? 'bg-primary text-white shadow-lg' : 'text-secondary hover:text-main hover:bg-panel-hover'}`}
-              style={{ backgroundColor: viewMode === 'jpa' ? 'var(--primary)' : 'transparent', color: viewMode === 'jpa' ? 'white' : 'var(--text-secondary)' }}
-            >
-              <Database size={14} /> JPA
-            </button>
-            <button
-              onClick={() => setViewMode('ddl')}
-              className={`px-4 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 ${viewMode === 'ddl' ? 'bg-primary text-white shadow-lg' : 'text-secondary hover:text-main hover:bg-panel-hover'}`}
-              style={{ backgroundColor: viewMode === 'ddl' ? 'var(--primary)' : 'transparent', color: viewMode === 'ddl' ? 'white' : 'var(--text-secondary)' }}
-            >
-              <FileDown size={14} /> DDL
-            </button>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-bold text-muted" style={{ color: 'var(--text-muted)' }}>View:</span>
+            <div className="relative flex items-center">
+              <select
+                value={viewMode}
+                onChange={(e) => setViewMode(e.target.value as any)}
+                className="bg-transparent text-[13px] font-bold text-primary border-none focus:ring-0 cursor-pointer pr-6 appearance-none hover:opacity-80 transition-all font-sans"
+                style={{ color: 'var(--primary)' }}
+              >
+                <option value="graph" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Graph Analysis</option>
+                <option value="table" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Table View</option>
+                <option value="jpa" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>JPA Details</option>
+                <option value="ddl" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>DDL Script</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-0 pointer-events-none text-primary/60" />
+            </div>
           </div>
 
           <div className="w-px h-5 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold text-muted" style={{ color: 'var(--text-muted)' }}>Report:</span>
-            <select
-              value={selectedReport}
-              onChange={(e) => setSelectedReport(e.target.value)}
-              className="bg-transparent text-[13px] font-bold text-primary border-none focus:ring-0 cursor-pointer pr-8 appearance-none hover:opacity-80 transition-all"
-              style={{ color: 'var(--primary)' }}
-            >
-              {reports.map(r => (
-                <option key={r.id} value={r.id} className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>{r.name}</option>
-              ))}
-            </select>
+            <span className="text-[10px] uppercase font-bold text-muted" style={{ color: 'var(--text-muted)' }}>Layer:</span>
+            <div className="relative flex items-center">
+              <select
+                value={activeLayer}
+                onChange={(e) => setActiveLayer(e.target.value as any)}
+                className="bg-transparent text-[13px] font-bold text-primary border-none focus:ring-0 cursor-pointer pr-6 appearance-none hover:opacity-80 transition-all"
+                style={{ color: 'var(--primary)' }}
+              >
+                <option value="none" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Standard View</option>
+                <option value="cycles" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Dependency Cycles</option>
+                <option value="aggregates" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Domain Aggregates</option>
+                <option value="cuts" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Contextual Cuts</option>
+                <option value="vo" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Potential Value Objects</option>
+                <option value="perf" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Performance Risks</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-0 pointer-events-none text-primary/60" />
+            </div>
           </div>
 
           <div className="w-px h-5 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
 
           <div className="flex items-center gap-2">
             <span className="text-[10px] uppercase font-bold text-muted" style={{ color: 'var(--text-muted)' }}>Layout:</span>
-            <select
-              onChange={(e) => onLayout(e.target.value)}
-              className="bg-transparent text-[13px] font-bold text-primary border-none focus:ring-0 cursor-pointer pr-8 appearance-none hover:opacity-80 transition-all"
-              style={{ color: 'var(--primary)' }}
-            >
-              <option value="TB" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Hierarchical</option>
-              <option value="LR" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Horizontal</option>
-              <option value="ORGANIC" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Organic</option>
-              <option value="RADIAL" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Radial</option>
-              <option value="GRID" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Grid</option>
-              <option value="CLUSTER" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Aggregate Cluster</option>
-            </select>
+            <div className="relative flex items-center">
+              <select
+                onChange={(e) => onLayout(e.target.value as any)}
+                className="bg-transparent text-[13px] font-bold text-primary border-none focus:ring-0 cursor-pointer pr-6 appearance-none hover:opacity-80 transition-all font-sans"
+                style={{ color: 'var(--primary)' }}
+              >
+                <option value="TB" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Hierarchical</option>
+                <option value="LR" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Horizontal</option>
+                <option value="ORGANIC" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Organic</option>
+                <option value="RADIAL" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Radial</option>
+                <option value="GRID" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Grid</option>
+                <option value="CLUSTER" className="bg-panel" style={{ backgroundColor: 'var(--bg-panel)', color: 'var(--text-main)' }}>Aggregate Cluster</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-0 pointer-events-none text-primary/60" />
+            </div>
           </div>
 
           <div className="w-px h-5 bg-subtle" style={{ backgroundColor: 'var(--border-subtle)' }}></div>
 
-          <button
-            onClick={generatePDFReport}
-            className="p-2 text-secondary hover:text-primary hover:bg-panel-hover rounded-full transition-all"
-            title="Download PDF Report"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <FileDown size={18} />
-          </button>
+          <div className="flex items-center">
+            <button
+              onClick={generatePDFReport}
+              className="p-2 text-secondary hover:text-primary hover:bg-panel-hover rounded-full transition-all"
+              title="Download PDF Report"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <FileDown size={18} />
+            </button>
 
-          <button
-            onClick={toggleAttributes}
-            className="p-2 text-secondary hover:text-primary hover:bg-panel-hover rounded-full transition-all"
-            title="Toggle Attributes"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            {showAttributes ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
+            <button
+              onClick={toggleAttributes}
+              className="p-2 text-secondary hover:text-primary hover:bg-panel-hover rounded-full transition-all"
+              title="Toggle Attributes"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {showAttributes ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 relative flex flex-col overflow-hidden">
@@ -1909,7 +1845,7 @@ function AnalyzerApp() {
             />
           )}
         </div>
-      </main>
+      </main >
 
       {/* INSPECTOR */}
       <aside
@@ -1917,12 +1853,14 @@ function AnalyzerApp() {
         className="bg-panel border-l border-subtle flex flex-col z-20 transition-[width] duration-300 relative group"
       >
         {/* Resize Handle */}
-        {!sidebarCollapsed && (
-          <div
-            onMouseDown={handleResizeStart}
-            className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#00F0FF]/30 transition-colors z-30"
-          />
-        )}
+        {
+          !sidebarCollapsed && (
+            <div
+              onMouseDown={handleResizeStart}
+              className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[#00F0FF]/30 transition-colors z-30"
+            />
+          )
+        }
 
         {/* Collapse Toggle */}
         <button
@@ -1933,449 +1871,546 @@ function AnalyzerApp() {
           {sidebarCollapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
 
-        {!sidebarCollapsed ? (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {selectedNode || selectedEdge ? (
-              <>
-                <div className="p-6 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-[18px] font-semibold text-main truncate mr-2" style={{ color: 'var(--text-main)' }}>
-                      {selectedNode ? selectedNode.id : selectedEdge?.data?.attributeName}
-                    </h2>
-                    <div className="w-8 h-8 rounded-full border-2 border-subtle border-t-score-med flex items-center justify-center text-[10px] font-bold text-score-med"
-                      style={{ borderColor: 'var(--border-subtle)', color: 'var(--score-med)', borderTopColor: 'var(--score-med)' }}>
-                      {selectedNode ? Math.max(100 - ((selectedNode.data.violations?.length || 0) * 10), 0) : '65'}
+        {
+          !sidebarCollapsed ? (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {selectedNode || selectedEdge ? (
+                <>
+                  <div className="p-6 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-[18px] font-semibold text-main truncate mr-2" style={{ color: 'var(--text-main)' }}>
+                        {selectedNode ? selectedNode.id : selectedEdge?.data?.attributeName}
+                      </h2>
+                      <div className="w-8 h-8 rounded-full border-2 border-subtle border-t-score-med flex items-center justify-center text-[10px] font-bold text-score-med"
+                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--score-med)', borderTopColor: 'var(--score-med)' }}>
+                        {selectedNode ? Math.max(100 - ((selectedNode.data.violations?.length || 0) * 10), 0) : '65'}
+                      </div>
                     </div>
+                    <p className="text-[12px] font-bold text-accent-purple uppercase tracking-wider" style={{ color: 'var(--accent-purple)' }}>
+                      {selectedNode ? selectedNode.data.type : 'Relationship'}
+                    </p>
                   </div>
-                  <p className="text-[12px] font-bold text-accent-purple uppercase tracking-wider" style={{ color: 'var(--accent-purple)' }}>
-                    {selectedNode ? selectedNode.data.type : 'Relationship'}
-                  </p>
-                </div>
 
-                <div className="flex border-b border-subtle bg-panel" style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--bg-panel)' }}>
-                  <button
-                    onClick={() => setActiveTab('mapping')}
-                    className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'mapping' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
-                    style={{ color: activeTab === 'mapping' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'mapping' ? 'var(--primary)' : 'transparent' }}
-                  >
-                    Bounded Context (AI)
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('anomalies')}
-                    className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'anomalies' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
-                    style={{ color: activeTab === 'anomalies' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'anomalies' ? 'var(--primary)' : 'transparent' }}
-                  >
-                    JPA Mapping Details
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('violations')}
-                    className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'violations' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
-                    style={{ color: activeTab === 'violations' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'violations' ? 'var(--primary)' : 'transparent' }}
-                  >
-                    Global Issues
-                  </button>
-                </div>
+                  <div className="flex border-b border-subtle bg-panel" style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--bg-panel)' }}>
+                    <button
+                      onClick={() => setActiveTab('mapping')}
+                      className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'mapping' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
+                      style={{ color: activeTab === 'mapping' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'mapping' ? 'var(--primary)' : 'transparent' }}
+                    >
+                      Bounded Context (AI)
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('anomalies')}
+                      className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'anomalies' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
+                      style={{ color: activeTab === 'anomalies' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'anomalies' ? 'var(--primary)' : 'transparent' }}
+                    >
+                      JPA Mapping Details
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('violations')}
+                      className={`flex-1 py-3 text-[12px] font-medium transition-all border-b-2 ${activeTab === 'violations' ? 'text-main border-primary bg-gradient-to-t from-primary/5 to-transparent' : 'text-secondary border-transparent hover:text-main'}`}
+                      style={{ color: activeTab === 'violations' ? 'var(--text-main)' : 'var(--text-secondary)', borderColor: activeTab === 'violations' ? 'var(--primary)' : 'transparent' }}
+                    >
+                      Global Issues
+                    </button>
+                  </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                  {activeTab === 'mapping' && (
-                    <div className="p-0">
-                      <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-[#7000FF]">DDD Retro-Analysis</div>
-                      <div className={`mx-5 p-4 bg-white/3 border border-[#222] rounded-md border-l-2 mb-4`} style={{ borderLeftColor: getAggregateColor(selectedNode?.data.aggregateName) }}>
-                        <div className="flex gap-3 mb-2">
-                          <div style={{ color: getAggregateColor(selectedNode?.data.aggregateName) }}>
-                            {selectedNode?.data.dddRole === 'AGGREGATE_ROOT' ? '💠' : '📦'}
-                          </div>
-                          <h4 className="text-[13px] font-semibold text-main" style={{ color: 'var(--text-main)' }}>
-                            {selectedNode?.data.dddRole === 'AGGREGATE_ROOT' ? 'Aggregate Root' : 'Domain Entity'}
-                          </h4>
-                        </div>
-                        <div className="text-[12px] font-bold text-main mb-2" style={{ color: 'var(--text-main)' }}>
-                          Aggregate: <span style={{ color: getAggregateColor(selectedNode?.data.aggregateName) }}>{selectedNode?.data.aggregateName || 'General'}</span>
-                          {selectedNode?.data.aggregateNameConfidence && (
-                            <span className="text-[10px] text-muted ml-2">
-                              ({(selectedNode.data.aggregateNameConfidence * 100).toFixed(0)}% confidence)
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                          {selectedNode?.data.dddRole === 'AGGREGATE_ROOT'
-                            ? 'High centrality score. This entity acts as an entry point and controls the lifecycle of related entities.'
-                            : 'Internal member of the domain cluster. Lifecycle managed by the aggregate root.'}
-                        </p>
-                      </div>
-
-                      {/* Algorithm Explanation Section */}
-                      <div className="px-5 py-2 text-[11px] uppercase tracking-wider font-bold text-primary" style={{ color: 'var(--primary)' }}>Algorithm Details</div>
-                      <div className="mx-5 mb-4 space-y-2">
-                        {/* Package-based grouping */}
-                        <div className="p-3 bg-panel/50 border border-subtle rounded-md" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold" style={{ color: 'var(--primary)' }}>PACKAGE</span>
-                            <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Grouping Rule</span>
-                          </div>
-                          <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                            Entities in <code className="text-primary">{selectedNode?.data.packageName?.split('.').slice(-1)[0] || 'root'}</code> package are clustered together.
-                          </p>
-                        </div>
-
-                        {/* Relationship Analysis */}
-                        <div className="p-3 bg-panel/50 border border-subtle rounded-md" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-purple/20 text-accent-purple font-bold" style={{ color: 'var(--accent-purple)' }}>RELATIONS</span>
-                            <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Ownership Analysis</span>
-                          </div>
-                          <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                            {selectedNode?.data.relationships?.length || 0} relationships detected.
-                            {selectedNode?.data.relationships?.filter((r: RelationshipMetadata) => r.owningSide).length || 0} owned (controlling lifecycle).
-                          </p>
-                        </div>
-
-                        {/* Cycle/Cut Analysis */}
-                        {selectedNode?.data.isInCycle && (
-                          <div className="p-3 bg-score-low/10 border border-score-low/30 rounded-md">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-score-low/30 text-score-low font-bold" style={{ color: 'var(--score-low)' }}>CYCLE</span>
-                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Deep Dependency Cycle</span>
+                  <div className="flex-1 overflow-y-auto custom-scrollbar">
+                    {activeTab === 'mapping' && (
+                      <div className="p-0">
+                        <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-[#7000FF]">DDD Retro-Analysis</div>
+                        <div className={`mx-5 p-4 bg-white/3 border border-[#222] rounded-md border-l-2 mb-4`} style={{ borderLeftColor: getAggregateColor(selectedNode?.data.aggregateName) }}>
+                          <div className="flex gap-3 mb-2">
+                            <div style={{ color: getAggregateColor(selectedNode?.data.aggregateName) }}>
+                              {selectedNode?.data.dddRole === 'AGGREGATE_ROOT' ? '💠' : '📦'}
                             </div>
-                            <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                              This entity is part of a deep dependency cycle (length 3 or more). Consider reviewing domain boundaries and fetch strategies.
-                            </p>
+                            <h4 className="text-[13px] font-semibold text-main" style={{ color: 'var(--text-main)' }}>
+                              {selectedNode?.data.dddRole === 'AGGREGATE_ROOT' ? 'Aggregate Root' : 'Domain Entity'}
+                            </h4>
                           </div>
-                        )}
-
-                        {selectedNode?.data.isCutPoint && (
-                          <div className="p-3 bg-primary/10 border border-primary/30 rounded-md">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/30 text-primary font-bold" style={{ color: 'var(--primary)' }}>✂️ CUT</span>
-                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Cross-Aggregate Bridge</span>
-                              {selectedNode?.data.cutPointScore && (
-                                <span className="text-[10px] text-muted ml-auto">
-                                  Score: {selectedNode.data.cutPointScore.toFixed(2)}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                              This entity connects different aggregates. Consider decoupling via ID reference instead of direct object reference.
-                              {selectedNode?.data.cutPointNormalized && selectedNode.data.cutPointNormalized > 0.1 && (
-                                <span className="block mt-1">
-                                  <span className="inline-block h-1 w-full bg-subtle rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary" style={{ width: `${Math.min(selectedNode.data.cutPointNormalized * 100, 100)}%` }}></div>
-                                  </span>
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                        )}
-
-                        {selectedNode?.data.isPotentialVO && (
-                          <div className="p-3 bg-accent-purple/10 border border-accent-purple/30 rounded-md">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-purple/30 text-accent-purple font-bold" style={{ color: 'var(--accent-purple)' }}>💎 VO</span>
-                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Potential Value Object</span>
-                            </div>
-                            <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
-                              Few attributes, no outgoing relationships. Could be refactored as an @Embeddable value object.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="px-5 py-2">
-                        <div className="text-[11px] text-muted mb-2 uppercase tracking-tighter font-bold" style={{ color: 'var(--text-muted)' }}>Heuristic Confidence</div>
-                        <div className="h-1.5 w-full bg-subtle rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-subtle)' }}>
-                          <div className="h-full bg-gradient-to-r from-accent-purple to-primary" style={{ width: `${((selectedNode?.data.dddRoleConfidence || 0.5) * 100)}%`, backgroundColor: 'var(--primary)' }}></div>
-                        </div>
-                        <div className="text-[10px] text-muted mt-1 text-right">
-                          {selectedNode?.data.dddRoleConfidence ? `${(selectedNode.data.dddRoleConfidence * 100).toFixed(0)}% confidence` : 'No confidence data'}
-                        </div>
-                      </div>
-
-                      <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Entity Insights & Rules</div>
-                      {(() => {
-                        const violations = selectedNode?.data?.violations || [];
-                        if (violations.length === 0) {
-                          return <div className="px-5 py-4 text-[12px] text-[#888] italic">No performance violations detected.</div>;
-                        }
-
-                        const RULE_CATEGORIES: Record<string, { label: string; color: string }> = {
-                          'PERFORMANCE': { label: 'Performance', color: 'var(--primary)' },
-                          'INTEGRITY': { label: 'Data Integrity', color: 'var(--score-med)' },
-                          'DATABASE': { label: 'Database Optimization', color: 'var(--accent-purple)' },
-                          'ARCHITECTURE': { label: 'Architecture', color: 'var(--score-high)' },
-                          'OTHER': { label: 'General', color: 'var(--text-muted)' }
-                        };
-
-                        const ruleToCategory: Record<string, string> = {
-                          'REL_EAGER_FETCH': 'PERFORMANCE',
-                          'LARGE_COLLECTION': 'PERFORMANCE',
-                          'N_PLUS_ONE_QUERY': 'PERFORMANCE',
-                          'CARTESIAN_PRODUCT': 'PERFORMANCE',
-                          'BATCH_FETCH': 'PERFORMANCE',
-                          'INDIRECTION_POLICY': 'PERFORMANCE',
-                          'CACHE_OPTIMIZATION': 'PERFORMANCE',
-                          'OPTIMISTIC_LOCKING': 'INTEGRITY',
-                          'VERSION_ANNOTATION': 'INTEGRITY',
-                          'FK_INDEX': 'DATABASE',
-                          'INDEX_OPTIMIZATION': 'DATABASE',
-                          'GRAPH_ANALYSIS': 'ARCHITECTURE',
-                          'DISCRIMINATOR': 'ARCHITECTURE',
-                          'INHERITANCE': 'ARCHITECTURE'
-                        };
-
-                        const groupedViolations = violations.reduce((acc: Record<string, Violation[]>, v: Violation) => {
-                          const cat = ruleToCategory[v.ruleId] || 'OTHER';
-                          if (!acc[cat]) acc[cat] = [];
-                          acc[cat].push(v);
-                          return acc;
-                        }, {});
-
-                        return Object.entries(groupedViolations as Record<string, Violation[]>).map(([catId, items]) => (
-                          <div key={catId} className="mb-6">
-                            <div className="px-5 mb-2 flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: RULE_CATEGORIES[catId].color }}></span>
-                              <span className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: RULE_CATEGORIES[catId].color }}>
-                                {RULE_CATEGORIES[catId].label}
+                          <div className="text-[12px] font-bold text-main mb-2" style={{ color: 'var(--text-main)' }}>
+                            Aggregate: <span style={{ color: getAggregateColor(selectedNode?.data.aggregateName) }}>{selectedNode?.data.aggregateName || 'General'}</span>
+                            {selectedNode?.data.aggregateNameConfidence && (
+                              <span className="text-[10px] text-muted ml-2">
+                                ({(selectedNode.data.aggregateNameConfidence * 100).toFixed(0)}% confidence)
                               </span>
-                            </div>
-                            {items.map((v: Violation, idx: number) => (
-                              <div key={idx} className={`mx-5 p-4 bg-panel border-subtle border rounded-md mb-3 border-l-2 ${v.severity === 'ERROR' ? 'border-l-score-low' : 'border-l-score-med'}`}
-                                style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                                <div className="flex gap-3 mb-2">
-                                  <div className={v.severity === 'ERROR' ? 'text-score-low' : 'text-score-med'} style={{ color: v.severity === 'ERROR' ? 'var(--score-low)' : 'var(--score-med)' }}>⚠</div>
-                                  <h4 className="text-[13px] font-semibold text-main" style={{ color: 'var(--text-main)' }}>{v.ruleId}</h4>
-                                </div>
-                                <p className="text-[12px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{v.message}</p>
-                              </div>
-                            ))}
+                            )}
                           </div>
-                        ));
-                      })()}
-                    </div>
-                  )}
-
-                  {activeTab === 'anomalies' && (
-                    <div className="p-0 space-y-0 text-[12px]">
-                      {selectedNode && (
-                        <>
-                          <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Class Details</div>
-                          <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                            <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Table Name</span>
-                            <span className="font-mono text-main uppercase font-bold" style={{ color: 'var(--text-main)' }}>{selectedNode.data.name || 'N/A'}</span>
-                          </div>
-                          <div className="flex justify-between px-5 py-2 border-b border-white/5" style={{ borderColor: 'var(--border-subtle)' }}>
-                            <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Package</span>
-                            <span className="font-mono text-main truncate max-w-[180px] text-right" style={{ color: 'var(--text-main)' }}>{selectedNode.data.packageName || 'N/A'}</span>
-                          </div>
-                          <div className="flex justify-between px-5 py-2 border-b border-white/5" style={{ borderColor: 'var(--border-subtle)' }}>
-                            <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>JPA Type</span>
-                            <span className="font-mono text-primary uppercase font-bold" style={{ color: 'var(--primary)' }}>{selectedNode.data.type || 'ENTITY'}</span>
-                          </div>
-
-                          <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Schema Anomalies</div>
-                          {nodes.find(n => n.id === selectedNode.id)?.data.hasAnomalies ? (
-                            <div className="px-5 space-y-2">
-                              <div className="p-3 bg-score-med/10 border border-score-med/20 rounded-md" style={{ backgroundColor: 'var(--accent-glow)' }}>
-                                <div className="flex items-center gap-2 mb-1 text-score-med font-bold" style={{ color: 'var(--score-med)' }}>
-                                  <ShieldAlert size={14} />
-                                  <span>DDL Mismatch Detected</span>
-                                </div>
-                                <p className="text-[11px] text-secondary" style={{ color: 'var(--text-secondary)' }}>The database schema does not perfectly align with the JPA mapping. Check column types and constraints.</p>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="px-5 py-2 text-secondary italic" style={{ color: 'var(--text-secondary)' }}>No schema anomalies found.</div>
-                          )}
-
-                          <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Attributes</div>
-                          <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
-                            {Object.entries(selectedNode.data.attributes || {}).map(([name, attr]: [string, any], i: number) => (
-                              <div key={i} className="flex justify-between px-5 py-2 border-b border-subtle group hover:bg-panel-hover transition-colors" style={{ borderColor: 'var(--border-subtle)' }}>
-                                <span className="text-secondary group-hover:text-main transition-colors" style={{ color: 'var(--text-secondary)' }}>{name}</span>
-                                <span className="font-mono text-primary font-medium" style={{ color: 'var(--primary)' }}>{String(attr.javaType).split('.').pop()}</span>
-                              </div>
-                            ))}
-                          </div>
-
-                          <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Bytecode Weaving Status</div>
-                          <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                            <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Lazy Loading</span>
-                            <span className="text-score-high font-semibold" style={{ color: 'var(--score-high)' }}>WEAVED</span>
-                          </div>
-                          <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                            <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Change Tracking</span>
-                            <span className="text-score-high font-semibold" style={{ color: 'var(--score-high)' }}>WEAVED</span>
-                          </div>
-                        </>
-                      )}
-
-                      {selectedEdge && (
-                        <>
-                          <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-[#7000FF]">Relationship Details</div>
-                          <div className="flex justify-between px-5 py-2 border-b border-white/5">
-                            <span className="text-[#888]">Mapping Type</span>
-                            <span className="font-mono text-white uppercase">{selectedEdge.data?.mappingType || 'N/A'}</span>
-                          </div>
-                          <div className="flex justify-between px-5 py-2 border-b border-white/5">
-                            <span className="text-[#888]">Fetch Strategy</span>
-                            <span className={`font-mono ${selectedEdge.data?.lazy === false ? 'text-[#FF0040] font-bold' : 'text-[#00E050]'}`}>
-                              {selectedEdge.data?.lazy === false ? 'EAGER' : 'LAZY'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
-                            <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Owning Side</span>
-                            <span className="text-main font-medium" style={{ color: 'var(--text-main)' }}>{selectedEdge.data?.owningSide ? 'YES' : 'NO'}</span>
-                          </div>
-
-                          <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Cascade configuration</div>
-                          <div className="px-5 grid grid-cols-2 gap-2 pb-4">
-                            {['Persist', 'Merge', 'Remove', 'Refresh', 'Detach'].map(c => {
-                              const has = selectedEdge.data?.[`cascade${c}`];
-                              return (
-                                <div key={c} className={`px-2 py-1.5 rounded border text-[10px] text-center ${has ? 'bg-primary/10 border-primary text-primary font-bold' : 'bg-transparent border-subtle text-muted'}`}
-                                  style={{ borderColor: has ? 'var(--primary)' : 'var(--border-subtle)', color: has ? 'var(--primary)' : 'var(--text-muted)' }}>
-                                  {c}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {activeTab === 'violations' && (
-                    <div className="p-0">
-                      <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-red" style={{ color: 'var(--score-low)' }}>
-                        Global Health ({stats.errorCount + stats.warningCount} Issues)
-                      </div>
-
-                      <div className="px-5 mb-4">
-                        <div className="flex gap-2 mb-2">
-                          <button
-                            onClick={() => setViolationFilters(prev => ({ ...prev, ERROR: !prev.ERROR }))}
-                            className={`flex-1 py-1.5 px-2 rounded text-[10px] border flex items-center justify-center gap-1 ${violationFilters.ERROR ? 'bg-score-low/10 border-score-low text-score-low' : 'bg-transparent border-subtle text-muted'}`}
-                            style={{ color: violationFilters.ERROR ? 'var(--score-low)' : 'var(--text-muted)', borderColor: violationFilters.ERROR ? 'var(--score-low)' : 'var(--border-subtle)' }}
-                          >
-                            <ShieldAlert size={12} /> Errors ({stats.errorCount})
-                          </button>
-                          <button
-                            onClick={() => setViolationFilters(prev => ({ ...prev, WARNING: !prev.WARNING }))}
-                            className={`flex-1 py-1.5 px-2 rounded text-[10px] border flex items-center justify-center gap-1 ${violationFilters.WARNING ? 'bg-score-med/10 border-score-med text-score-med' : 'bg-transparent border-subtle text-muted'}`}
-                            style={{ color: violationFilters.WARNING ? 'var(--score-med)' : 'var(--text-muted)', borderColor: violationFilters.WARNING ? 'var(--score-med)' : 'var(--border-subtle)' }}
-                          >
-                            <CircleAlert size={12} /> Warnings ({stats.warningCount})
-                          </button>
+                          <p className="text-[11px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                            {selectedNode?.data.dddRole === 'AGGREGATE_ROOT'
+                              ? 'High centrality score. This entity acts as an entry point and controls the lifecycle of related entities.'
+                              : 'Internal member of the domain cluster. Lifecycle managed by the aggregate root.'}
+                          </p>
                         </div>
-                      </div>
 
-                      <div className="space-y-0">
-                        {Array.from(new Set(nodes.flatMap(n => (n.data.violations || []).map((v: Violation) => JSON.stringify({ ...v, source: n.data.name }))))).map(s => JSON.parse(s)).filter((v: any) => violationFilters[v.severity as string]).map((v: any, i: number) => (
-                          <div key={i} className="px-5 py-3 border-b border-subtle hover:bg-panel-hover group cursor-pointer"
-                            style={{ borderColor: 'var(--border-subtle)' }}
-                            onClick={() => {
-                              const node = nodes.find(n => n.data.name === v.source);
-                              if (node) {
-                                onNodeClick({} as any, node);
-                                setActiveTab('anomalies');
-                              }
-                            }}
-                          >
+                        {/* Algorithm Explanation Section */}
+                        <div className="px-5 py-2 text-[11px] uppercase tracking-wider font-bold text-primary" style={{ color: 'var(--primary)' }}>Algorithm Details</div>
+                        <div className="mx-5 mb-4 space-y-2">
+                          {/* Package-based grouping */}
+                          <div className="p-3 bg-panel/50 border border-subtle rounded-md" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
                             <div className="flex items-center gap-2 mb-1">
-                              <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${v.severity === 'ERROR' ? 'bg-score-low text-white' : 'bg-score-med text-white'}`}
-                                style={{ backgroundColor: v.severity === 'ERROR' ? 'var(--score-low)' : 'var(--score-med)' }}
-                              >
-                                {v.severity}
-                              </div>
-                              <div className="text-[11px] font-mono text-primary truncate" style={{ color: 'var(--primary)' }}>{v.source}</div>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold" style={{ color: 'var(--primary)' }}>PACKAGE</span>
+                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Grouping Rule</span>
                             </div>
-                            <p className="text-[11px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                              {v.message}
+                            <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
+                              Entities in <code className="text-primary">{selectedNode?.data.packageName?.split('.').slice(-1)[0] || 'root'}</code> package are clustered together.
                             </p>
                           </div>
-                        ))}
 
-                        {(stats.errorCount + stats.warningCount === 0) && (
-                          <div className="px-5 py-8 text-center text-muted italic text-[12px]">
-                            No global violations found. Great job!
+                          {/* Relationship Analysis */}
+                          <div className="p-3 bg-panel/50 border border-subtle rounded-md" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-purple/20 text-accent-purple font-bold" style={{ color: 'var(--accent-purple)' }}>RELATIONS</span>
+                              <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Ownership Analysis</span>
+                            </div>
+                            <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
+                              {selectedNode?.data.relationships?.length || 0} relationships detected.
+                              {selectedNode?.data.relationships?.filter((r: RelationshipMetadata) => r.owningSide).length || 0} owned (controlling lifecycle).
+                            </p>
+                          </div>
+
+                          {/* Cycle/Cut Analysis */}
+                          {selectedNode?.data.isInCycle && (
+                            <div className="p-3 bg-score-low/10 border border-score-low/30 rounded-md">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-score-low/30 text-score-low font-bold" style={{ color: 'var(--score-low)' }}>CYCLE</span>
+                                <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Deep Dependency Cycle</span>
+                              </div>
+                              <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
+                                This entity is part of a deep dependency cycle (length 3 or more). Consider reviewing domain boundaries and fetch strategies.
+                              </p>
+                            </div>
+                          )}
+
+                          {selectedNode?.data.isCutPoint && (
+                            <div className="p-3 bg-primary/10 border border-primary/30 rounded-md">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/30 text-primary font-bold" style={{ color: 'var(--primary)' }}>✂️ CUT</span>
+                                <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Cross-Aggregate Bridge</span>
+                                {selectedNode?.data.cutPointScore && (
+                                  <span className="text-[10px] text-muted ml-auto">
+                                    Score: {selectedNode.data.cutPointScore.toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
+                                This entity connects different aggregates. Consider decoupling via ID reference instead of direct object reference.
+                                {selectedNode?.data.cutPointNormalized && selectedNode.data.cutPointNormalized > 0.1 && (
+                                  <span className="block mt-1">
+                                    <span className="inline-block h-1 w-full bg-subtle rounded-full overflow-hidden">
+                                      <div className="h-full bg-primary" style={{ width: `${Math.min(selectedNode.data.cutPointNormalized * 100, 100)}%` }}></div>
+                                    </span>
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          )}
+
+                          {selectedNode?.data.isPotentialVO && (
+                            <div className="p-3 bg-accent-purple/10 border border-accent-purple/30 rounded-md">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent-purple/30 text-accent-purple font-bold" style={{ color: 'var(--accent-purple)' }}>💎 VO</span>
+                                <span className="text-[11px] font-bold text-main" style={{ color: 'var(--text-main)' }}>Potential Value Object</span>
+                              </div>
+                              <p className="text-[10px] text-secondary" style={{ color: 'var(--text-secondary)' }}>
+                                Few attributes, no outgoing relationships. Could be refactored as an @Embeddable value object.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="px-5 py-2">
+                          <div className="text-[11px] text-muted mb-2 uppercase tracking-tighter font-bold" style={{ color: 'var(--text-muted)' }}>Heuristic Confidence</div>
+                          <div className="h-1.5 w-full bg-subtle rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-subtle)' }}>
+                            <div className="h-full bg-gradient-to-r from-accent-purple to-primary" style={{ width: `${((selectedNode?.data.dddRoleConfidence || 0.5) * 100)}%`, backgroundColor: 'var(--primary)' }}></div>
+                          </div>
+                          <div className="text-[10px] text-muted mt-1 text-right">
+                            {selectedNode?.data.dddRoleConfidence ? `${(selectedNode.data.dddRoleConfidence * 100).toFixed(0)}% confidence` : 'No confidence data'}
+                          </div>
+                        </div>
+
+                        <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Entity Insights & Rules</div>
+                        {(() => {
+                          const violations = selectedNode?.data?.violations || [];
+                          if (violations.length === 0) {
+                            return <div className="px-5 py-4 text-[12px] text-[#888] italic">No performance violations detected.</div>;
+                          }
+
+                          const RULE_CATEGORIES: Record<string, { label: string; color: string }> = {
+                            'PERFORMANCE': { label: 'Performance', color: 'var(--primary)' },
+                            'INTEGRITY': { label: 'Data Integrity', color: 'var(--score-med)' },
+                            'DATABASE': { label: 'Database Optimization', color: 'var(--accent-purple)' },
+                            'ARCHITECTURE': { label: 'Architecture', color: 'var(--score-high)' },
+                            'OTHER': { label: 'General', color: 'var(--text-muted)' }
+                          };
+
+                          const ruleToCategory: Record<string, string> = {
+                            'REL_EAGER_FETCH': 'PERFORMANCE',
+                            'LARGE_COLLECTION': 'PERFORMANCE',
+                            'N_PLUS_ONE_QUERY': 'PERFORMANCE',
+                            'CARTESIAN_PRODUCT': 'PERFORMANCE',
+                            'BATCH_FETCH': 'PERFORMANCE',
+                            'INDIRECTION_POLICY': 'PERFORMANCE',
+                            'CACHE_OPTIMIZATION': 'PERFORMANCE',
+                            'OPTIMISTIC_LOCKING': 'INTEGRITY',
+                            'VERSION_ANNOTATION': 'INTEGRITY',
+                            'FK_INDEX': 'DATABASE',
+                            'INDEX_OPTIMIZATION': 'DATABASE',
+                            'GRAPH_ANALYSIS': 'ARCHITECTURE',
+                            'DISCRIMINATOR': 'ARCHITECTURE',
+                            'INHERITANCE': 'ARCHITECTURE'
+                          };
+
+                          const groupedViolations = violations.reduce((acc: Record<string, Violation[]>, v: Violation) => {
+                            const cat = ruleToCategory[v.ruleId] || 'OTHER';
+                            if (!acc[cat]) acc[cat] = [];
+                            acc[cat].push(v);
+                            return acc;
+                          }, {});
+
+                          return Object.entries(groupedViolations as Record<string, Violation[]>).map(([catId, items]) => (
+                            <div key={catId} className="mb-6">
+                              <div className="px-5 mb-2 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: RULE_CATEGORIES[catId].color }}></span>
+                                <span className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: RULE_CATEGORIES[catId].color }}>
+                                  {RULE_CATEGORIES[catId].label}
+                                </span>
+                              </div>
+                              {items.map((v: Violation, idx: number) => (
+                                <div key={idx} className={`mx-5 p-4 bg-panel border-subtle border rounded-md mb-3 border-l-2 ${v.severity === 'ERROR' ? 'border-l-score-low' : 'border-l-score-med'}`}
+                                  style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
+                                  <div className="flex gap-3 mb-2">
+                                    <div className={v.severity === 'ERROR' ? 'text-score-low' : 'text-score-med'} style={{ color: v.severity === 'ERROR' ? 'var(--score-low)' : 'var(--score-med)' }}>⚠</div>
+                                    <h4 className="text-[13px] font-semibold text-main" style={{ color: 'var(--text-main)' }}>{v.ruleId}</h4>
+                                  </div>
+                                  <p className="text-[12px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{v.message}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    )}
+
+                    {activeTab === 'anomalies' && (
+                      <div className="p-0 space-y-0 text-[12px]">
+                        {selectedNode && (
+                          <>
+                            <div className="px-5 py-2 mt-2 mb-2 flex bg-panel border-b border-subtle">
+                              <button
+                                onClick={() => setInspectorJpaTab('general')}
+                                className={`flex-1 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-all ${inspectorJpaTab === 'general' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-secondary'}`}
+                              >
+                                General
+                              </button>
+                              <div className="w-px bg-subtle mx-2 my-1"></div>
+                              <button
+                                onClick={() => setInspectorJpaTab('cache')}
+                                className={`flex-1 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md transition-all ${inspectorJpaTab === 'cache' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-secondary'}`}
+                              >
+                                Cache Config
+                              </button>
+                            </div>
+
+                            {inspectorJpaTab === 'general' ? (
+                              <>
+                                <div className="px-5 py-2 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Class Details</div>
+                                <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Table Name</span>
+                                  <span className="font-mono text-main uppercase font-bold" style={{ color: 'var(--text-main)' }}>{selectedNode.data.name || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between px-5 py-2 border-b border-white/5" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Package</span>
+                                  <span className="font-mono text-main truncate max-w-[180px] text-right" style={{ color: 'var(--text-main)' }}>{selectedNode.data.packageName || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between px-5 py-2 border-b border-white/5" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>JPA Type</span>
+                                  <span className="font-mono text-primary uppercase font-bold" style={{ color: 'var(--primary)' }}>{selectedNode.data.type || 'ENTITY'}</span>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="px-5 py-2 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>L2 Cache Configuration</div>
+
+                                <div className="px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <div className="flex justify-between items-center mb-1">
+                                    <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Cache Type</span>
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+                                      style={{
+                                        backgroundColor: (() => {
+                                          const type = selectedNode.data.cacheType || 'NONE';
+                                          const colors: any = { FULL: '#ef4444', WEAK: '#3b82f6', SOFT: '#10b981', SOFT_WEAK: '#8b5cf6', HARD_WEAK: '#f59e0b' };
+                                          return colors[type] || '#6b7280';
+                                        })()
+                                      }}>
+                                      {selectedNode.data.cacheType || 'NONE'}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-muted italic">
+                                    {selectedNode.data.cacheType === 'FULL' ? 'Objects stay in cache until deleted. High memory usage.' :
+                                      selectedNode.data.cacheType === 'WEAK' ? 'Objects removed when not referenced. GC friendly.' :
+                                        'Standard caching strategy.'}
+                                  </p>
+                                </div>
+
+                                <div className="flex justify-between px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Cache Size</span>
+                                  <span className="font-mono text-main font-bold" style={{ color: 'var(--text-main)' }}>{selectedNode.data.cacheSize || '100 (default)'}</span>
+                                </div>
+
+                                <div className="flex justify-between px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Expiry</span>
+                                  <span className="font-mono text-main" style={{ color: 'var(--text-main)' }}>
+                                    {selectedNode.data.cacheExpiry ? (selectedNode.data.cacheExpiry < 60000 ? `${selectedNode.data.cacheExpiry / 1000}s` : `${selectedNode.data.cacheExpiry / 60000}m`) : 'No Expiry'}
+                                  </span>
+                                </div>
+
+                                <div className="flex justify-between px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Isolation</span>
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${selectedNode.data.cacheIsolation === 'ISOLATED' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                                    {selectedNode.data.cacheIsolation || 'SHARED'}
+                                  </span>
+                                </div>
+
+                                <div className="flex justify-between px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <span className="text-main font-mono text-[11px]" style={{ color: 'var(--text-main)' }}>{selectedNode.data.cacheCoordinationType || 'NONE'}</span>
+                                </div>
+
+                                <div className="px-5 py-3 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Disable Hits</span>
+                                      <span className={`text-[10px] font-bold ${selectedNode.data.cacheDisableHits ? 'text-score-low' : 'text-muted'}`}>
+                                        {selectedNode.data.cacheDisableHits ? 'YES' : 'NO'}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Always Refresh</span>
+                                      <span className={`text-[10px] font-bold ${selectedNode.data.cacheAlwaysRefresh ? 'text-score-med' : 'text-muted'}`}>
+                                        {selectedNode.data.cacheAlwaysRefresh ? 'YES' : 'NO'}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-secondary text-[12px]" style={{ color: 'var(--text-secondary)' }}>Refresh Only Newer</span>
+                                      <span className={`text-[10px] font-bold ${selectedNode.data.cacheRefreshOnlyIfNewer ? 'text-primary' : 'text-muted'}`}>
+                                        {selectedNode.data.cacheRefreshOnlyIfNewer ? 'YES' : 'NO'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+
+                            {inspectorJpaTab === 'general' && (
+                              <>
+                                <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Schema Anomalies</div>
+                                {nodes.find(n => n.id === selectedNode.id)?.data.hasAnomalies ? (
+                                  <div className="px-5 space-y-2">
+                                    <div className="p-3 bg-score-med/10 border border-score-med/20 rounded-md" style={{ backgroundColor: 'var(--accent-glow)' }}>
+                                      <div className="flex items-center gap-2 mb-1 text-score-med font-bold" style={{ color: 'var(--score-med)' }}>
+                                        <ShieldAlert size={14} />
+                                        <span>DDL Mismatch Detected</span>
+                                      </div>
+                                      <p className="text-[11px] text-secondary" style={{ color: 'var(--text-secondary)' }}>The database schema does not perfectly align with the JPA mapping. Check column types and constraints.</p>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="px-5 py-2 text-secondary italic" style={{ color: 'var(--text-secondary)' }}>No schema anomalies found.</div>
+                                )}
+
+                                <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Attributes</div>
+                                <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
+                                  {Object.entries(selectedNode.data.attributes || {}).map(([name, attr]: [string, any], i: number) => (
+                                    <div key={i} className="flex justify-between px-5 py-2 border-b border-subtle group hover:bg-panel-hover transition-colors" style={{ borderColor: 'var(--border-subtle)' }}>
+                                      <span className="text-secondary group-hover:text-main transition-colors" style={{ color: 'var(--text-secondary)' }}>{name}</span>
+                                      <span className="font-mono text-primary font-medium" style={{ color: 'var(--primary)' }}>{String(attr.javaType).split('.').pop()}</span>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Bytecode Weaving Status</div>
+                                <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Lazy Loading</span>
+                                  <span className="text-score-high font-semibold" style={{ color: 'var(--score-high)' }}>WEAVED</span>
+                                </div>
+                                <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Change Tracking</span>
+                                  <span className="text-score-high font-semibold" style={{ color: 'var(--score-high)' }}>WEAVED</span>
+                                </div>
+                              </>
+                            )}
+
+                            {selectedEdge && (
+                              <>
+                                <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-[#7000FF]">Relationship Details</div>
+                                <div className="flex justify-between px-5 py-2 border-b border-white/5">
+                                  <span className="text-[#888]">Mapping Type</span>
+                                  <span className="font-mono text-white uppercase">{selectedEdge.data?.mappingType || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between px-5 py-2 border-b border-white/5">
+                                  <span className="text-[#888]">Fetch Strategy</span>
+                                  <span className={`font-mono ${selectedEdge.data?.lazy === false ? 'text-[#FF0040] font-bold' : 'text-[#00E050]'}`}>
+                                    {selectedEdge.data?.lazy === false ? 'EAGER' : 'LAZY'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between px-5 py-2 border-b border-subtle" style={{ borderColor: 'var(--border-subtle)' }}>
+                                  <span className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Owning Side</span>
+                                  <span className="text-main font-medium" style={{ color: 'var(--text-main)' }}>{selectedEdge.data?.owningSide ? 'YES' : 'NO'}</span>
+                                </div>
+
+                                <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-purple" style={{ color: 'var(--accent-purple)' }}>Cascade configuration</div>
+                                <div className="px-5 grid grid-cols-2 gap-2 pb-4">
+                                  {['Persist', 'Merge', 'Remove', 'Refresh', 'Detach'].map(c => {
+                                    const has = selectedEdge.data?.[`cascade${c}`];
+                                    return (
+                                      <div key={c} className={`px-2 py-1.5 rounded border text-[10px] text-center ${has ? 'bg-primary/10 border-primary text-primary font-bold' : 'bg-transparent border-subtle text-muted'}`}
+                                        style={{ borderColor: has ? 'var(--primary)' : 'var(--border-subtle)', color: has ? 'var(--primary)' : 'var(--text-muted)' }}>
+                                        {c}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {activeTab === 'violations' && (
+                      <div className="p-0">
+                        <div className="px-5 py-4 text-[11px] uppercase tracking-wider font-bold text-accent-red" style={{ color: 'var(--score-low)' }}>
+                          Global Health ({stats.errorCount + stats.warningCount} Issues)
+                        </div>
+
+                        <div className="px-5 mb-4">
+                          <div className="flex gap-2 mb-2">
+                            <button
+                              onClick={() => setViolationFilters(prev => ({ ...prev, ERROR: !prev.ERROR }))}
+                              className={`flex-1 py-1.5 px-2 rounded text-[10px] border flex items-center justify-center gap-1 ${violationFilters.ERROR ? 'bg-score-low/10 border-score-low text-score-low' : 'bg-transparent border-subtle text-muted'}`}
+                              style={{ color: violationFilters.ERROR ? 'var(--score-low)' : 'var(--text-muted)', borderColor: violationFilters.ERROR ? 'var(--score-low)' : 'var(--border-subtle)' }}
+                            >
+                              <ShieldAlert size={12} /> Errors ({stats.errorCount})
+                            </button>
+                            <button
+                              onClick={() => setViolationFilters(prev => ({ ...prev, WARNING: !prev.WARNING }))}
+                              className={`flex-1 py-1.5 px-2 rounded text-[10px] border flex items-center justify-center gap-1 ${violationFilters.WARNING ? 'bg-score-med/10 border-score-med text-score-med' : 'bg-transparent border-subtle text-muted'}`}
+                              style={{ color: violationFilters.WARNING ? 'var(--score-med)' : 'var(--text-muted)', borderColor: violationFilters.WARNING ? 'var(--score-med)' : 'var(--border-subtle)' }}
+                            >
+                              <CircleAlert size={12} /> Warnings ({stats.warningCount})
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-0">
+                          {Array.from(new Set(nodes.flatMap(n => (n.data.violations || []).map((v: Violation) => JSON.stringify({ ...v, source: n.data.name }))))).map(s => JSON.parse(s)).filter((v: any) => violationFilters[v.severity as string]).map((v: any, i: number) => (
+                            <div key={i} className="px-5 py-3 border-b border-subtle hover:bg-panel-hover group cursor-pointer"
+                              style={{ borderColor: 'var(--border-subtle)' }}
+                              onClick={() => {
+                                const node = nodes.find(n => n.data.name === v.source);
+                                if (node) {
+                                  onNodeClick({} as any, node);
+                                  setActiveTab('anomalies');
+                                }
+                              }}
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${v.severity === 'ERROR' ? 'bg-score-low text-white' : 'bg-score-med text-white'}`}
+                                  style={{ backgroundColor: v.severity === 'ERROR' ? 'var(--score-low)' : 'var(--score-med)' }}
+                                >
+                                  {v.severity}
+                                </div>
+                                <div className="text-[11px] font-mono text-primary truncate" style={{ color: 'var(--primary)' }}>{v.source}</div>
+                              </div>
+                              <p className="text-[11px] text-secondary leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                {v.message}
+                              </p>
+                            </div>
+                          ))}
+
+                          {(stats.errorCount + stats.warningCount === 0) && (
+                            <div className="px-5 py-8 text-center text-muted italic text-[12px]">
+                              No global violations found. Great job!
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <div className="p-6 border-b border-subtle bg-panel" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
+                    <h2 className="text-[18px] font-semibold text-main mb-1" style={{ color: 'var(--text-main)' }}>Global Analysis</h2>
+                    <p className="text-[11px] text-muted font-mono" style={{ color: 'var(--text-muted)' }}>RETRO-ANALYSIS SESSION v1.0</p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-panel border border-subtle rounded-lg" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
+                        <div className="text-[10px] text-muted uppercase font-bold mb-1" style={{ color: 'var(--text-muted)' }}>Total Entities</div>
+                        <div className="text-2xl font-semibold text-main" style={{ color: 'var(--text-main)' }}>{stats.nodes}</div>
+                      </div>
+                      <div className="p-4 bg-panel border border-subtle rounded-lg" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
+                        <div className="text-[10px] text-muted uppercase font-bold mb-1" style={{ color: 'var(--text-muted)' }}>Anomalies</div>
+                        <div className="text-2xl font-semibold text-score-med" style={{ color: 'var(--score-med)' }}>{stats.anomalies}</div>
+                      </div>
+                    </div>
+
+                    <div className="p-5 bg-panel border-subtle border rounded-xl relative overflow-hidden group" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
+                      <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:scale-110 transition-transform">
+                        <ShieldAlert size={64} style={{ color: 'var(--primary)' }} />
+                      </div>
+                      <div className="relative z-10">
+                        <div className="text-[11px] font-bold text-accent-purple uppercase mb-4 tracking-widest" style={{ color: 'var(--accent-purple)' }}>Health Score</div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-4xl font-bold text-main" style={{ color: 'var(--text-main)' }}>
+                            {Math.max(100 - (stats.errorCount * 5 + stats.warningCount * 2), 0)}%
+                          </div>
+                          <div className="flex-1 h-2 bg-subtle rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-subtle)' }}>
+                            <div className="h-full bg-gradient-to-r from-accent-purple to-primary" style={{ width: `${Math.max(100 - (stats.errorCount * 5 + stats.warningCount * 2), 0)}%`, backgroundColor: 'var(--primary)' }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-[11px] uppercase tracking-wider text-muted font-bold mb-3 px-1" style={{ color: 'var(--text-muted)' }}>Recent Violations</h3>
+                      <div className="space-y-3">
+                        {stats.errorCount > 0 ? (
+                          <div className="p-3 bg-score-low/5 border border-score-low/20 rounded-md flex gap-3" style={{ backgroundColor: 'var(--accent-glow)', borderColor: 'var(--score-low)' }}>
+                            <div className="text-score-low" style={{ color: 'var(--score-low)' }}>⚠</div>
+                            <div className="text-[12px]">
+                              <div className="text-main font-semibold" style={{ color: 'var(--text-main)' }}>Critical Performance Risks</div>
+                              <p className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Multiple N+1 query patterns detected in the current unit.</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 border border-dashed border-subtle rounded-md text-center" style={{ borderColor: 'var(--border-subtle)' }}>
+                            <p className="text-[11px] text-muted" style={{ color: 'var(--text-muted)' }}>No critical violations</p>
                           </div>
                         )}
                       </div>
                     </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="p-6 border-b border-subtle bg-panel" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                  <h2 className="text-[18px] font-semibold text-main mb-1" style={{ color: 'var(--text-main)' }}>Global Analysis</h2>
-                  <p className="text-[11px] text-muted font-mono" style={{ color: 'var(--text-muted)' }}>RETRO-ANALYSIS SESSION v1.0</p>
-                </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-panel border border-subtle rounded-lg" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                      <div className="text-[10px] text-muted uppercase font-bold mb-1" style={{ color: 'var(--text-muted)' }}>Total Entities</div>
-                      <div className="text-2xl font-semibold text-main" style={{ color: 'var(--text-main)' }}>{stats.nodes}</div>
-                    </div>
-                    <div className="p-4 bg-panel border border-subtle rounded-lg" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                      <div className="text-[10px] text-muted uppercase font-bold mb-1" style={{ color: 'var(--text-muted)' }}>Anomalies</div>
-                      <div className="text-2xl font-semibold text-score-med" style={{ color: 'var(--score-med)' }}>{stats.anomalies}</div>
-                    </div>
-                  </div>
-
-                  <div className="p-5 bg-panel border-subtle border rounded-xl relative overflow-hidden group" style={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-subtle)' }}>
-                    <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:scale-110 transition-transform">
-                      <ShieldAlert size={64} style={{ color: 'var(--primary)' }} />
-                    </div>
-                    <div className="relative z-10">
-                      <div className="text-[11px] font-bold text-accent-purple uppercase mb-4 tracking-widest" style={{ color: 'var(--accent-purple)' }}>Health Score</div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-4xl font-bold text-main" style={{ color: 'var(--text-main)' }}>
-                          {Math.max(100 - (stats.errorCount * 5 + stats.warningCount * 2), 0)}%
-                        </div>
-                        <div className="flex-1 h-2 bg-subtle rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-subtle)' }}>
-                          <div className="h-full bg-gradient-to-r from-accent-purple to-primary" style={{ width: `${Math.max(100 - (stats.errorCount * 5 + stats.warningCount * 2), 0)}%`, backgroundColor: 'var(--primary)' }}></div>
-                        </div>
+                    <div className="pt-4">
+                      <div className="text-[11px] text-muted text-center border-t border-subtle pt-4" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}>
+                        Select an entity or relationship to drill down into specific JPA mappings.
                       </div>
                     </div>
                   </div>
-
-                  <div>
-                    <h3 className="text-[11px] uppercase tracking-wider text-muted font-bold mb-3 px-1" style={{ color: 'var(--text-muted)' }}>Recent Violations</h3>
-                    <div className="space-y-3">
-                      {stats.errorCount > 0 ? (
-                        <div className="p-3 bg-score-low/5 border border-score-low/20 rounded-md flex gap-3" style={{ backgroundColor: 'var(--accent-glow)', borderColor: 'var(--score-low)' }}>
-                          <div className="text-score-low" style={{ color: 'var(--score-low)' }}>⚠</div>
-                          <div className="text-[12px]">
-                            <div className="text-main font-semibold" style={{ color: 'var(--text-main)' }}>Critical Performance Risks</div>
-                            <p className="text-secondary" style={{ color: 'var(--text-secondary)' }}>Multiple N+1 query patterns detected in the current unit.</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 border border-dashed border-subtle rounded-md text-center" style={{ borderColor: 'var(--border-subtle)' }}>
-                          <p className="text-[11px] text-muted" style={{ color: 'var(--text-muted)' }}>No critical violations</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-4">
-                    <div className="text-[11px] text-muted text-center border-t border-subtle pt-4" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}>
-                      Select an entity or relationship to drill down into specific JPA mappings.
-                    </div>
-                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center py-10 opacity-40 bg-panel" style={{ backgroundColor: 'var(--bg-panel)' }}>
-            <ChevronRight className="mb-2 text-secondary" size={20} style={{ color: 'var(--text-secondary)' }} />
-            <div className="[writing-mode:vertical-lr] text-[10px] uppercase font-bold tracking-widest text-secondary" style={{ color: 'var(--text-secondary)' }}>
-              Inspector Collapsed
+              )}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="flex-1 flex flex-col items-center py-10 opacity-40 bg-panel" style={{ backgroundColor: 'var(--bg-panel)' }}>
+              <ChevronRight className="mb-2 text-secondary" size={20} style={{ color: 'var(--text-secondary)' }} />
+              <div className="[writing-mode:vertical-lr] text-[10px] uppercase font-bold tracking-widest text-secondary" style={{ color: 'var(--text-secondary)' }}>
+                Inspector Collapsed
+              </div>
+            </div>
+          )
+        }
       </aside>
     </div >
   );

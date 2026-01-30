@@ -19,9 +19,14 @@ public class EntityNode {
 
     // EclipseLink Cache Configuration
     private String cacheType; // FULL, WEAK, SOFT, NONE
+    private Integer cacheSize;
     private Integer cacheExpiry; // Expiry in milliseconds
     private String cacheCoordinationType; // SEND_OBJECT_CHANGES, INVALIDATE_CHANGED_OBJECTS,
                                           // SEND_NEW_OBJECTS_WITH_CHANGES, NONE
+    private String cacheIsolation; // SHARED, ISOLATED, PROTECTED
+    private boolean cacheAlwaysRefresh;
+    private boolean cacheRefreshOnlyIfNewer;
+    private boolean cacheDisableHits;
 
     public EntityNode() {
         this.attributes = new java.util.HashMap<>();
@@ -142,6 +147,14 @@ public class EntityNode {
         this.cacheType = cacheType;
     }
 
+    public Integer getCacheSize() {
+        return cacheSize;
+    }
+
+    public void setCacheSize(Integer cacheSize) {
+        this.cacheSize = cacheSize;
+    }
+
     public Integer getCacheExpiry() {
         return cacheExpiry;
     }
@@ -156,5 +169,37 @@ public class EntityNode {
 
     public void setCacheCoordinationType(String cacheCoordinationType) {
         this.cacheCoordinationType = cacheCoordinationType;
+    }
+
+    public String getCacheIsolation() {
+        return cacheIsolation;
+    }
+
+    public void setCacheIsolation(String cacheIsolation) {
+        this.cacheIsolation = cacheIsolation;
+    }
+
+    public boolean getCacheAlwaysRefresh() {
+        return cacheAlwaysRefresh;
+    }
+
+    public void setCacheAlwaysRefresh(boolean cacheAlwaysRefresh) {
+        this.cacheAlwaysRefresh = cacheAlwaysRefresh;
+    }
+
+    public boolean getCacheRefreshOnlyIfNewer() {
+        return cacheRefreshOnlyIfNewer;
+    }
+
+    public void setCacheRefreshOnlyIfNewer(boolean cacheRefreshOnlyIfNewer) {
+        this.cacheRefreshOnlyIfNewer = cacheRefreshOnlyIfNewer;
+    }
+
+    public boolean getCacheDisableHits() {
+        return cacheDisableHits;
+    }
+
+    public void setCacheDisableHits(boolean cacheDisableHits) {
+        this.cacheDisableHits = cacheDisableHits;
     }
 }

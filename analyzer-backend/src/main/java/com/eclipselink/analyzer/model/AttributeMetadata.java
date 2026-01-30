@@ -28,6 +28,7 @@ public class AttributeMetadata {
     private boolean isSerializedObjectConverter;
 
     private boolean isTransformationMapping;
+    private boolean multitenantPrimaryKey; // MultitenantPrimaryKeyMapping
     private String transformationMethodName;
     private String objectTypeDataType; // e.g. java.lang.String (DB side)
     private String objectTypeObjectType; // e.g. com.my.Enum (Java side)
@@ -256,5 +257,13 @@ public class AttributeMetadata {
 
     public void setTransformationMethodName(String transformationMethodName) {
         this.transformationMethodName = transformationMethodName;
+    }
+
+    public boolean isMultitenantPrimaryKey() {
+        return multitenantPrimaryKey;
+    }
+
+    public void setMultitenantPrimaryKey(boolean multitenantPrimaryKey) {
+        this.multitenantPrimaryKey = multitenantPrimaryKey;
     }
 }

@@ -15,7 +15,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import org.eclipse.persistence.sessions.Session;
 import org.eclipse.persistence.jpa.JpaHelper;
-import com.eclipselink.analyzer.agent.AgentAnalysisTrigger;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -152,7 +151,8 @@ public class Main {
             session = ((org.eclipse.persistence.internal.jpa.EntityManagerImpl) em.getDelegate()).getActiveSession();
         }
 
-        List<EntityNode> allNodes = AgentAnalysisTrigger.run(session);
+        MetamodelExtractor extractor = new MetamodelExtractor();
+        List<EntityNode> allNodes = extractor.extract(session);
         String nativeDdl = NativeDDLGenerator.generate(session); // Changed DDL generation
 
         // Level 1: Basic

@@ -12,7 +12,6 @@ import org.eclipse.persistence.mappings.DirectMapMapping;
 import org.eclipse.persistence.mappings.VariableOneToOneMapping;
 import org.eclipse.persistence.mappings.structures.ArrayMapping;
 import org.eclipse.persistence.mappings.AggregateObjectMapping;
-import org.eclipse.persistence.mappings.ForeignReferenceMapping;
 import org.eclipse.persistence.mappings.TransformationMapping;
 
 import java.util.ArrayList;
@@ -81,6 +80,45 @@ public class MetamodelExtractor {
             } else if (node.getType().equals("ENTITY")
                     && java.lang.reflect.Modifier.isAbstract(descriptor.getJavaClass().getModifiers())) {
                 node.setType("ABSTRACT_ENTITY");
+            }
+
+            // Extract Cache Configuration
+            if (descriptor.getIdentityMapClass() != null) {
+                String cacheType = descriptor.getIdentityMapClass().getSimpleName().replace("IdentityMap", "")
+                        .toUpperCase();
+                node.setCacheType(cacheType);
+                node.setCacheSize(descriptor.getIdentityMapSize());
+
+                if (descriptor
+                        .getCacheInvalidationPolicy() instanceof org.eclipse.persistence.descriptors.invalidation.TimeToLiveCacheInvalidationPolicy) {
+                    long ttl = ((org.eclipse.persistence.descriptors.invalidation.TimeToLiveCacheInvalidationPolicy) descriptor
+                            .getCacheInvalidationPolicy()).getTimeToLive();
+                    node.setCacheExpiry((int) ttl);
+                }
+
+                int syncType = descriptor.getCacheSynchronizationType();
+                switch (syncType) {
+                    case ClassDescriptor.SEND_OBJECT_CHANGES:
+                        node.setCacheCoordinationType("SEND_OBJECT_CHANGES");
+                        break;
+                    case ClassDescriptor.INVALIDATE_CHANGED_OBJECTS:
+                        node.setCacheCoordinationType("INVALIDATE_CHANGED_OBJECTS");
+                        break;
+                    case ClassDescriptor.SEND_NEW_OBJECTS_WITH_CHANGES:
+                        node.setCacheCoordinationType("SEND_NEW_OBJECTS_WITH_CHANGES");
+                        break;
+                    case ClassDescriptor.DO_NOT_SEND_CHANGES:
+                        node.setCacheCoordinationType("NONE");
+                        break;
+                }
+
+                if (descriptor.getCacheIsolation() != null) {
+                    node.setCacheIsolation(descriptor.getCacheIsolation().name());
+                }
+
+                node.setCacheAlwaysRefresh(descriptor.shouldAlwaysRefreshCache());
+                node.setCacheRefreshOnlyIfNewer(descriptor.shouldOnlyRefreshCacheIfNewerVersion());
+                node.setCacheDisableHits(descriptor.shouldDisableCacheHits());
             }
 
             Map<String, AttributeMetadata> attributes = new HashMap<>();

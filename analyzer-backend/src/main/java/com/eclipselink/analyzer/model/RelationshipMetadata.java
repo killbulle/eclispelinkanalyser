@@ -29,6 +29,12 @@ public class RelationshipMetadata {
     private boolean isVariableOneToOne;
     private boolean isArrayMapping;
     private boolean isNestedTable;
+    private boolean structureMapping; // StructureMapping
+    private boolean referenceMapping; // ReferenceMapping
+    private boolean directToXMLTypeMapping; // DirectToXMLTypeMapping
+    private boolean multitenantPrimaryKey; // MultitenantPrimaryKeyMapping
+    private boolean unidirectionalOneToMany; // UnidirectionalOneToManyMapping
+    private boolean objectArrayMapping; // ObjectArrayMapping
 
     public boolean isNestedTable() {
         return isNestedTable;
@@ -283,5 +289,61 @@ public class RelationshipMetadata {
 
     public void setArrayStructureName(String arrayStructureName) {
         this.arrayStructureName = arrayStructureName;
+    }
+
+    public String getStructureName() {
+        return arrayStructureName;
+    }
+
+    public void setStructureName(String structureName) {
+        this.arrayStructureName = structureName;
+    }
+
+    public boolean isStructureMapping() {
+        return structureMapping;
+    }
+
+    public void setStructureMapping(boolean structureMapping) {
+        this.structureMapping = structureMapping;
+    }
+
+    public boolean isReferenceMapping() {
+        return referenceMapping;
+    }
+
+    public void setReferenceMapping(boolean referenceMapping) {
+        this.referenceMapping = referenceMapping;
+    }
+
+    public boolean isDirectToXMLTypeMapping() {
+        return directToXMLTypeMapping;
+    }
+
+    public void setDirectToXMLTypeMapping(boolean directToXMLTypeMapping) {
+        this.directToXMLTypeMapping = directToXMLTypeMapping;
+    }
+
+    public boolean isMultitenantPrimaryKey() {
+        return multitenantPrimaryKey;
+    }
+
+    public void setMultitenantPrimaryKey(boolean multitenantPrimaryKey) {
+        this.multitenantPrimaryKey = multitenantPrimaryKey;
+    }
+
+    public boolean isUnidirectionalOneToMany() {
+        return unidirectionalOneToMany;
+    }
+
+    public void setUnidirectionalOneToMany(boolean unidirectionalOneToMany) {
+        this.unidirectionalOneToMany = unidirectionalOneToMany;
+    }
+
+    public boolean isObjectArrayMapping() {
+        return objectArrayMapping;
+    }
+
+    public void setObjectArrayMapping(boolean objectArrayMapping) {
+        this.objectArrayMapping = objectArrayMapping;
     }
 }

@@ -303,9 +303,8 @@ public class DDDAnalyzer {
                         rel.isPrivateOwned();
 
                 if (isOwnership) {
-                    // Only propagate to non-roots or if explicitly cascading
-                    // Embedded entities are always part of the aggregate
-                    if (!isEmbeddedByRelation(target, nodeMap)) {
+                    // Propagate to non-roots. If it's a root itself, it starts its own aggregate.
+                    if (!"AGGREGATE_ROOT".equals(target.getDddRole())) {
                         propagateAggregate(target, aggName, nodeMap, visited);
                     }
                 }
