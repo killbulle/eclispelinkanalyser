@@ -60,6 +60,17 @@
     background-image: radial-gradient(var(--border-subtle) 0.5px, transparent 0.5px);
     background-size: 24px 24px;
   }
+
+  select {
+    background-color: var(--bg-input);
+    color: var(--text-main);
+    border-color: var(--border-subtle);
+  }
+
+  select option {
+    background-color: var(--bg-panel);
+    color: var(--text-main);
+  }
 }
 
 @layer components {

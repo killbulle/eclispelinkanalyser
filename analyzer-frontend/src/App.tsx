@@ -26,7 +26,8 @@ import { jsPDF } from 'jspdf';
 import { getAggregateForNode, heuristics } from './utils/aggregateHeuristics';
 // @ts-ignore
 import DDDRules from './analysis/shared-rules';
-import { AlertCircle, Loader2, Eye, GitGraph, Upload, CheckCircle2, ShieldAlert, Database, ChevronLeft, ChevronRight, FileDown, ChevronDown, Sun, Moon } from 'lucide-react';
+import { runAnalysis, type AnalysisReport as DDDReport } from './analysis/engine';
+import { AlertCircle, Loader2, Eye, GitGraph, Upload, CheckCircle2, ShieldAlert, Database, ChevronLeft, ChevronRight, FileDown, ChevronDown, Sun, Moon, Scissors, Layers, Cpu } from 'lucide-react';
 
 interface AttributeMetadata {
   name: string;
@@ -377,6 +378,7 @@ function AnalyzerApp() {
   const [violationFilters, setViolationFilters] = useState<Record<string, boolean>>({ ERROR: true, WARNING: true, INFO: true });
   const [viewMode, setViewMode] = useState<'graph' | 'table' | 'ddl' | 'jpa'>('graph');
   const [nativeDdl, setNativeDdl] = useState<string | null>(null);
+  const [dddReport, setDddReport] = useState<DDDReport | null>(null);
 
   // Sidebar resize handlers
   const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -674,6 +676,15 @@ function AnalyzerApp() {
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(transformedNodes, transformedEdges);
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
+
+    // Run Advanced DDD Analysis
+    const analysisResult = runAnalysis(layoutedNodes, layoutedEdges, {
+      semanticProfile: 'GENERIC',
+      enableSemantic: true,
+      enableTopology: true
+    });
+    setDddReport(analysisResult);
+
     setStats({
       nodes: nodesList.length,
       anomalies: anomalies.length,
@@ -839,6 +850,77 @@ function AnalyzerApp() {
               <div><div className="text-[10px] font-bold text-primary">{stats.infoCount}</div><div className="text-[8px] text-muted">INFO</div></div>
             </div>
           </div>
+
+          {/* DDD Architecture Explorer Section */}
+          <div className="px-3 space-y-4 pb-4 border-t border-subtle pt-4">
+            <h3 className="px-2 mb-2 text-[10px] uppercase font-black tracking-widest text-muted flex items-center gap-2">
+              <Cpu size={11} className="text-score-high" /> Domain Architecture
+            </h3>
+
+            <div className="mx-2 space-y-4">
+              {selectedNode ? (
+                /* Entity Specific DDD Profile */
+                <div className="space-y-3">
+                  <div className="bg-input border border-subtle rounded-[2px] p-3 space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-tight">Role</span>
+                      <span className={`px-1.5 py-0.5 rounded-[1px] text-[9px] font-black ${selectedNode.data.dddRole === 'AGGREGATE_ROOT' ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-subtle text-muted'}`}>
+                        {selectedNode.data.dddRole || 'ENTITY'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-subtle/30 pt-2">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-tight">Cluster</span>
+                      <span className="text-[10px] font-mono text-main truncate max-w-[120px]">{selectedNode.data.aggregateName || 'General'}</span>
+                    </div>
+                  </div>
+                  <div className="p-2.5 bg-primary/5 border border-primary/10 rounded-[2px]">
+                    <div className="text-[8px] font-black text-primary uppercase mb-1.5 opacity-70">Architecture Guidance</div>
+                    <p className="text-[10px] text-secondary leading-tight">
+                      {selectedNode.data.dddRole === 'AGGREGATE_ROOT'
+                        ? `Transactional consistency boundary. Reference by ID only from other aggregates.`
+                        : `Child entity. Must be accessed through its Aggregate Root to maintain invariants.`}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                /* Global Analysis Dashboard */
+                <div className="space-y-5">
+                  {dddReport && (
+                    <>
+                      {dddReport.aggregates.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-[8px] font-black text-muted uppercase tracking-widest flex justify-between">
+                            <span>Aggregate Roots</span>
+                            <span className="text-primary">{dddReport.aggregates.length}</span>
+                          </div>
+                          <div className="space-y-1">
+                            {dddReport.aggregates.slice(0, 3).map((agg: any, idx: number) => (
+                              <div key={idx} className="p-1.5 bg-input border border-subtle rounded-[2px] flex justify-between items-center group">
+                                <span className="text-[10px] font-bold text-main truncate">{agg.root}</span>
+                                <Layers size={10} className="text-muted opacity-30 group-hover:opacity-100" />
+                              </div>
+                            ))}
+                            {dddReport.aggregates.length > 3 && <div className="text-center text-[8px] text-muted italic">+{dddReport.aggregates.length - 3} more...</div>}
+                          </div>
+                        </div>
+                      )}
+
+                      {dddReport.cuts.length > 0 && (
+                        <div className="p-2.5 bg-accent-rose/5 border border-accent-rose/20 rounded-[2px]">
+                          <div className="text-[8px] font-black text-accent-rose uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                            <Scissors size={10} /> Context Cuts ({dddReport.cuts.length})
+                          </div>
+                          <div className="text-[9px] text-secondary leading-tight mb-2">Architectural coupling detected across boundaries.</div>
+                          <div className="text-[8px] text-accent-rose font-bold uppercase tracking-widest bg-accent-rose/10 px-1.5 py-0.5 inline-block rounded-[1px]">Review Boundaries</div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {!dddReport && <div className="py-4 text-center text-[10px] text-muted italic border border-dashed border-subtle rounded">Awaiting Model Analysis...</div>}
+                </div>
+              )}
+            </div>
+          </div>
         </nav>
 
         <div className="p-4 mt-auto border-t border-subtle">
@@ -871,13 +953,17 @@ function AnalyzerApp() {
             <div className="w-px h-4 bg-subtle"></div>
             <div className="flex items-center gap-2">
               <span className="text-[9px] uppercase font-black text-muted tracking-widest">Layout</span>
-              <select onChange={(e) => onLayout(e.target.value as any)} className="bg-input border border-subtle rounded-[2px] px-2 py-0.5 text-[10px] font-bold focus:outline-none">
-                <option value="TB">Hierarchical</option>
-                <option value="LR">Horizontal</option>
-                <option value="ORGANIC">Organic</option>
-                <option value="RADIAL">Radial</option>
-                <option value="GRID">Grid</option>
-                <option value="CLUSTER">Aggregate</option>
+              <select
+                onChange={(e) => onLayout(e.target.value as any)}
+                className="bg-input border border-subtle rounded-[2px] px-2 py-0.5 text-[10px] font-bold focus:outline-none cursor-pointer hover:border-primary transition-colors appearance-none pr-6 relative"
+                style={{ backgroundColor: 'var(--bg-input)', color: 'var(--text-main)', borderColor: 'var(--border-subtle)' }}
+              >
+                <option value="TB" className="bg-panel">Hierarchical</option>
+                <option value="LR" className="bg-panel">Horizontal</option>
+                <option value="ORGANIC" className="bg-panel">Organic</option>
+                <option value="RADIAL" className="bg-panel">Radial</option>
+                <option value="GRID" className="bg-panel">Grid</option>
+                <option value="CLUSTER" className="bg-panel">Aggregate</option>
               </select>
             </div>
           </div>
@@ -972,6 +1058,7 @@ function AnalyzerApp() {
                               <div className="flex justify-between items-center text-[11px] py-1 border-b border-subtle border-dashed"><span className="text-muted">Entities</span><span className="font-mono text-main">{selectedNode.data.type}</span></div>
                             </div>
                           </div>
+
                           {selectedNode.data.relationships && selectedNode.data.relationships.length > 0 && (
                             <div>
                               <div className="text-[9px] font-black text-accent-purple uppercase tracking-widest mb-2">Structure</div>
@@ -998,6 +1085,7 @@ function AnalyzerApp() {
                       )}
                     </div>
                   )}
+
 
                   {activeTab === 'performance' && (
                     <div className="p-4 space-y-4">
@@ -1067,8 +1155,9 @@ function AnalyzerApp() {
                       <div className="text-lg font-bold text-score-high">{Math.max(100 - (stats.errorCount * 5 + stats.warningCount * 2), 0)}%</div>
                     </div>
                   </div>
+
                   <div>
-                    <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-3">Critical Issues</div>
+                    <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-3">System Health Risks</div>
                     <div className="space-y-2">
                       {stats.errorCount > 0 ? (
                         <div className="p-3 bg-score-low/10 border border-score-low/30 rounded-[2px] flex gap-2">
