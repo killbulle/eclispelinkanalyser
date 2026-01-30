@@ -12,6 +12,10 @@ export interface AnalysisConfig {
     semanticProfile: SemanticProfileType;
     enableSemantic: boolean;
     enableTopology: boolean;
+    voConfidenceThreshold: number;
+    instabilityStableThreshold: number;
+    instabilityUnstableThreshold: number;
+    weakLinkThreshold: number;
 }
 
 export interface AnalysisReport {
@@ -96,7 +100,7 @@ export const runAnalysis = (
             confidence += 0.4 * semantic.confidence;
         }
 
-        if (confidence >= 0.5) {
+        if (confidence >= config.voConfidenceThreshold) {
             potentialVOs.add(node.data.name);
             report.valueObjects.push({
                 className: node.data.name,
@@ -178,7 +182,7 @@ export const runAnalysis = (
             const weight = calculateEdgeWeight(edge).weight;
 
             // If weight is weak, strong recommendation to cut
-            if (weight < 0.3) {
+            if (weight < config.weakLinkThreshold) {
                 report.cuts.push({
                     source: source.data.name,
                     target: target.data.name,
@@ -196,8 +200,8 @@ export const runAnalysis = (
         const metricsTarget = topoMetrics.get(target.id);
 
         if (config.enableTopology && metricsSource && metricsTarget) {
-            // If Source is Stable (I < 0.3) and Target is Unstable (I > 0.7)
-            if (metricsSource.instability < 0.3 && metricsTarget.instability > 0.7) {
+            // If Source is Stable and Target is Unstable
+            if (metricsSource.instability < config.instabilityStableThreshold && metricsTarget.instability > config.instabilityUnstableThreshold) {
                 report.cuts.push({
                     source: source.data.name,
                     target: target.data.name,

@@ -27,7 +27,8 @@ import { getAggregateForNode, heuristics } from './utils/aggregateHeuristics';
 // @ts-ignore
 import DDDRules from './analysis/shared-rules';
 import { runAnalysis, type AnalysisReport as DDDReport } from './analysis/engine';
-import { AlertCircle, Loader2, Eye, GitGraph, Upload, CheckCircle2, ShieldAlert, Database, ChevronLeft, ChevronRight, FileDown, ChevronDown, Sun, Moon, Scissors, Layers, Cpu } from 'lucide-react';
+import { AlertCircle, Loader2, Eye, GitGraph, Upload, CheckCircle2, ShieldAlert, Database, ChevronLeft, ChevronRight, FileDown, ChevronDown, Sun, Moon, Scissors, Layers, Cpu, Info, Languages } from 'lucide-react';
+import { translations, type Language } from './translations';
 
 interface AttributeMetadata {
   name: string;
@@ -367,10 +368,20 @@ function AnalyzerApp() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [inspectorJpaTab, setInspectorJpaTab] = useState<'general' | 'cache'>('general');
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [expandedAlgo, setExpandedAlgo] = useState<'weak' | 'stability' | null>(null);
   const [stats, setStats] = useState({ nodes: 0, anomalies: 0, violations: 0, eager: 0, errorCount: 0, warningCount: 0, infoCount: 0 });
   const [showAttributes, setShowAttributes] = useState(false);
   const [selectedReport, setSelectedReport] = useState('demo-scenarios.json');
-  const [activeTab, setActiveTab] = useState<'mapping' | 'performance' | 'ddl'>('mapping');
+  const [activeTab, setActiveTab] = useState<'mapping' | 'performance' | 'ddl' | 'tuning' | 'overview'>('overview');
+  const [analysisConfig, setAnalysisConfig] = useState({
+    semanticProfile: 'GENERIC' as const,
+    enableSemantic: true,
+    enableTopology: true,
+    voConfidenceThreshold: 0.5,
+    instabilityStableThreshold: 0.3,
+    instabilityUnstableThreshold: 0.7,
+    weakLinkThreshold: 0.3,
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(480);
   const [isResizing, setIsResizing] = useState(false);
@@ -379,6 +390,30 @@ function AnalyzerApp() {
   const [viewMode, setViewMode] = useState<'graph' | 'table' | 'ddl' | 'jpa'>('graph');
   const [nativeDdl, setNativeDdl] = useState<string | null>(null);
   const [dddReport, setDddReport] = useState<DDDReport | null>(null);
+  const [focusedAggregate, setFocusedAggregate] = useState<string | null>(null);
+  const [language, setLanguage] = useState<Language>('fr');
+  const { fitView, getNodes, getEdges } = useReactFlow();
+
+  const t = useCallback((key: keyof typeof translations['en']) => {
+    return (translations[language] as any)[key] || (translations['en'] as any)[key] || key;
+  }, [language]);
+
+  const centerOnAggregate = useCallback((aggregateName: string | null) => {
+    setFocusedAggregate(aggregateName);
+    if (!aggregateName) {
+      fitView({ duration: 800 });
+      return;
+    }
+
+    const clusterNodes = nodes.filter(n => n.data.aggregateName === aggregateName);
+    if (clusterNodes.length > 0) {
+      fitView({
+        nodes: clusterNodes,
+        duration: 800,
+        padding: 0.2
+      });
+    }
+  }, [nodes, fitView]);
 
   // Sidebar resize handlers
   const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -461,7 +496,6 @@ function AnalyzerApp() {
     { id: 'ofbiz-report.json', name: '7.2 🚀 OFBiz Stress Test (113 entities)' },
     { id: 'agent-report.json', name: 'DDDSample Analysis' },
   ];
-  const { fitView, getNodes, getEdges } = useReactFlow();
 
   const processReportData = useCallback((data: AnalysisReport) => {
     const countViolationsForRelationship = (sourceEntity: string, rel: RelationshipMetadata): number => {
@@ -678,11 +712,7 @@ function AnalyzerApp() {
     setEdges(layoutedEdges);
 
     // Run Advanced DDD Analysis
-    const analysisResult = runAnalysis(layoutedNodes, layoutedEdges, {
-      semanticProfile: 'GENERIC',
-      enableSemantic: true,
-      enableTopology: true
-    });
+    const analysisResult = runAnalysis(layoutedNodes, layoutedEdges, analysisConfig);
     setDddReport(analysisResult);
 
     setStats({
@@ -695,7 +725,7 @@ function AnalyzerApp() {
       infoCount: violations.filter(v => v.severity === 'INFO').length
     });
     setTimeout(() => fitView(), 100);
-  }, [setNodes, setEdges, fitView]);
+  }, [setNodes, setEdges, fitView, analysisConfig]);
 
   useEffect(() => {
     if (selectedReport === 'uploaded' || !selectedReport) { setLoading(false); return; }
@@ -842,7 +872,7 @@ function AnalyzerApp() {
         <nav className="flex-1 px-3 space-y-6 overflow-y-auto custom-scrollbar py-4">
           <div>
             <h3 className="px-2 mb-2 text-[10px] uppercase font-black tracking-widest text-muted flex items-center gap-2">
-              <Database size={11} /> Statistics
+              <Database size={11} /> {t('stats')}
             </h3>
             <div className="mx-2 mb-3 p-2 bg-input border border-subtle rounded-[2px] grid grid-cols-3 text-center">
               <div><div className="text-[10px] font-bold text-score-low">{stats.errorCount}</div><div className="text-[8px] text-muted">ERR</div></div>
@@ -854,8 +884,26 @@ function AnalyzerApp() {
           {/* DDD Architecture Explorer Section */}
           <div className="px-3 space-y-4 pb-4 border-t border-subtle pt-4">
             <h3 className="px-2 mb-2 text-[10px] uppercase font-black tracking-widest text-muted flex items-center gap-2">
-              <Cpu size={11} className="text-score-high" /> Domain Architecture
+              <Cpu size={11} className="text-score-high" /> {t('domainArchitecture')}
             </h3>
+
+            <div className="mx-2 mb-4">
+              <label className="text-[8px] uppercase tracking-widest text-muted font-black block mb-1.5 opacity-70">{t('aggregateExplorer')}</label>
+              <div className="relative group">
+                <select
+                  value={focusedAggregate || ''}
+                  onChange={(e) => centerOnAggregate(e.target.value || null)}
+                  className="w-full bg-input border border-subtle rounded-[2px] px-2.5 py-1.5 text-[10px] appearance-none focus:outline-none focus:border-primary transition-all cursor-pointer font-bold pr-8"
+                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-subtle)', color: 'var(--text-main)' }}
+                >
+                  <option value="">{t('allAggregates')}</option>
+                  {dddReport?.aggregates.map((agg: any) => (
+                    <option key={agg.root} value={agg.root}>{agg.root}</option>
+                  ))}
+                </select>
+                <ChevronDown size={10} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted opacity-50" />
+              </div>
+            </div>
 
             <div className="mx-2 space-y-4">
               {selectedNode ? (
@@ -908,7 +956,7 @@ function AnalyzerApp() {
                       {dddReport.cuts.length > 0 && (
                         <div className="p-2.5 bg-accent-rose/5 border border-accent-rose/20 rounded-[2px]">
                           <div className="text-[8px] font-black text-accent-rose uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                            <Scissors size={10} /> Context Cuts ({dddReport.cuts.length})
+                            <Scissors size={10} /> {t('anomalies')} ({dddReport.cuts.length})
                           </div>
                           <div className="text-[9px] text-secondary leading-tight mb-2">Architectural coupling detected across boundaries.</div>
                           <div className="text-[8px] text-accent-rose font-bold uppercase tracking-widest bg-accent-rose/10 px-1.5 py-0.5 inline-block rounded-[1px]">Review Boundaries</div>
@@ -916,7 +964,7 @@ function AnalyzerApp() {
                       )}
                     </>
                   )}
-                  {!dddReport && <div className="py-4 text-center text-[10px] text-muted italic border border-dashed border-subtle rounded">Awaiting Model Analysis...</div>}
+                  {!dddReport && <div className="py-4 text-center text-[10px] text-muted italic border border-dashed border-subtle rounded">{t('systemHealthy')}</div>}
                 </div>
               )}
             </div>
@@ -952,25 +1000,41 @@ function AnalyzerApp() {
             </div>
             <div className="w-px h-4 bg-subtle"></div>
             <div className="flex items-center gap-2">
-              <span className="text-[9px] uppercase font-black text-muted tracking-widest">Layout</span>
+              <span className="text-[9px] uppercase font-black text-muted tracking-widest">{t('layout')}</span>
               <select
                 onChange={(e) => onLayout(e.target.value as any)}
                 className="bg-input border border-subtle rounded-[2px] px-2 py-0.5 text-[10px] font-bold focus:outline-none cursor-pointer hover:border-primary transition-colors appearance-none pr-6 relative"
                 style={{ backgroundColor: 'var(--bg-input)', color: 'var(--text-main)', borderColor: 'var(--border-subtle)' }}
               >
-                <option value="TB" className="bg-panel">Hierarchical</option>
-                <option value="LR" className="bg-panel">Horizontal</option>
-                <option value="ORGANIC" className="bg-panel">Organic</option>
-                <option value="RADIAL" className="bg-panel">Radial</option>
-                <option value="GRID" className="bg-panel">Grid</option>
-                <option value="CLUSTER" className="bg-panel">Aggregate</option>
+                <option value="TB" className="bg-panel">{t('layouts.TB' as any)}</option>
+                <option value="LR" className="bg-panel">{t('layouts.LR' as any)}</option>
+                <option value="ORGANIC" className="bg-panel">{t('layouts.ORGANIC' as any)}</option>
+                <option value="RADIAL" className="bg-panel">{t('layouts.RADIAL' as any)}</option>
+                <option value="GRID" className="bg-panel">{t('layouts.GRID' as any)}</option>
+                <option value="CLUSTER" className="bg-panel">{t('layouts.CLUSTER' as any)}</option>
               </select>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="relative group">
+              <Languages size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                className="bg-input border border-subtle rounded-[2px] pl-8 pr-6 py-1.5 text-[10px] font-bold focus:outline-none cursor-pointer hover:border-primary transition-colors appearance-none"
+                style={{ backgroundColor: 'var(--bg-input)', color: 'var(--text-main)', borderColor: 'var(--border-subtle)' }}
+              >
+                <option value="en">🇬🇧 EN</option>
+                <option value="fr">🇫🇷 FR</option>
+                <option value="pl">🇵🇱 PL</option>
+                <option value="ru">🇷🇺 RU</option>
+              </select>
+              <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted opacity-50" />
+            </div>
+
             <button onClick={generatePDFReport} className="flex items-center gap-2 px-3 py-1.5 bg-input border border-subtle rounded-[2px] text-[10px] font-bold text-secondary hover:text-main transition-all">
-              <FileDown size={14} /> Export Report
+              <FileDown size={14} /> {t('exportReport')}
             </button>
             <button onClick={toggleAttributes} className={`p-1.5 rounded-[2px] border transition-all ${showAttributes ? 'bg-primary/20 border-primary text-primary' : 'bg-input border-subtle text-muted'}`}>
               <Eye size={16} />
@@ -1041,7 +1105,7 @@ function AnalyzerApp() {
                 )}
 
                 <div className="flex border-b border-subtle bg-black/5">
-                  {(['mapping', 'performance', 'ddl'] as const).map((tab) => (
+                  {(['mapping', 'performance', 'ddl', 'tuning'] as const).map((tab) => (
                     <button key={tab} onClick={() => setActiveTab(tab)} className={`ide-tab ${activeTab === tab ? 'active' : ''}`}>{tab}</button>
                   ))}
                 </div>
@@ -1130,55 +1194,191 @@ function AnalyzerApp() {
               </>
             ) : (
               <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="p-4 border-b border-subtle bg-black/10"><h2 className="text-[12px] font-black text-main uppercase tracking-widest">Global Insights</h2></div>
-                <div className="flex-1 p-4 space-y-6 overflow-y-auto custom-scrollbar">
-                  <div className="px-1 mb-2">
-                    <div className="flex gap-2">
-                      {(['ERROR', 'WARNING'] as const).map(sev => (
-                        <button
-                          key={sev}
-                          onClick={() => setViolationFilters(prev => ({ ...prev, [sev]: !prev[sev] }))}
-                          className={`flex-1 py-1 px-2 rounded text-[9px] border transition-all ${violationFilters[sev] ? 'bg-primary/10 border-primary text-primary' : 'bg-transparent border-subtle text-muted'}`}
-                        >
-                          {sev}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-input border border-subtle rounded-[2px] text-center">
-                      <div className="text-[8px] text-muted font-black uppercase mb-1">Entities</div>
-                      <div className="text-lg font-bold text-main">{stats.nodes}</div>
-                    </div>
-                    <div className="p-3 bg-input border border-subtle rounded-[2px] text-center">
-                      <div className="text-[8px] text-muted font-black uppercase mb-1">Health</div>
-                      <div className="text-lg font-bold text-score-high">{Math.max(100 - (stats.errorCount * 5 + stats.warningCount * 2), 0)}%</div>
-                    </div>
-                  </div>
+                <div className="p-4 border-b border-subtle bg-black/10">
+                  <h2 className="text-[12px] font-black text-main uppercase tracking-widest">{t('globalInsights')}</h2>
+                </div>
+                <div className="flex border-b border-subtle bg-black/5">
+                  {(['overview', 'tuning'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab as any)}
+                      className={`ide-tab ${activeTab === tab || (tab === 'overview' && !['tuning', 'overview'].includes(activeTab)) ? 'active' : ''}`}
+                    >
+                      {t(tab as any)}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                  {(activeTab === 'overview' || !['tuning'].includes(activeTab)) && (
+                    <div className="p-4 space-y-6">
+                      <div className="px-1 mb-2">
+                        <div className="flex gap-2">
+                          {(['ERROR', 'WARNING'] as const).map(sev => (
+                            <button
+                              key={sev}
+                              onClick={() => setViolationFilters(prev => ({ ...prev, [sev]: !prev[sev] }))}
+                              className={`flex-1 py-1 px-2 rounded text-[9px] border transition-all ${violationFilters[sev] ? 'bg-primary/10 border-primary text-primary' : 'bg-transparent border-subtle text-muted'}`}
+                            >
+                              {sev}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-input border border-subtle rounded-[2px] text-center">
+                          <div className="text-[8px] text-muted font-black uppercase mb-1">{t('entities')}</div>
+                          <div className="text-lg font-bold text-main">{stats.nodes}</div>
+                        </div>
+                        <div className="p-3 bg-input border border-subtle rounded-[2px] text-center">
+                          <div className="text-[8px] text-muted font-black uppercase mb-1">{t('health')}</div>
+                          <div className="text-lg font-bold text-score-high">{Math.max(100 - (stats.errorCount * 5 + stats.warningCount * 2), 0)}%</div>
+                        </div>
+                      </div>
 
-                  <div>
-                    <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-3">System Health Risks</div>
-                    <div className="space-y-2">
-                      {stats.errorCount > 0 ? (
-                        <div className="p-3 bg-score-low/10 border border-score-low/30 rounded-[2px] flex gap-2">
-                          <ShieldAlert size={14} className="text-score-low shrink-0 h-4" />
-                          <div>
-                            <div className="text-[11px] font-bold text-score-low mb-1">Action Required</div>
-                            <p className="text-[10px] text-secondary leading-relaxed">Detected architectural risks. Check units in cycle or with eager fetching.</p>
+                      <div>
+                        <div className="text-[9px] font-black text-muted uppercase tracking-widest mb-3">{t('systemHealthRisks')}</div>
+                        <div className="space-y-2">
+                          {stats.errorCount > 0 ? (
+                            <div className="p-3 bg-score-low/10 border border-score-low/30 rounded-[2px] flex gap-2">
+                              <ShieldAlert size={14} className="text-score-low shrink-0 h-4" />
+                              <div>
+                                <div className="text-[11px] font-bold text-score-low mb-1">{t('actionRequired')}</div>
+                                <p className="text-[10px] text-secondary leading-relaxed">{t('archRisksDetected')}</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-4 border border-dashed border-subtle rounded-[2px] text-center italic text-[10px] text-muted">{t('systemHealthy')}</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'tuning' && (
+                    <div className="p-4 space-y-6">
+                      <div>
+                        <div className="text-[9px] font-black text-primary uppercase tracking-widest mb-4">{t('algorithmTuning')}</div>
+                        <div className="space-y-6">
+                          {/* VO Threshold */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center" title={t('voConfidenceTooltip')}>
+                              <span className="text-[10px] font-bold text-main">{t('voConfidenceThreshold')}</span>
+                              <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{analysisConfig.voConfidenceThreshold.toFixed(2)}</span>
+                            </div>
+                            <input
+                              type="range" min="0" max="1" step="0.05"
+                              value={analysisConfig.voConfidenceThreshold}
+                              onChange={(e) => setAnalysisConfig(prev => ({ ...prev, voConfidenceThreshold: parseFloat(e.target.value) }))}
+                              className="w-full accent-primary h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
+                              title={t('voConfidenceTooltip')}
+                            />
+                            <p className="text-[8px] text-muted italic">{t('voSensitivityDesc')}</p>
+                          </div>
+
+                          {/* Weak Link Threshold */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center" title={t('weakLinkTooltip')}>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-main">{t('weakLinkSensitivity')}</span>
+                                <button
+                                  onClick={() => setExpandedAlgo(expandedAlgo === 'weak' ? null : 'weak')}
+                                  className="text-primary hover:text-white transition-colors"
+                                  title="Explain Algorithm"
+                                >
+                                  <Info size={10} />
+                                </button>
+                              </div>
+                              <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{analysisConfig.weakLinkThreshold.toFixed(2)}</span>
+                            </div>
+
+                            {expandedAlgo === 'weak' && (
+                              <div className="p-2 mb-2 bg-blue-500/10 border-l-2 border-blue-500 rounded-r text-[9px] text-muted leading-relaxed">
+                                <h4 className="font-bold text-blue-400 mb-1 uppercase tracking-wider">Heuristic: Point Cuts</h4>
+                                {t('weakLinkAlgoDetail')}
+                              </div>
+                            )}
+
+                            <input
+                              type="range" min="0" max="1" step="0.05"
+                              value={analysisConfig.weakLinkThreshold}
+                              onChange={(e) => setAnalysisConfig(prev => ({ ...prev, weakLinkThreshold: parseFloat(e.target.value) }))}
+                              className="w-full accent-primary h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
+                              title={t('weakLinkTooltip')}
+                            />
+                            <p className="text-[8px] text-muted italic">{t('weakLinkDesc')}</p>
+                          </div>
+
+                          {/* Stability Thresholds */}
+                          <div className="space-y-4 pt-2 border-t border-subtle/50">
+                            <div className="flex items-center justify-between">
+                              <div className="text-[8px] font-black text-muted uppercase tracking-tight flex items-center gap-2">
+                                {t('stabilityBoundaries')}
+                                <button
+                                  onClick={() => setExpandedAlgo(expandedAlgo === 'stability' ? null : 'stability')}
+                                  className="text-muted hover:text-white transition-colors"
+                                  title="Explain Metric"
+                                >
+                                  <Info size={9} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {expandedAlgo === 'stability' && (
+                              <div className="p-2 mb-2 bg-purple-500/10 border-l-2 border-purple-500 rounded-r text-[9px] text-muted leading-relaxed">
+                                <h4 className="font-bold text-purple-400 mb-1 uppercase tracking-wider">Metric: Robert C. Martin's Instability</h4>
+                                {t('stabilityAlgoDetail')}
+                              </div>
+                            )}
+
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center" title={t('stableZoneTooltip')}>
+                                <span className="text-[10px] font-bold text-main italic">{t('stableZone')}</span>
+                                <span className="text-[10px] font-mono text-score-high bg-score-high/10 px-1.5 py-0.5 rounded">{analysisConfig.instabilityStableThreshold.toFixed(2)}</span>
+                              </div>
+                              <input
+                                type="range" min="0" max="0.5" step="0.05"
+                                value={analysisConfig.instabilityStableThreshold}
+                                onChange={(e) => setAnalysisConfig(prev => ({ ...prev, instabilityStableThreshold: parseFloat(e.target.value) }))}
+                                className="w-full accent-score-high h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
+                                title={t('stableZoneTooltip')}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center" title={t('unstableZoneTooltip')}>
+                                <span className="text-[10px] font-bold text-main italic">{t('unstableZone')}</span>
+                                <span className="text-[10px] font-mono text-score-low bg-score-low/10 px-1.5 py-0.5 rounded">{analysisConfig.instabilityUnstableThreshold.toFixed(2)}</span>
+                              </div>
+                              <input
+                                type="range" min="0.5" max="1" step="0.05"
+                                value={analysisConfig.instabilityUnstableThreshold}
+                                onChange={(e) => setAnalysisConfig(prev => ({ ...prev, instabilityUnstableThreshold: parseFloat(e.target.value) }))}
+                                className="w-full accent-score-low h-1 bg-subtle rounded-lg appearance-none cursor-pointer"
+                                title={t('unstableZoneTooltip')}
+                              />
+                            </div>
+                          </div>
+                          <div className="p-3 bg-panel border border-subtle border-dashed rounded-[2px] mt-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Info size={12} className="text-primary" />
+                              <span className="text-[9px] font-bold text-secondary uppercase tracking-tighter">{t('archImpact')}</span>
+                            </div>
+                            <p className="text-[9px] text-muted leading-tight mb-2 italic text-[8px]">{t('adjustZonesDesc')}</p>
+                            <ul className="text-[8px] text-muted space-y-1 list-disc pl-3">
+                              <li><b>{t('lowerStableNote')}</b></li>
+                              <li><b>{t('higherUnstableNote')}</b></li>
+                            </ul>
                           </div>
                         </div>
-                      ) : (
-                        <div className="p-4 border border-dashed border-subtle rounded-[2px] text-center italic text-[10px] text-muted">System healthy.</div>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center py-6 opacity-40">
-            <span className="[writing-mode:vertical-lr] text-[9px] font-black uppercase tracking-widest text-muted">Inspector Hidden</span>
+            <span className="[writing-mode:vertical-lr] text-[9px] font-black uppercase tracking-widest text-muted">{t('inspectorHidden')}</span>
           </div>
         )}
       </aside>
